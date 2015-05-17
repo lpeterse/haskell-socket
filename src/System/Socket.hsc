@@ -8,6 +8,13 @@ import Data.Typeable
 import Foreign.C.Types
 import Foreign.C.Error
 
+import GHC.IO
+import GHC.Conc
+import GHC.Conc.IO
+
+import System.IO
+import System.Posix.Types
+
 #include "sys/types.h"
 #include "sys/socket.h"
 #include "netinet/in.h"
@@ -58,6 +65,9 @@ instance Protocol IPPROTO_SCTP where
 newtype SocketException = SocketException Errno
   deriving (Typeable)
 
+newtype CloseException = CloseException Errno
+  deriving (Typeable)
+
 instance Show SocketException where
   show (SocketException e@(Errno i))
     | e == eACCES                 = "socket: Permission to create a socket of the specified type and/or protocol is denied."
@@ -69,7 +79,15 @@ instance Show SocketException where
     | e == ePROTONOSUPPORT        = "socket: The protocol type or the specified protocol is not supported within this domain."
     | otherwise                   = "socket: errno " ++ (show i)
 
+instance Show CloseException where
+  show (CloseException e@(Errno i))
+    | e == eBADF                  = "close: Not a valid open file descriptor."
+    | e == eINTR                  = "close: The call was interrupted by a signal."
+    | e == eIO                    = "close: An I/O error occurred."
+    | otherwise                   = "close: errno " ++ (show i)
+
 instance Exception SocketException
+instance Exception CloseException
 
 socket :: (Family f, Type t, Protocol p) => f -> t -> p -> IO (Socket f t p)
 socket f t p = do
@@ -79,5 +97,19 @@ socket f t p = do
     throwIO (SocketException e)
   return (Socket s)
 
+
+close :: (Family f, Type t, Protocol p) => Socket f t p -> IO ()
+close (Socket s) = do
+  closeFdWith closeFd (Fd s)
+  where
+    closeFd (Fd i) = do
+      r <- c_close i
+      when (r == -1) $ do
+        e <- getErrno
+        throwIO (CloseException e)
+
 foreign import ccall safe "socket"
   c_socket :: CInt -> CInt -> CInt -> IO CInt
+
+foreign import ccall safe "close"
+  c_close :: CInt -> IO CInt
