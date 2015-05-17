@@ -5,6 +5,7 @@ import Control.Exception
 import Control.Monad
 
 import Data.Word
+import Data.Bits
 import Data.Typeable
 
 import Foreign.C.Types
@@ -129,25 +130,11 @@ data SocketAddressInet
 
 data SocketAddressInet6
    = SocketAddressInet6
-     { sin6Port     :: Word16
-     , sin6Flowinfo :: Word32
-     , sin6Addr_0   :: Word8
-     , sin6Addr_1   :: Word8
-     , sin6Addr_2   :: Word8
-     , sin6Addr_3   :: Word8
-     , sin6Addr_4   :: Word8
-     , sin6Addr_5   :: Word8
-     , sin6Addr_6   :: Word8
-     , sin6Addr_7   :: Word8
-     , sin6Addr_8   :: Word8
-     , sin6Addr_9   :: Word8
-     , sin6Addr_A   :: Word8
-     , sin6Addr_B   :: Word8
-     , sin6Addr_C   :: Word8
-     , sin6Addr_D   :: Word8
-     , sin6Addr_E   :: Word8
-     , sin6Addr_F   :: Word8
-     , sin6ScopeId  :: Word32
+     { sin6Port      :: Word16
+     , sin6Flowinfo  :: Word32
+     , sin6Addr_high :: Word64
+     , sin6Addr_low  :: Word64
+     , sin6ScopeId   :: Word32
      }
 
 foreign import ccall safe "sys/socket.h socket"
@@ -160,49 +147,85 @@ foreign import ccall unsafe "misc.h poke_sockaddr_in6"
   c_poke_sockaddr_in6 :: Ptr SocketAddressInet6
     -> Word16
     -> Word32
-    -> Word8
-    -> Word8
-    -> Word8
-    -> Word8
-    -> Word8
-    -> Word8
-    -> Word8
-    -> Word8
-    -> Word8
-    -> Word8
-    -> Word8
-    -> Word8
-    -> Word8
-    -> Word8
-    -> Word8
-    -> Word8
+    -> Word64
+    -> Word64
     -> Word32
     -> IO ()
 
 instance Storable SocketAddressInet6 where
   sizeOf    _ = (#const sizeof(struct sockaddr_storage))
   alignment _ = 8
-  peek ptr = do
-    p <- c_peek_sockaddr_in6_port ptr
-    f <- (#peek struct sockaddr_in6, sin6_flowinfo) ptr
-    a_0 <- c_peek_sockaddr_in6_addr 0x00 ptr
-    a_1 <- c_peek_sockaddr_in6_addr 0x01 ptr
-    a_2 <- c_peek_sockaddr_in6_addr 0x02 ptr
-    a_3 <- c_peek_sockaddr_in6_addr 0x03 ptr
-    a_4 <- c_peek_sockaddr_in6_addr 0x04 ptr
-    a_5 <- c_peek_sockaddr_in6_addr 0x05 ptr
-    a_6 <- c_peek_sockaddr_in6_addr 0x06 ptr
-    a_7 <- c_peek_sockaddr_in6_addr 0x07 ptr
-    a_8 <- c_peek_sockaddr_in6_addr 0x08 ptr
-    a_9 <- c_peek_sockaddr_in6_addr 0x09 ptr
-    a_a <- c_peek_sockaddr_in6_addr 0x0a ptr
-    a_b <- c_peek_sockaddr_in6_addr 0x0b ptr
-    a_c <- c_peek_sockaddr_in6_addr 0x0c ptr
-    a_d <- c_peek_sockaddr_in6_addr 0x0d ptr
-    a_e <- c_peek_sockaddr_in6_addr 0x0e ptr
-    a_f <- c_peek_sockaddr_in6_addr 0x0f ptr
-    s <- (#peek struct sockaddr_in6, sin6_scope_id) ptr
-    return (SocketAddressInet6 p f a_0 a_1 a_2 a_3 a_4 a_5 a_6 a_7 a_8 a_9 a_A a_B a_C a_D a_E a_F s)
+  peek ptr    = do
+    f      <- (#peek struct sockaddr_in6, sin6_flowinfo) ptr               :: IO Word32
+    s      <- (#peek struct sockaddr_in6, sin6_scope_id) ptr               :: IO Word32
+    p_high <- peek $ (#ptr struct sockaddr_in6, sin6_port) ptr             :: IO Word8
+    p_low  <- peek $ (#ptr struct sockaddr_in6, sin6_port) ptr `plusPtr` 1 :: IO Word8
 
-  poke ptr (SocketAddressInet6 p f a_0 a_1 a_2 a_3 a_4 a_5 a_6 a_7 a_8 a_9 a_A a_B a_C a_D a_E a_F s) = do
-    c_poke_sockaddr_in6 ptr p f a_0 a_1 a_2 a_3 a_4 a_5 a_6 a_7 a_8 a_9 a_A a_B a_C a_D a_E a_F s
+    let p = (fromIntegral p_high) * 256 + fromIntegral p_low               :: Word16
+    let addrPtr = (#ptr struct in6_addr, s6_addr) ((#ptr struct sockaddr_in6, sin6_addr) ptr)
+
+    b00 <- peekByteOff addrPtr  0 :: IO Word8
+    b01 <- peekByteOff addrPtr  1 :: IO Word8
+    b02 <- peekByteOff addrPtr  2 :: IO Word8
+    b03 <- peekByteOff addrPtr  3 :: IO Word8
+    b04 <- peekByteOff addrPtr  4 :: IO Word8
+    b05 <- peekByteOff addrPtr  5 :: IO Word8
+    b06 <- peekByteOff addrPtr  6 :: IO Word8
+    b07 <- peekByteOff addrPtr  7 :: IO Word8
+    b08 <- peekByteOff addrPtr  8 :: IO Word8
+    b09 <- peekByteOff addrPtr  9 :: IO Word8
+    b10 <- peekByteOff addrPtr 10 :: IO Word8
+    b11 <- peekByteOff addrPtr 11 :: IO Word8
+    b12 <- peekByteOff addrPtr 12 :: IO Word8
+    b13 <- peekByteOff addrPtr 13 :: IO Word8
+    b14 <- peekByteOff addrPtr 14 :: IO Word8
+    b15 <- peekByteOff addrPtr 15 :: IO Word8
+
+    let a_high = fromIntegral b00 * 256 * 256 * 256 * 256 * 256 * 256 * 256
+               + fromIntegral b01 * 256 * 256 * 256 * 256 * 256 * 256
+               + fromIntegral b02 * 256 * 256 * 256 * 256 * 256
+               + fromIntegral b03 * 256 * 256 * 256 * 256
+               + fromIntegral b04 * 256 * 256 * 256
+               + fromIntegral b05 * 256 * 256
+               + fromIntegral b06 * 256
+               + fromIntegral b07 :: Word64
+
+    let a_low  = fromIntegral b08 * 256 * 256 * 256 * 256 * 256 * 256 * 256
+               + fromIntegral b09 * 256 * 256 * 256 * 256 * 256 * 256
+               + fromIntegral b10 * 256 * 256 * 256 * 256 * 256
+               + fromIntegral b11 * 256 * 256 * 256 * 256
+               + fromIntegral b12 * 256 * 256 * 256
+               + fromIntegral b13 * 256 * 256
+               + fromIntegral b14 * 256
+               + fromIntegral b15 :: Word64
+
+    return (SocketAddressInet6 p f a_high a_low s)
+
+  poke ptr (SocketAddressInet6 p f a_high a_low s) = do
+    poke        (sin6_family ptr) ((#const AF_INET) :: Word16)
+    poke        (sin6_flowinfo ptr) f
+    poke        (sin6_scope_id ptr) s
+    pokeByteOff (sin6_port ptr)  0 (fromIntegral $ 0xff .&. (p      `shiftR`  8) :: Word8)
+    pokeByteOff (sin6_port ptr)  1 (fromIntegral $ 0xff .&. (p      `shiftR`  0) :: Word8)
+    pokeByteOff (sin6_addr ptr)  0 (fromIntegral $ 0xff .&. (a_high `shiftR` 56) :: Word8)
+    pokeByteOff (sin6_addr ptr)  1 (fromIntegral $ 0xff .&. (a_high `shiftR` 48) :: Word8)
+    pokeByteOff (sin6_addr ptr)  2 (fromIntegral $ 0xff .&. (a_high `shiftR` 40) :: Word8)
+    pokeByteOff (sin6_addr ptr)  3 (fromIntegral $ 0xff .&. (a_high `shiftR` 32) :: Word8)
+    pokeByteOff (sin6_addr ptr)  4 (fromIntegral $ 0xff .&. (a_high `shiftR` 24) :: Word8)
+    pokeByteOff (sin6_addr ptr)  5 (fromIntegral $ 0xff .&. (a_high `shiftR` 16) :: Word8)
+    pokeByteOff (sin6_addr ptr)  6 (fromIntegral $ 0xff .&. (a_high `shiftR`  8) :: Word8)
+    pokeByteOff (sin6_addr ptr)  7 (fromIntegral $ 0xff .&. (a_high `shiftR`  0) :: Word8)
+    pokeByteOff (sin6_addr ptr)  8 (fromIntegral $ 0xff .&. (a_high `shiftR` 56) :: Word8)
+    pokeByteOff (sin6_addr ptr)  9 (fromIntegral $ 0xff .&. (a_high `shiftR` 48) :: Word8)
+    pokeByteOff (sin6_addr ptr) 10 (fromIntegral $ 0xff .&. (a_high `shiftR` 40) :: Word8)
+    pokeByteOff (sin6_addr ptr) 11 (fromIntegral $ 0xff .&. (a_high `shiftR` 32) :: Word8)
+    pokeByteOff (sin6_addr ptr) 12 (fromIntegral $ 0xff .&. (a_high `shiftR` 24) :: Word8)
+    pokeByteOff (sin6_addr ptr) 13 (fromIntegral $ 0xff .&. (a_high `shiftR` 16) :: Word8)
+    pokeByteOff (sin6_addr ptr) 14 (fromIntegral $ 0xff .&. (a_high `shiftR`  8) :: Word8)
+    pokeByteOff (sin6_addr ptr) 15 (fromIntegral $ 0xff .&. (a_high `shiftR`  0) :: Word8)
+    where
+      sin6_family   = (#ptr struct sockaddr_in6, sin6_family)
+      sin6_flowinfo = (#ptr struct sockaddr_in6, sin6_flowinfo)
+      sin6_scope_id = (#ptr struct sockaddr_in6, sin6_scope_id)
+      sin6_port     = (#ptr struct sockaddr_in6, sin6_port)
+      sin6_addr     = (#ptr struct in6_addr, s6_addr) . (#ptr struct sockaddr_in6, sin6_addr)
