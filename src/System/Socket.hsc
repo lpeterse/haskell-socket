@@ -11,6 +11,7 @@ import Foreign.C.Types
 import Foreign.C.Error
 import Foreign.Ptr
 import Foreign.ForeignPtr
+import Foreign.Storable
 
 import GHC.IO
 import GHC.Conc
@@ -149,12 +150,6 @@ data SocketAddressInet6
      , sin6ScopeId  :: Word32
      }
 
-sockAddrInet6 :: SocketAddressInet6 -> IO (ForeignPtr SocketAddressStruct)
-sockAddrInet6 (SocketAddressInet6 p f a_0 a_1 a_2 a_3 a_4 a_5 a_6 a_7 a_8 a_9 a_A a_B a_C a_D a_E a_F s) = do
-  fptr <- mallocForeignPtrBytes (#const sizeof(struct sockaddr_storage))
-  withForeignPtr fptr (\ptr-> c_sockAddrInet6 ptr p f a_0 a_1 a_2 a_3 a_4 a_5 a_6 a_7 a_8 a_9 a_A a_B a_C a_D a_E a_F s)
-  return fptr
-
 foreign import ccall safe "sys/socket.h socket"
   c_socket :: CInt -> CInt -> CInt -> IO CInt
 
@@ -162,24 +157,52 @@ foreign import ccall safe "unistd.h close"
   c_close :: CInt -> IO CInt
 
 foreign import ccall unsafe "misc.h poke_sockaddr_in6"
-  c_sockAddrInet6 :: Ptr SocketAddressStruct
-                  -> Word16
-                  -> Word32
-                  -> Word8
-                  -> Word8
-                  -> Word8
-                  -> Word8
-                  -> Word8
-                  -> Word8
-                  -> Word8
-                  -> Word8
-                  -> Word8
-                  -> Word8
-                  -> Word8
-                  -> Word8
-                  -> Word8
-                  -> Word8
-                  -> Word8
-                  -> Word8
-                  -> Word32
-                  -> IO ()
+  c_poke_sockaddr_in6 :: Ptr SocketAddressInet6
+    -> Word16
+    -> Word32
+    -> Word8
+    -> Word8
+    -> Word8
+    -> Word8
+    -> Word8
+    -> Word8
+    -> Word8
+    -> Word8
+    -> Word8
+    -> Word8
+    -> Word8
+    -> Word8
+    -> Word8
+    -> Word8
+    -> Word8
+    -> Word8
+    -> Word32
+    -> IO ()
+
+instance Storable SocketAddressInet6 where
+  sizeOf    _ = (#const sizeof(struct sockaddr_storage))
+  alignment _ = 8
+  peek ptr = do
+    p <- c_peek_sockaddr_in6_port ptr
+    f <- (#peek struct sockaddr_in6, sin6_flowinfo) ptr
+    a_0 <- c_peek_sockaddr_in6_addr 0x00 ptr
+    a_1 <- c_peek_sockaddr_in6_addr 0x01 ptr
+    a_2 <- c_peek_sockaddr_in6_addr 0x02 ptr
+    a_3 <- c_peek_sockaddr_in6_addr 0x03 ptr
+    a_4 <- c_peek_sockaddr_in6_addr 0x04 ptr
+    a_5 <- c_peek_sockaddr_in6_addr 0x05 ptr
+    a_6 <- c_peek_sockaddr_in6_addr 0x06 ptr
+    a_7 <- c_peek_sockaddr_in6_addr 0x07 ptr
+    a_8 <- c_peek_sockaddr_in6_addr 0x08 ptr
+    a_9 <- c_peek_sockaddr_in6_addr 0x09 ptr
+    a_a <- c_peek_sockaddr_in6_addr 0x0a ptr
+    a_b <- c_peek_sockaddr_in6_addr 0x0b ptr
+    a_c <- c_peek_sockaddr_in6_addr 0x0c ptr
+    a_d <- c_peek_sockaddr_in6_addr 0x0d ptr
+    a_e <- c_peek_sockaddr_in6_addr 0x0e ptr
+    a_f <- c_peek_sockaddr_in6_addr 0x0f ptr
+    s <- (#peek struct sockaddr_in6, sin6_scope_id) ptr
+    return (SocketAddressInet6 p f a_0 a_1 a_2 a_3 a_4 a_5 a_6 a_7 a_8 a_9 a_A a_B a_C a_D a_E a_F s)
+
+  poke ptr (SocketAddressInet6 p f a_0 a_1 a_2 a_3 a_4 a_5 a_6 a_7 a_8 a_9 a_A a_B a_C a_D a_E a_F s) = do
+    c_poke_sockaddr_in6 ptr p f a_0 a_1 a_2 a_3 a_4 a_5 a_6 a_7 a_8 a_9 a_A a_B a_C a_D a_E a_F s

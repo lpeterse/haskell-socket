@@ -1,4 +1,6 @@
 #include <stdint.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
 
 void poke_sockaddr_in6 ( struct sockaddr_in6 *addr
                    , uint16_t port
