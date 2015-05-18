@@ -157,7 +157,7 @@ instance Storable SocketAddressInet6 where
     pokeByteOff (sin6_port     ptr)  0 (fromIntegral $ rem (quot p 256) 256 :: Word8)
     pokeByteOff (sin6_port     ptr)  1 (fromIntegral $ rem       p      256 :: Word8)
     BS.unsafeUseAsCString a $ \a'-> do
-      copyBytes (sin6_addr ptr) a' 16 -- copyBytes dest from count
+      copyBytes (sin6_addr ptr) a' (min 16 $ BS.length a)-- copyBytes dest from count
     where
       sin6_family   = (#ptr struct sockaddr_in6, sin6_family)
       sin6_flowinfo = (#ptr struct sockaddr_in6, sin6_flowinfo)
