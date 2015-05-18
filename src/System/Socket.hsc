@@ -26,6 +26,7 @@ import System.Posix.Types
 #include "sys/types.h"
 #include "sys/socket.h"
 #include "netinet/in.h"
+#let alignment t = "%lu", (unsigned long)offsetof(struct {char x__; t (y__); }, y__)
 
 newtype Socket f t p
       = Socket CInt
@@ -136,7 +137,7 @@ instance Storable SocketAddressInet where
 
 instance Storable SocketAddressInet6 where
   sizeOf    _ = (#size struct sockaddr_in6)
-  alignment _ = 8
+  alignment _ = (#alignment struct sockaddr_in6)
   peek ptr    = do
     f   <- peek              (sin6_flowinfo ptr) :: IO Word32
     ph  <- peekByteOff       (sin6_port ptr)  0  :: IO Word8
