@@ -73,41 +73,15 @@ instance Protocol IPPROTO_TCP where
 instance Protocol IPPROTO_SCTP where
   protocolNumber _ = (#const IPPROTO_SCTP)
 
-newtype SocketException = SocketException Errno
-  deriving (Typeable)
 
-newtype CloseException = CloseException Errno
-  deriving (Typeable)
-
-instance Show SocketException where
-  show (SocketException e@(Errno i))
-    | e == eACCES                 = "socket: Permission to create a socket of the specified type and/or protocol is denied."
-    | e == eAFNOSUPPORT           = "socket: The implementation does not support the specified address family."
-    | e == eINVAL                 = "socket: Unknown protocol, or protocol family not available."
-    | e == eMFILE                 = "socket: Process file table overflow."
-    | e == eNFILE                 = "socket: The system limit on the total number of open files has been reached."
-    | e == eNOBUFS || e == eNOMEM = "socket: Insufficient memory is available.  The socket cannot be created until sufficient resources are freed."
-    | e == ePROTONOSUPPORT        = "socket: The protocol type or the specified protocol is not supported within this domain."
-    | otherwise                   = "socket: errno " ++ (show i)
-
-instance Show CloseException where
-  show (CloseException e@(Errno i))
-    | e == eBADF                  = "close: Not a valid open file descriptor."
-    | e == eINTR                  = "close: The call was interrupted by a signal."
-    | e == eIO                    = "close: An I/O error occurred."
-    | otherwise                   = "close: errno " ++ (show i)
-
-instance Exception SocketException
-instance Exception CloseException
-
-socket :: (Family f, Type t, Protocol p) => f -> t -> p -> IO (Socket f t p)
+socket :: (Family f, Type t, Protocol p) => f -> t -> p -> IO (Either Errno (Socket f t p))
 socket f t p = do
   s <- c_socket (familyNumber f) (typeNumber t) (protocolNumber p)
-  when (s == -1) $ do
+  if s == -1 then do
     e <- getErrno
-    throwIO (SocketException e)
-  return (Socket s)
-
+    return (Left e)
+  else do
+    return (Right (Socket s))
 
 close :: (Family f, Type t, Protocol p) => Socket f t p -> IO (Either Errno ())
 close (Socket s) = do
@@ -156,13 +130,13 @@ foreign import ccall safe "sys/socket.h bind"
   c_bind :: CInt -> Ptr SocketAddress -> Int -> IO CInt
 
 instance Storable SocketAddressInet where
-  sizeOf    = undefined
-  alignment = undefined
+  sizeOf    _ = (#size struct sockaddr_in)
+  alignment _ = 8
   peek      = undefined
   poke      = undefined
 
 instance Storable SocketAddressInet6 where
-  sizeOf    _ = (#const sizeof(struct sockaddr_storage))
+  sizeOf    _ = (#size struct sockaddr_in6)
   alignment _ = 8
   peek ptr    = do
     f   <- peek              (sin6_flowinfo ptr) :: IO Word32
@@ -177,7 +151,6 @@ instance Storable SocketAddressInet6 where
       sin6_scope_id = (#ptr struct sockaddr_in6, sin6_scope_id)
       sin6_port     = (#ptr struct sockaddr_in6, sin6_port)
       sin6_addr     = (#ptr struct in6_addr, s6_addr) . (#ptr struct sockaddr_in6, sin6_addr)
-
   poke ptr (SocketAddressInet6 p f a s) = do
     poke        (sin6_family   ptr) ((#const AF_INET) :: Word16)
     poke        (sin6_flowinfo ptr) f
