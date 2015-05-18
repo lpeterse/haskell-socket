@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeFamilies, FlexibleContexts #-}
+{-# LANGUAGE TypeFamilies, FlexibleContexts, ScopedTypeVariables #-}
 module System.Socket where
 
 import Control.Exception
@@ -73,10 +73,9 @@ instance Protocol IPPROTO_TCP where
 instance Protocol IPPROTO_SCTP where
   protocolNumber _ = (#const IPPROTO_SCTP)
 
-
-socket :: (Family f, Type t, Protocol p) => f -> t -> p -> IO (Either Errno (Socket f t p))
-socket f t p = do
-  s <- c_socket (familyNumber f) (typeNumber t) (protocolNumber p)
+socket :: forall f t p. (Family f, Type t, Protocol p) => IO (Either Errno (Socket f t p))
+socket = do
+  s <- c_socket (familyNumber (undefined :: f)) (typeNumber (undefined :: t)) (protocolNumber (undefined :: p))
   if s == -1 then do
     e <- getErrno
     return (Left e)
@@ -132,8 +131,8 @@ foreign import ccall safe "sys/socket.h bind"
 instance Storable SocketAddressInet where
   sizeOf    _ = (#size struct sockaddr_in)
   alignment _ = 8
-  peek      = undefined
-  poke      = undefined
+  peek        = undefined
+  poke        = undefined
 
 instance Storable SocketAddressInet6 where
   sizeOf    _ = (#size struct sockaddr_in6)
