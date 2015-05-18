@@ -121,6 +121,11 @@ data SocketAddressInet6
      , sin6ScopeId   :: Word32
      }
 
+sendTo :: Socket f t p -> BS.ByteString -> Int -> Address f -> IO (Either Errno CInt)
+sendTo sock msg flags addr = do
+  return (Right 0)
+
+
 foreign import ccall safe "sys/socket.h socket"
   c_socket :: CInt -> CInt -> CInt -> IO CInt
 
