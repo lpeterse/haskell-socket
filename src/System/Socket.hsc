@@ -143,15 +143,6 @@ foreign import ccall safe "sys/socket.h socket"
 foreign import ccall safe "unistd.h close"
   c_close :: CInt -> IO CInt
 
-foreign import ccall unsafe "misc.h poke_sockaddr_in6"
-  c_poke_sockaddr_in6 :: Ptr SocketAddressInet6
-    -> Word16
-    -> Word32
-    -> Word64
-    -> Word64
-    -> Word32
-    -> IO ()
-
 instance Storable SocketAddressInet6 where
   sizeOf    _ = (#const sizeof(struct sockaddr_storage))
   alignment _ = 8
