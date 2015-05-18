@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeFamilies, FlexibleContexts #-}
 module System.Socket where
 
 import Control.Exception
@@ -40,7 +40,7 @@ data SOCK_SEQPACKET = SOCK_SEQPACKET
 data IPPROTO_TCP    = IPPROTO_TCP
 data IPPROTO_SCTP   = IPPROTO_SCTP
 
-class Family f where
+class (Storable (Address f)) => Family f where
   type Address f
   familyNumber :: f -> CInt
 
@@ -118,11 +118,17 @@ close (Socket s) = do
   else do
     return (Right ())
 
-bind :: (Family f, Type t, Protocol p) => Socket f t p -> Address f -> IO ()
+bind :: (Family f, Type t, Protocol p) => Socket f t p -> Address f -> IO (Either Errno ())
 bind (Socket s) addr = do
-
-  return ()
-
+  addrForeignPtr <- mallocForeignPtr
+  withForeignPtr addrForeignPtr $ \addrPtr-> do
+    poke addrPtr addr
+    r <- c_bind s (castPtr addrPtr :: Ptr SocketAddress) (sizeOf addr)
+    if r == -1 then do
+      e <- getErrno
+      return (Left e)
+    else do
+      return (Right ())
 
 data SocketAddress
 
@@ -147,7 +153,13 @@ foreign import ccall safe "unistd.h close"
   c_close :: CInt -> IO CInt
 
 foreign import ccall safe "sys/socket.h bind"
-  c_bind :: CInt -> Ptr SocketAddress -> CSize -> IO CInt
+  c_bind :: CInt -> Ptr SocketAddress -> Int -> IO CInt
+
+instance Storable SocketAddressInet where
+  sizeOf    = undefined
+  alignment = undefined
+  peek      = undefined
+  poke      = undefined
 
 instance Storable SocketAddressInet6 where
   sizeOf    _ = (#const sizeof(struct sockaddr_storage))
