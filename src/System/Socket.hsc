@@ -31,15 +31,16 @@ import System.Posix.Types
 newtype Socket f t p
       = Socket CInt
 
-data AF_INET        = AF_INET
-data AF_INET6       = AF_INET6
+data AF_INET
+data AF_INET6
 
-data SOCK_STREAM    = SOCK_STREAM
-data SOCK_DGRAM     = SOCK_DGRAM
-data SOCK_SEQPACKET = SOCK_SEQPACKET
+data SOCK_STREAM
+data SOCK_DGRAM
+data SOCK_SEQPACKET
 
-data IPPROTO_TCP    = IPPROTO_TCP
-data IPPROTO_SCTP   = IPPROTO_SCTP
+data IPPROTO_UDP
+data IPPROTO_TCP
+data IPPROTO_SCTP
 
 class (Storable (Address f)) => Family f where
   type Address f
