@@ -41,15 +41,15 @@ data IPPROTO_TCP    = IPPROTO_TCP
 data IPPROTO_SCTP   = IPPROTO_SCTP
 
 class Family f where
-  type SocketAddress f
+  type Address f
   familyNumber :: f -> CInt
 
 instance Family AF_INET where
-  type SocketAddress AF_INET = SocketAddressInet
+  type Address AF_INET = SocketAddressInet
   familyNumber _ = (#const AF_INET)
 
 instance Family AF_INET6 where
-  type SocketAddress AF_INET6 = SocketAddressInet6
+  type Address AF_INET6 = SocketAddressInet6
   familyNumber _ = (#const AF_INET6)
 
 class Type t where
@@ -109,20 +109,22 @@ socket f t p = do
   return (Socket s)
 
 
-close :: (Family f, Type t, Protocol p) => Socket f t p -> IO ()
+close :: (Family f, Type t, Protocol p) => Socket f t p -> IO (Either Errno ())
 close (Socket s) = do
-  closeFdWith closeFd (Fd s)
-  where
-    closeFd (Fd i) = do
-      r <- c_close i
-      when (r == -1) $ do
-        e <- getErrno
-        throwIO (CloseException e)
+  r <- c_close s
+  if r == -1 then do
+    e <- getErrno
+    return (Left e)
+  else do
+    return (Right ())
 
-bind :: (Family f, Type t, Protocol p) => Socket f t p -> SocketAddress f -> IO ()
-bind = undefined
+bind :: (Family f, Type t, Protocol p) => Socket f t p -> Address f -> IO ()
+bind (Socket s) addr = do
 
-data SocketAddressStruct
+  return ()
+
+
+data SocketAddress
 
 data SocketAddressInet
    = SocketAddressInet
@@ -143,6 +145,9 @@ foreign import ccall safe "sys/socket.h socket"
 
 foreign import ccall safe "unistd.h close"
   c_close :: CInt -> IO CInt
+
+foreign import ccall safe "sys/socket.h bind"
+  c_bind :: CInt -> Ptr SocketAddress -> CSize -> IO CInt
 
 instance Storable SocketAddressInet6 where
   sizeOf    _ = (#const sizeof(struct sockaddr_storage))
