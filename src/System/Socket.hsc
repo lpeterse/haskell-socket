@@ -3,6 +3,7 @@ module System.Socket where
 
 import Control.Exception
 import Control.Monad
+import Control.Concurrent.MVar
 
 import Data.Word
 import Data.Typeable
@@ -17,7 +18,6 @@ import Foreign.Storable
 import Foreign.Marshal.Utils
 
 import GHC.IO
-import GHC.Conc
 import GHC.Conc.IO
 
 import System.IO
@@ -29,10 +29,7 @@ import System.Posix.Types
 #let alignment t = "%lu", (unsigned long)offsetof(struct {char x__; t (y__); }, y__)
 
 newtype Socket f t p
-      = Socket CInt
-
-instance Show (Socket f t p) where
-  show (Socket s) = "Socket " ++ show s
+      = Socket (MVar CInt)
 
 data AF_INET
 data AF_INET6
@@ -92,53 +89,79 @@ socket = do
   if s == -1 then do
     getErrno >>= throwIO . SocketException
   else do
-    return (Socket s)
+    ms <- newMVar s
+    return (Socket ms)
 
+
+-- | Closes a socket.
+-- In contrast to the POSIX close this operation is idempotent.
+-- On EINTR the close operation is retried.
+-- On EBADF an error is thrown as this should be impossible according to the library's design.
+-- On EIO an error is thrown.
 close :: (Family f, Type t, Protocol p) => Socket f t p -> IO ()
-close (Socket s) = do
-  r <- c_close s
-  if r == -1 then do
+close (Socket ms) = do
+  failure <- modifyMVarMasked ms $ \s-> do
+    -- The socket has already been closed.
+    if s == closed then do
+      return (closed, False)
+    -- Close the socket via system call.
+    else do
+      i <- c_close s
+      -- The close call failed. Preserve socket descriptor to allow a retry.
+      if i < 0 then
+        return (s, True)
+      -- The close call succeeded. Note this with a -1 as socket descriptor.
+      else do
+        return (closed, False)
+  if failure then do
     getErrno >>= throwIO . SocketException
   else do
     return ()
+  where
+    closed = -1
 
 bind :: (Family f, Type t, Protocol p) => Socket f t p -> Address f -> IO ()
-bind (Socket s) addr = do
+bind (Socket ms) addr = do
   addrForeignPtr <- mallocForeignPtr
   withForeignPtr addrForeignPtr $ \addrPtr-> do
     poke addrPtr addr
-    r <- c_bind s (castPtr addrPtr :: Ptr SocketAddress) (sizeOf addr)
-    if r == -1 then do
+    i <- withMVar ms $ \s-> do
+      c_bind s (castPtr addrPtr :: Ptr SocketAddress) (sizeOf addr)
+    if i < 0 then do
       getErrno >>= throwIO . SocketException
     else do
       return ()
 
 connect :: (Family f, Type t, Protocol p) => Socket f t p -> Address f -> IO ()
-connect (Socket s) addr = do
+connect (Socket ms) addr = do
   addrForeignPtr <- mallocForeignPtr
   withForeignPtr addrForeignPtr $ \addrPtr-> do
     poke addrPtr addr
-    r <- c_connect s (castPtr addrPtr :: Ptr SocketAddress) (sizeOf addr)
-    if r == -1 then do
+    i <- withMVar ms $ \s-> do
+      c_connect s (castPtr addrPtr :: Ptr SocketAddress) (sizeOf addr)
+    if i < 0 then do
       getErrno >>= throwIO . SocketException
     else do
       return ()
 
 accept :: forall f t p. (Family f, Type t, Protocol p) => Socket f t p -> IO (Socket f t p, Address f)
-accept (Socket s) = do
+accept (Socket ms) = do
   addrForeignPtr <- mallocForeignPtr :: IO (ForeignPtr (Address f))
   withForeignPtr addrForeignPtr $ \addrPtr-> do
-    r <- c_accept s (castPtr addrPtr :: Ptr SocketAddress) (sizeOf (undefined :: Address f))
-    if r == -1 then do
+    i <- withMVar ms $ \s-> do
+      c_accept s (castPtr addrPtr :: Ptr SocketAddress) (sizeOf (undefined :: Address f))
+    if i < 0 then do
       getErrno >>= throwIO . SocketException
     else do
       addr <- peek addrPtr
-      return (Socket r, addr)
+      ms'  <- newMVar i
+      return (Socket ms', addr)
 
 listen :: forall f t p. (Family f, Type t, Protocol p) => Socket f t p -> Int -> IO ()
-listen (Socket s) backlog = do
-  r <- c_listen s backlog
-  if r == -1 then do
+listen (Socket ms) backlog = do
+  i <- withMVar ms $ \s-> do
+    c_listen s backlog
+  if i < 0 then do
     getErrno >>= throwIO . SocketException
   else do
     return ()
