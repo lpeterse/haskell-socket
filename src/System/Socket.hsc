@@ -105,6 +105,18 @@ bind (Socket s) addr = do
     else do
       return (Right ())
 
+connect :: (Family f, Type t, Protocol p) => Socket f t p -> Address f -> IO (Either Errno ())
+connect (Socket s) addr = do
+  addrForeignPtr <- mallocForeignPtr
+  withForeignPtr addrForeignPtr $ \addrPtr-> do
+    poke addrPtr addr
+    r <- c_connect s (castPtr addrPtr :: Ptr SocketAddress) (sizeOf addr)
+    if r == -1 then do
+      e <- getErrno
+      return (Left e)
+    else do
+      return (Right ())
+
 data SocketAddress
 
 data SocketAddressInet
@@ -134,6 +146,13 @@ foreign import ccall safe "unistd.h close"
 
 foreign import ccall safe "sys/socket.h bind"
   c_bind :: CInt -> Ptr SocketAddress -> Int -> IO CInt
+
+foreign import ccall safe "sys/socket.h connect"
+  c_connect :: CInt -> Ptr SocketAddress -> Int -> IO CInt
+
+foreign import ccall safe "sys/socket.h accept"
+  c_accept :: CInt -> Ptr SocketAddress -> Int -> IO CInt
+
 
 instance Storable SocketAddressInet where
   sizeOf    _ = (#size struct sockaddr_in)
