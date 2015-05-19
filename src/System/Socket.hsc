@@ -117,6 +117,18 @@ connect (Socket s) addr = do
     else do
       return (Right ())
 
+accept :: forall f t p. (Family f, Type t, Protocol p) => Socket f t p -> IO (Either Errno (Socket f t p, Address f))
+accept (Socket s) = do
+  addrForeignPtr <- mallocForeignPtr :: IO (ForeignPtr (Address f))
+  withForeignPtr addrForeignPtr $ \addrPtr-> do
+    r <- c_connect s (castPtr addrPtr :: Ptr SocketAddress) (sizeOf (undefined :: Address f))
+    if r == -1 then do
+      e <- getErrno
+      return (Left e)
+    else do
+      addr <- peek addrPtr
+      return (Right (Socket r, addr))
+
 data SocketAddress
 
 data SocketAddressInet
