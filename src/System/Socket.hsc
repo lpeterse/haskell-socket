@@ -128,12 +128,20 @@ accept :: forall f t p. (Family f, Type t, Protocol p) => Socket f t p -> IO (So
 accept (Socket s) = do
   addrForeignPtr <- mallocForeignPtr :: IO (ForeignPtr (Address f))
   withForeignPtr addrForeignPtr $ \addrPtr-> do
-    r <- c_connect s (castPtr addrPtr :: Ptr SocketAddress) (sizeOf (undefined :: Address f))
+    r <- c_accept s (castPtr addrPtr :: Ptr SocketAddress) (sizeOf (undefined :: Address f))
     if r == -1 then do
       getErrno >>= throwIO . SocketException
     else do
       addr <- peek addrPtr
       return (Socket r, addr)
+
+listen :: forall f t p. (Family f, Type t, Protocol p) => Socket f t p -> Int -> IO ()
+listen (Socket s) backlog = do
+  r <- c_listen s backlog
+  if r == -1 then do
+    getErrno >>= throwIO . SocketException
+  else do
+    return ()
 
 data SocketAddress
 
@@ -161,19 +169,22 @@ localhost =
   }
 
 foreign import ccall safe "sys/socket.h socket"
-  c_socket :: CInt -> CInt -> CInt -> IO CInt
+  c_socket  :: CInt -> CInt -> CInt -> IO CInt
 
 foreign import ccall safe "unistd.h close"
-  c_close :: CInt -> IO CInt
+  c_close   :: CInt -> IO CInt
 
 foreign import ccall safe "sys/socket.h bind"
-  c_bind :: CInt -> Ptr SocketAddress -> Int -> IO CInt
+  c_bind    :: CInt -> Ptr SocketAddress -> Int -> IO CInt
 
 foreign import ccall safe "sys/socket.h connect"
   c_connect :: CInt -> Ptr SocketAddress -> Int -> IO CInt
 
 foreign import ccall safe "sys/socket.h accept"
-  c_accept :: CInt -> Ptr SocketAddress -> Int -> IO CInt
+  c_accept  :: CInt -> Ptr SocketAddress -> Int -> IO CInt
+
+foreign import ccall safe "sys/socket.h listen"
+  c_listen  :: CInt -> Int -> IO CInt
 
 instance Storable SocketAddressInet where
   sizeOf    _ = (#size struct sockaddr_in)
