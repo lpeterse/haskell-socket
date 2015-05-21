@@ -87,12 +87,14 @@ instance Exception SocketException
 socket :: forall f t p. (Family f, Type t, Protocol p) => IO (Socket f t p)
 socket = do
   bracketOnError
-    -- Try to acquire the socket resource.
+    -- Try to acquire the socket resource. This part has exceptions masked.
     ( c_socket (familyNumber (undefined :: f)) (typeNumber (undefined :: t)) (protocolNumber (undefined :: p)) )
-    -- On failure (after acquisition!) we try to close the socket to not leak file descriptors.
+    -- On failure after the c_socket call we try to close the socket to not leak file descriptors.
     -- If closing fails we cannot really do something about it. We tried at least.
+    -- This part has exceptions masked as well. c_close is an unsafe FFI call.
     ( \s-> when (s >= 0) (c_close s >> return ()) )
-    -- If an exception is raised, it is reraised after the socket has been closed. Bracket is not a catch!
+    -- If an exception is raised, it is reraised after the socket has been closed.
+    -- This part has async exceptions unmasked (via restore).
     ( \s-> if s < 0 then do
              getErrno >>= throwIO . SocketException
            else do
