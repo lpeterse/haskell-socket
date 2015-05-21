@@ -13,6 +13,8 @@ module System.Socket
    , connect
    -- ** close
    , close
+   -- ** send / recv
+   , Buffer (..)
 
   -- * Sockets
   , Socket (..)
@@ -186,7 +188,7 @@ socket = socket'
 -- On EINTR the close operation is retried.
 -- On EBADF an error is thrown as this should be impossible according to the library's design.
 -- On EIO an error is thrown.
-close :: (SocketDomain f, SocketType t, SocketProtocol  p) => Socket f t p -> IO ()
+close :: (SocketDomain d, SocketType t, SocketProtocol  p) => Socket d t p -> IO ()
 close (Socket ms) = do
   failure <- modifyMVarMasked ms $ \s-> do
     -- The socket has already been closed.
@@ -208,7 +210,7 @@ close (Socket ms) = do
   where
     closed = -1
 
-bind :: (SocketDomain f, SocketType t, SocketProtocol  p) => Socket f t p -> SocketAddress f -> IO ()
+bind :: (SocketDomain d, SocketType t, SocketProtocol  p) => Socket d t p -> SocketAddress d -> IO ()
 bind (Socket ms) addr = do
   alloca $ \addrPtr-> do
     poke addrPtr addr
@@ -219,7 +221,7 @@ bind (Socket ms) addr = do
     else do
       return ()
 
-connect :: (SocketDomain f, SocketType t, SocketProtocol  p) => Socket f t p -> SocketAddress f -> IO ()
+connect :: (SocketDomain d, SocketType t, SocketProtocol  p) => Socket d t p -> SocketAddress d -> IO ()
 connect (Socket ms) addr = do
   alloca $ \addrPtr-> do
     poke addrPtr addr
@@ -253,6 +255,18 @@ listen (Socket ms) backlog = do
     getErrno >>= throwIO . SocketException
   else do
     return ()
+
+class Buffer b where
+  recv     :: Socket d t p -> Int -> IO b
+  recvFrom :: Socket d t p -> Int -> IO (b, SocketAddress d)
+  send     :: Socket d t p -> b -> IO Int
+  sendTo   :: Socket d t p -> b -> SocketAddress d -> IO Int
+
+instance Buffer BS.ByteString where
+  recv     = undefined
+  recvFrom = undefined
+  send     = undefined
+  sendTo   = undefined
 
 data SockAddrUn
    = SockAddrUn
