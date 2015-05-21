@@ -158,25 +158,28 @@ instance Show SocketException where
 
 instance Exception SocketException
 
-socket :: forall f t p. (SocketDomain f, SocketType t, SocketProtocol  p) => IO (Socket f t p)
-socket = do
-  bracketOnError
-    -- Try to acquire the socket resource. This part has exceptions masked.
-    ( c_socket (socketDomain (undefined :: f)) (typeNumber (undefined :: t)) (protocolNumber (undefined :: p)) )
-    -- On failure after the c_socket call we try to close the socket to not leak file descriptors.
-    -- If closing fails we cannot really do something about it. We tried at least.
-    -- This part has exceptions masked as well. c_close is an unsafe FFI call.
-    ( \s-> when (s >= 0) (c_close s >> return ()) )
-    -- If an exception is raised, it is reraised after the socket has been closed.
-    -- This part has async exceptions unmasked (via restore).
-    ( \s-> if s < 0 then do
-             getErrno >>= throwIO . SocketException
-           else do
-             -- setNonBlockingFD calls c_fcntl_write which is an unsafe FFI call.
-             setNonBlockingFD s True
-             ms <- newMVar s
-             return (Socket ms)
-    )
+socket :: (SocketDomain d, SocketType t, SocketProtocol  p) => IO (Socket d t p)
+socket = socket'
+ where
+   socket' :: forall d t p. (SocketDomain d, SocketType t, SocketProtocol  p) => IO (Socket d t p)
+   socket'  = do
+     bracketOnError
+       -- Try to acquire the socket resource. This part has exceptions masked.
+       ( c_socket (socketDomain (undefined :: d)) (typeNumber (undefined :: t)) (protocolNumber (undefined :: p)) )
+       -- On failure after the c_socket call we try to close the socket to not leak file descriptors.
+       -- If closing fails we cannot really do something about it. We tried at least.
+       -- This part has exceptions masked as well. c_close is an unsafe FFI call.
+       ( \s-> when (s >= 0) (c_close s >> return ()) )
+       -- If an exception is raised, it is reraised after the socket has been closed.
+       -- This part has async exceptions unmasked (via restore).
+       ( \s-> if s < 0 then do
+                getErrno >>= throwIO . SocketException
+              else do
+                -- setNonBlockingFD calls c_fcntl_write which is an unsafe FFI call.
+                setNonBlockingFD s True
+                ms <- newMVar s
+                return (Socket ms)
+       )
 
 -- | Closes a socket.
 -- In contrast to the POSIX close this operation is idempotent.
@@ -227,19 +230,22 @@ connect (Socket ms) addr = do
     else do
       return ()
 
-accept :: forall f t p. (SocketDomain f, SocketType t, SocketProtocol  p) => Socket f t p -> IO (Socket f t p, SocketAddress f)
-accept (Socket ms) = do
-  alloca $ \addrPtr-> do
-    i <- withMVar ms $ \s-> do
-      c_accept s (castPtr addrPtr :: Ptr ()) (sizeOf (undefined :: SocketAddress f))
-    if i < 0 then do
-      getErrno >>= throwIO . SocketException
-    else do
-      addr <- peek addrPtr
-      ms'  <- newMVar i
-      return (Socket ms', addr)
+accept :: (SocketDomain d, SocketType t, SocketProtocol  p) => Socket d t p -> IO (Socket d t p, SocketAddress d)
+accept = accept'
+  where
+    accept' :: forall d t p. (SocketDomain d, SocketType t, SocketProtocol  p) => Socket d t p -> IO (Socket d t p, SocketAddress d)
+    accept' (Socket ms) = do
+      alloca $ \addrPtr-> do
+        i <- withMVar ms $ \s-> do
+          c_accept s (castPtr addrPtr :: Ptr ()) (sizeOf (undefined :: SocketAddress d))
+        if i < 0 then do
+          getErrno >>= throwIO . SocketException
+        else do
+          addr <- peek addrPtr
+          ms'  <- newMVar i
+          return (Socket ms', addr)
 
-listen :: forall f t p. (SocketDomain f, SocketType t, SocketProtocol  p) => Socket f t p -> Int -> IO ()
+listen :: (SocketDomain d, SocketType t, SocketProtocol  p) => Socket d t p -> Int -> IO ()
 listen (Socket ms) backlog = do
   i <- withMVar ms $ \s-> do
     c_listen s backlog
