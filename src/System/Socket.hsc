@@ -22,6 +22,7 @@ import GHC.Conc.IO
 
 import System.IO
 import System.Posix.Types
+import System.Posix.Internals (setNonBlockingFD)
 
 #include "sys/types.h"
 #include "sys/socket.h"
@@ -85,13 +86,20 @@ instance Exception SocketException
 
 socket :: forall f t p. (Family f, Type t, Protocol p) => IO (Socket f t p)
 socket = do
-  s <- c_socket (familyNumber (undefined :: f)) (typeNumber (undefined :: t)) (protocolNumber (undefined :: p))
-  if s == -1 then do
-    getErrno >>= throwIO . SocketException
-  else do
-    ms <- newMVar s
-    return (Socket ms)
-
+  bracketOnError
+    -- Try to acquire the socket resource.
+    ( c_socket (familyNumber (undefined :: f)) (typeNumber (undefined :: t)) (protocolNumber (undefined :: p)) )
+    -- On failure (after acquisition!) we try to close the socket to not leak file descriptors.
+    -- If closing fails we cannot really do something about it. We tried at least.
+    ( \s-> when (s < 0) (c_close s >> return ()) )
+    -- If an exception is raised, it is reraised after the socket has been closed. Bracket is not a catch!
+    ( \s-> if s < 0 then do
+             getErrno >>= throwIO . SocketException
+           else do
+             setNonBlockingFD s True
+             ms <- newMVar s
+             return (Socket ms)
+    )
 
 -- | Closes a socket.
 -- In contrast to the POSIX close this operation is idempotent.
