@@ -55,6 +55,8 @@ import Data.Typeable
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Unsafe as BS
 
+import GHC.Conc (threadWaitRead)
+
 import Foreign.C.Types
 import Foreign.C.Error
 import Foreign.Ptr
@@ -238,15 +240,29 @@ accept = accept'
   where
     accept' :: forall d t p. (SocketDomain d, SocketType t, SocketProtocol  p) => Socket d t p -> IO (Socket d t p, SocketAddress d)
     accept' (Socket ms) = do
-      alloca $ \addrPtr-> do
-        i <- withMVar ms $ \s-> do
-          c_accept s (castPtr addrPtr :: Ptr ()) (sizeOf (undefined :: SocketAddress d))
-        if i < 0 then do
-          getErrno >>= throwIO . SocketException
-        else do
-          addr <- peek addrPtr
-          ms'  <- newMVar i
-          return (Socket ms', addr)
+      -- Accept uses the socket exclusively by acquiring the MVar.
+      withMVar ms $ \s-> do
+        -- If the socket has already been closed we fail excactly like the accept call would fail.
+        when (s < 0) $ do
+          throwIO (SocketException eBADF)
+        -- Block until notification about read.
+        -- IOError is thrown if the socket has been closed in the meantime.
+        -- We reraise this as a SocketError.
+        threadWaitRead (Fd s) `onException` throwIO (SocketException eBADF)
+        -- Allocate local (!) memory for the address.
+        alloca $ \addrPtr-> do
+          bracketOnError
+            ( c_accept s (castPtr addrPtr :: Ptr ()) (sizeOf (undefined :: SocketAddress d)) )
+            ( \t-> when (t >= 0) (c_close t >> return ()) )
+            ( \t-> if t < 0 then do
+                     getErrno >>= throwIO . SocketException
+                   else do
+                     -- setNonBlockingFD calls c_fcntl_write which is an unsafe FFI call.
+                     setNonBlockingFD t True
+                     addr <- peek addrPtr :: IO (SocketAddress d)
+                     mt <- newMVar t
+                     return (Socket mt, addr)
+            )
 
 listen :: (SocketDomain d, SocketType t, SocketProtocol  p) => Socket d t p -> Int -> IO ()
 listen (Socket ms) backlog = do
