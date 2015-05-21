@@ -13,8 +13,8 @@ import qualified Data.ByteString.Unsafe as BS
 import Foreign.C.Types
 import Foreign.C.Error
 import Foreign.Ptr
-import Foreign.ForeignPtr
 import Foreign.Storable
+import Foreign.Marshal.Alloc
 import Foreign.Marshal.Utils
 
 import GHC.IO
@@ -133,8 +133,7 @@ close (Socket ms) = do
 
 bind :: (Family f, Type t, Protocol p) => Socket f t p -> Address f -> IO ()
 bind (Socket ms) addr = do
-  addrForeignPtr <- mallocForeignPtr
-  withForeignPtr addrForeignPtr $ \addrPtr-> do
+  alloca $ \addrPtr-> do
     poke addrPtr addr
     i <- withMVar ms $ \s-> do
       c_bind s (castPtr addrPtr :: Ptr SocketAddress) (sizeOf addr)
@@ -145,8 +144,7 @@ bind (Socket ms) addr = do
 
 connect :: (Family f, Type t, Protocol p) => Socket f t p -> Address f -> IO ()
 connect (Socket ms) addr = do
-  addrForeignPtr <- mallocForeignPtr
-  withForeignPtr addrForeignPtr $ \addrPtr-> do
+  alloca $ \addrPtr-> do
     poke addrPtr addr
     i <- withMVar ms $ \s-> do
       c_connect s (castPtr addrPtr :: Ptr SocketAddress) (sizeOf addr)
@@ -157,8 +155,7 @@ connect (Socket ms) addr = do
 
 accept :: forall f t p. (Family f, Type t, Protocol p) => Socket f t p -> IO (Socket f t p, Address f)
 accept (Socket ms) = do
-  addrForeignPtr <- mallocForeignPtr :: IO (ForeignPtr (Address f))
-  withForeignPtr addrForeignPtr $ \addrPtr-> do
+  alloca $ \addrPtr-> do
     i <- withMVar ms $ \s-> do
       c_accept s (castPtr addrPtr :: Ptr SocketAddress) (sizeOf (undefined :: Address f))
     if i < 0 then do
