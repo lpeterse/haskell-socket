@@ -41,11 +41,44 @@ data SOCK_SEQPACKET
 
 data IPPROTO_UDP
 data IPPROTO_TCP
-data IPPROTO_SCTP
+
+data IP_SOCKOPT
+   = IP_MTU
+   | IP_TTL
+
+data IP6_SOCKOPT
+
+data TCP_SOCKOPT
+   = TCP_CONGESTION
+   | TCP_CORK
+   | TCP_DEFER_ACCEPT
+   | TCP_INFO
+   | TCP_KEEPCNT
+   | TCP_KEEPIDLE
+   | TCP_KEEPINTVL
+   | TCP_MAXSEG
+   | TCP_NODELAY
+   | TCP_QUICKACK
+   | TCP_SYNCNT
+   | TCP_USER_TIMEOUT
+   | TCP_WINDOW_CLAMP
+
+setSockOptAddressFamily :: (Family f, Type t, Protocol p) => Socket f t p -> SockOpt f -> IO ()
+setSockOptAddressFamily
+  = undefined
+
+setSockOptProtocol :: (Family f, Type t, Protocol p) => Socket f t p -> SockOpt p -> IO ()
+setSockOptProtocol
+  = undefined
 
 class (Storable (Address f)) => Family f where
   type Address f
   familyNumber :: f -> CInt
+
+type family SockOpt o :: *
+type instance SockOpt AF_INET     = IP_SOCKOPT
+type instance SockOpt AF_INET6    = IP6_SOCKOPT
+type instance SockOpt IPPROTO_TCP = TCP_SOCKOPT
 
 instance Family AF_INET where
   type Address AF_INET = SocketAddressInet
@@ -68,13 +101,11 @@ instance Type SOCK_SEQPACKET where
   typeNumber _ = (#const SOCK_SEQPACKET)
 
 class Protocol p where
+  type SockOptProtocol p
   protocolNumber :: p -> CInt
 
 instance Protocol IPPROTO_TCP where
   protocolNumber _ = (#const IPPROTO_TCP)
-
-instance Protocol IPPROTO_SCTP where
-  protocolNumber _ = (#const IPPROTO_SCTP)
 
 newtype SocketException = SocketException Errno
   deriving Typeable
