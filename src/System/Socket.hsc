@@ -63,30 +63,30 @@ data TCP_SOCKOPT
    | TCP_USER_TIMEOUT
    | TCP_WINDOW_CLAMP
 
-setSockOptAddressFamily :: (Family f, Type t, Protocol p) => Socket f t p -> SockOpt f -> IO ()
-setSockOptAddressFamily
+setSockOptDomain :: (Domain f, Type t, Protocol p) => Socket f t p -> SockOpt f -> IO ()
+setSockOptDomain
   = undefined
 
-setSockOptProtocol :: (Family f, Type t, Protocol p) => Socket f t p -> SockOpt p -> IO ()
+setSockOptProtocol :: (Domain f, Type t, Protocol p) => Socket f t p -> SockOpt p -> IO ()
 setSockOptProtocol
   = undefined
 
-class (Storable (Address f)) => Family f where
+class (Storable (Address f)) => Domain f where
   type Address f
-  familyNumber :: f -> CInt
+  domainNumber :: f -> CInt
 
 type family SockOpt o :: *
 type instance SockOpt AF_INET     = IP_SOCKOPT
 type instance SockOpt AF_INET6    = IP6_SOCKOPT
 type instance SockOpt IPPROTO_TCP = TCP_SOCKOPT
 
-instance Family AF_INET where
+instance Domain AF_INET where
   type Address AF_INET = SocketAddressInet
-  familyNumber _ = (#const AF_INET)
+  domainNumber _ = (#const AF_INET)
 
-instance Family AF_INET6 where
+instance Domain AF_INET6 where
   type Address AF_INET6 = SocketAddressInet6
-  familyNumber _ = (#const AF_INET6)
+  domainNumber _ = (#const AF_INET6)
 
 class Type t where
   typeNumber :: t -> CInt
@@ -115,11 +115,11 @@ instance Show SocketException where
 
 instance Exception SocketException
 
-socket :: forall f t p. (Family f, Type t, Protocol p) => IO (Socket f t p)
+socket :: forall f t p. (Domain f, Type t, Protocol p) => IO (Socket f t p)
 socket = do
   bracketOnError
     -- Try to acquire the socket resource. This part has exceptions masked.
-    ( c_socket (familyNumber (undefined :: f)) (typeNumber (undefined :: t)) (protocolNumber (undefined :: p)) )
+    ( c_socket (domainNumber (undefined :: f)) (typeNumber (undefined :: t)) (protocolNumber (undefined :: p)) )
     -- On failure after the c_socket call we try to close the socket to not leak file descriptors.
     -- If closing fails we cannot really do something about it. We tried at least.
     -- This part has exceptions masked as well. c_close is an unsafe FFI call.
@@ -140,7 +140,7 @@ socket = do
 -- On EINTR the close operation is retried.
 -- On EBADF an error is thrown as this should be impossible according to the library's design.
 -- On EIO an error is thrown.
-close :: (Family f, Type t, Protocol p) => Socket f t p -> IO ()
+close :: (Domain f, Type t, Protocol p) => Socket f t p -> IO ()
 close (Socket ms) = do
   failure <- modifyMVarMasked ms $ \s-> do
     -- The socket has already been closed.
@@ -162,7 +162,7 @@ close (Socket ms) = do
   where
     closed = -1
 
-bind :: (Family f, Type t, Protocol p) => Socket f t p -> Address f -> IO ()
+bind :: (Domain f, Type t, Protocol p) => Socket f t p -> Address f -> IO ()
 bind (Socket ms) addr = do
   alloca $ \addrPtr-> do
     poke addrPtr addr
@@ -173,7 +173,7 @@ bind (Socket ms) addr = do
     else do
       return ()
 
-connect :: (Family f, Type t, Protocol p) => Socket f t p -> Address f -> IO ()
+connect :: (Domain f, Type t, Protocol p) => Socket f t p -> Address f -> IO ()
 connect (Socket ms) addr = do
   alloca $ \addrPtr-> do
     poke addrPtr addr
@@ -184,7 +184,7 @@ connect (Socket ms) addr = do
     else do
       return ()
 
-accept :: forall f t p. (Family f, Type t, Protocol p) => Socket f t p -> IO (Socket f t p, Address f)
+accept :: forall f t p. (Domain f, Type t, Protocol p) => Socket f t p -> IO (Socket f t p, Address f)
 accept (Socket ms) = do
   alloca $ \addrPtr-> do
     i <- withMVar ms $ \s-> do
@@ -196,7 +196,7 @@ accept (Socket ms) = do
       ms'  <- newMVar i
       return (Socket ms', addr)
 
-listen :: forall f t p. (Family f, Type t, Protocol p) => Socket f t p -> Int -> IO ()
+listen :: forall f t p. (Domain f, Type t, Protocol p) => Socket f t p -> Int -> IO ()
 listen (Socket ms) backlog = do
   i <- withMVar ms $ \s-> do
     c_listen s backlog
