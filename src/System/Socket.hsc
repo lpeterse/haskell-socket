@@ -11,11 +11,12 @@ module System.Socket
    , accept
    -- ** connect
    , connect
-   -- ** close
+   -- ** send / sendTo
+   , send, sendTo
+   -- ** recv / recvFrom
+   , recv, recvFrom
+      -- ** close
    , close
-   -- ** send / recv
-   , Buffer (..)
-
   -- * Sockets
   , Socket (..)
   -- ** Domains
@@ -256,17 +257,17 @@ listen (Socket ms) backlog = do
   else do
     return ()
 
-class Buffer b where
-  recv     :: Socket d t p -> Int -> IO b
-  recvFrom :: Socket d t p -> Int -> IO (b, SocketAddress d)
-  send     :: Socket d t p -> b -> IO Int
-  sendTo   :: Socket d t p -> b -> SocketAddress d -> IO Int
+recv     :: Socket d t p -> Int -> IO BS.ByteString
+recv = undefined
 
-instance Buffer BS.ByteString where
-  recv     = undefined
-  recvFrom = undefined
-  send     = undefined
-  sendTo   = undefined
+recvFrom :: Socket d t p -> Int -> IO (BS.ByteString, SocketAddress d)
+recvFrom = undefined
+
+send     :: Socket d t p -> BS.ByteString -> IO Int
+send = undefined
+
+sendTo   :: Socket d t p -> BS.ByteString -> SocketAddress d -> IO Int
+sendTo = undefined
 
 data SockAddrUn
    = SockAddrUn
