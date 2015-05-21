@@ -17,9 +17,6 @@ import Foreign.Storable
 import Foreign.Marshal.Alloc
 import Foreign.Marshal.Utils
 
-import GHC.IO
-import GHC.Conc.IO
-
 import System.IO
 import System.Posix.Types
 import System.Posix.Internals (setNonBlockingFD)
@@ -101,7 +98,6 @@ instance Type SOCK_SEQPACKET where
   typeNumber _ = (#const SOCK_SEQPACKET)
 
 class Protocol p where
-  type SockOptProtocol p
   protocolNumber :: p -> CInt
 
 instance Protocol IPPROTO_TCP where
