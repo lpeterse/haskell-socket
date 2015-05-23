@@ -19,8 +19,8 @@ module System.Socket
    , close
   -- * Sockets
   , Socket (..)
-  -- ** Domains
-  , SocketDomain (..)
+  -- ** Address Families
+  , AddressFamily (..)
   -- *** AF_UNIX
   , AF_UNIX
   , SockAddrUn
@@ -31,7 +31,7 @@ module System.Socket
   , AF_INET6
   , SockAddrIn6 (..)
   -- ** Types
-  , SocketType (..)
+  , Type (..)
   -- *** SOCK_STREAM
   , SOCK_STREAM
   -- *** SOCK_DGRAM
@@ -39,7 +39,7 @@ module System.Socket
   -- *** SOCK_SEQPACKET
   , SOCK_SEQPACKET
   -- ** Protocols
-  , SocketProtocol  (..)
+  , Protocol  (..)
   -- *** IPPROTO_UDP
   , IPPROTO_UDP
   -- *** IPPROTO_TCP
@@ -111,51 +111,51 @@ data TCP_SOCKOPT
    | TCP_USER_TIMEOUT
    | TCP_WINDOW_CLAMP
 
-setSockOptSocketDomain :: (SocketDomain f, SocketType t, SocketProtocol  p) => Socket f t p -> SockOpt f -> IO ()
-setSockOptSocketDomain
+setSockOptAddressFamily :: (AddressFamily f, Type t, Protocol  p) => Socket f t p -> SockOpt f -> IO ()
+setSockOptAddressFamily
   = undefined
 
-setSockOptSocketProtocol  :: (SocketDomain f, SocketType t, SocketProtocol  p) => Socket f t p -> SockOpt p -> IO ()
-setSockOptSocketProtocol 
+setSockOptProtocol  :: (AddressFamily f, Type t, Protocol  p) => Socket f t p -> SockOpt p -> IO ()
+setSockOptProtocol 
   = undefined
 
-class (Storable (SockAddr d)) => SocketDomain d where
+class (Storable (SockAddr d)) => AddressFamily d where
   type SockAddr d
-  socketDomain :: d -> CInt
+  addressFamilyNumber :: d -> CInt
 
 type family SockOpt o :: *
 type instance SockOpt AF_INET     = IP_SOCKOPT
 type instance SockOpt AF_INET6    = IP6_SOCKOPT
 type instance SockOpt IPPROTO_TCP = TCP_SOCKOPT
 
-instance SocketDomain AF_UNIX where
+instance AddressFamily AF_UNIX where
   type SockAddr AF_UNIX = SockAddrUn
-  socketDomain _ = (#const AF_UNIX)
+  addressFamilyNumber _ = (#const AF_UNIX)
 
-instance SocketDomain AF_INET where
+instance AddressFamily AF_INET where
   type SockAddr AF_INET = SockAddrIn
-  socketDomain _ = (#const AF_INET)
+  addressFamilyNumber _ = (#const AF_INET)
 
-instance SocketDomain AF_INET6 where
+instance AddressFamily AF_INET6 where
   type SockAddr AF_INET6 = SockAddrIn6
-  socketDomain _ = (#const AF_INET6)
+  addressFamilyNumber _ = (#const AF_INET6)
 
-class SocketType t where
+class Type t where
   typeNumber :: t -> CInt
 
-instance SocketType SOCK_STREAM where
+instance Type SOCK_STREAM where
   typeNumber _ = (#const SOCK_STREAM)
 
-instance SocketType SOCK_DGRAM where
+instance Type SOCK_DGRAM where
   typeNumber _ = (#const SOCK_DGRAM)
 
-instance SocketType SOCK_SEQPACKET where
+instance Type SOCK_SEQPACKET where
   typeNumber _ = (#const SOCK_SEQPACKET)
 
-class SocketProtocol  p where
+class Protocol  p where
   protocolNumber :: p -> CInt
 
-instance SocketProtocol  IPPROTO_TCP where
+instance Protocol  IPPROTO_TCP where
   protocolNumber _ = (#const IPPROTO_TCP)
 
 newtype SocketException = SocketException Errno
@@ -188,14 +188,14 @@ instance Exception SocketException
 --        [@EPROTOTYPE@]      The socket type is not supported by the protocol.
 --        [@EACCES@]          The process is lacking necessary privileges.
 --        [@ENOMEM@]          Insufficient memory.
-socket :: (SocketDomain d, SocketType t, SocketProtocol  p) => IO (Socket d t p)
+socket :: (AddressFamily d, Type t, Protocol  p) => IO (Socket d t p)
 socket = socket'
  where
-   socket' :: forall d t p. (SocketDomain d, SocketType t, SocketProtocol  p) => IO (Socket d t p)
+   socket' :: forall d t p. (AddressFamily d, Type t, Protocol  p) => IO (Socket d t p)
    socket'  = do
      bracketOnError
        -- Try to acquire the socket resource. This part has exceptions masked.
-       ( c_socket (socketDomain (undefined :: d)) (typeNumber (undefined :: t)) (protocolNumber (undefined :: p)) )
+       ( c_socket (addressFamilyNumber (undefined :: d)) (typeNumber (undefined :: t)) (protocolNumber (undefined :: p)) )
        -- On failure after the c_socket call we try to close the socket to not leak file descriptors.
        -- If closing fails we cannot really do something about it. We tried at least.
        -- This part has exceptions masked as well. c_close is an unsafe FFI call.
@@ -232,7 +232,7 @@ socket = socket'
 --     [@EISCONN@]        The socket is already connected.
 --     [@ELOOP@]          More than {SYMLOOP_MAX} symbolic links were encountered during resolution of the pathname in address.
 --     [@ENAMETOOLONG@]   The length of a pathname exceeds {PATH_MAX}, or pathname resolution of a symbolic link produced an intermediate result  with  a  length  that  exceeds {PATH_MAX}.
-bind :: (SocketDomain d, SocketType t, SocketProtocol  p) => Socket d t p -> SockAddr d -> IO ()
+bind :: (AddressFamily d, Type t, Protocol  p) => Socket d t p -> SockAddr d -> IO ()
 bind (Socket ms) addr = do
   alloca $ \addrPtr-> do
     poke addrPtr addr
@@ -249,7 +249,7 @@ bind (Socket ms) addr = do
 -- On EINTR the close operation is retried.
 -- On EBADF an error is thrown as this should be impossible according to the library's design.
 -- On EIO an error is thrown.
-close :: (SocketDomain d, SocketType t, SocketProtocol  p) => Socket d t p -> IO ()
+close :: (AddressFamily d, Type t, Protocol  p) => Socket d t p -> IO ()
 close (Socket mfd) = do
   modifyMVarMasked_ mfd $ \fd-> do
     if fd < 0 then do
@@ -278,7 +278,7 @@ close (Socket mfd) = do
 
 
 
-connect :: (SocketDomain d, SocketType t, SocketProtocol  p) => Socket d t p -> SockAddr d -> IO ()
+connect :: (AddressFamily d, Type t, Protocol  p) => Socket d t p -> SockAddr d -> IO ()
 connect (Socket ms) addr = do
   alloca $ \addrPtr-> do
     poke addrPtr addr
@@ -289,10 +289,10 @@ connect (Socket ms) addr = do
     else do
       return ()
 
-accept :: (SocketDomain d, SocketType t, SocketProtocol  p) => Socket d t p -> IO (Socket d t p, SockAddr d)
+accept :: (AddressFamily d, Type t, Protocol  p) => Socket d t p -> IO (Socket d t p, SockAddr d)
 accept = accept'
   where
-    accept' :: forall d t p. (SocketDomain d, SocketType t, SocketProtocol  p) => Socket d t p -> IO (Socket d t p, SockAddr d)
+    accept' :: forall d t p. (AddressFamily d, Type t, Protocol  p) => Socket d t p -> IO (Socket d t p, SockAddr d)
     accept' (Socket mfd) = do
       -- Block until notification about read.
       -- IOError is thrown if the socket has been closed in the meantime.
@@ -318,7 +318,7 @@ accept = accept'
                      return (Socket mft, addr)
             )
 
-listen :: (SocketDomain d, SocketType t, SocketProtocol  p) => Socket d t p -> Int -> IO ()
+listen :: (AddressFamily d, Type t, Protocol  p) => Socket d t p -> Int -> IO ()
 listen (Socket ms) backlog = do
   i <- withMVar ms $ \s-> do
     c_listen s backlog
