@@ -206,9 +206,10 @@ close (Socket mfd) = do
       -- We put an invalid file descriptor into the MVar.
       return (-1)
   where
-    -- The c_close operation may (according to Posix documentation) fail with EINTR or EBADF.
+    -- The c_close operation may (according to Posix documentation) fails with EINTR or EBADF or EIO.
     -- EBADF: Should be ruled out by the library's design.
-    -- EINTR: It is best practice to just retry the operation.
+    -- EINTR: It is best practice to just retry the operation what we do here.
+    -- EIO: Only occurs when filesystem is involved (?).
     -- Conclusion: Our close should never fail. If it does, something is horribly wrong.
     closeLoop fd = do
       i <- c_close fd
@@ -286,10 +287,30 @@ recvFrom :: Socket d t p -> Int -> IO (BS.ByteString, SocketAddress d)
 recvFrom = undefined
 
 send     :: Socket d t p -> BS.ByteString -> IO Int
-send (Socket mfd) bs = do
-  threadWaitReadMVar mfd
-  print bs
-  return 0
+send (Socket mfd) bs = sendWait
+  where
+    sendWait = do
+      threadWaitWriteMVar mfd
+      bytesSend <- withMVar mfd $ \fd-> do
+        when (fd < 0) $ do
+          throwIO (SocketException eBADF)
+        BS.unsafeUseAsCStringLen bs $ \(ptr,len)->
+          let loop = do
+                i <- c_send fd ptr len 0
+                if (i < 0) then do
+                  e <- getErrno
+                  if e == eWOULDBLOCK || e == eAGAIN 
+                    then return i
+                  else if e == eINTR
+                    then loop
+                    else throwIO (SocketException e)
+                -- Send succeeded. Return the bytes send.
+                else return i
+          in loop
+      -- We cannot loop from within the block above, because this would keep the MVar locked.
+      if bytesSend < 0
+        then sendWait
+        else return bytesSend
 
 sendTo   :: Socket d t p -> BS.ByteString -> SocketAddress d -> IO Int
 sendTo = undefined
@@ -340,6 +361,9 @@ foreign import ccall safe "sys/socket.h accept"
 
 foreign import ccall safe "sys/socket.h listen"
   c_listen  :: Fd -> Int -> IO CInt
+
+foreign import ccall safe "sys/socket.h send"
+  c_send  :: Fd -> Ptr CChar -> Int -> Int -> IO Int
 
 instance Storable SockAddrUn where
   sizeOf = undefined
