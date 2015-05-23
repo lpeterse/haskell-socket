@@ -183,9 +183,17 @@ instance Protocol  IPPROTO_TCP where
 
 
 
--- | Creates a new socket. Certain properties are encoded in its type and 
---   determine the behaviour and dependant types of the operations applicable
---   on a certain socket.
+-- | Creates a new socket.
+--
+--   Whereas the underlying POSIX socket function takes 3 parameters, this library
+--   encodes this information in the type variables. This rules out several
+--   kinds of errors and escpecially simplifies the handling of addresses (by using
+--   associated type families). Examples:
+--
+--   > -- create a IPv4-UDP-datagram socket
+--   > sock <- socket :: IO (Socket AF_INET SOCK_DGRAM IPPROTO_UDP)
+--   > -- create a IPv6-TCP-streaming socket
+--   > sock6 <- socket :: IO (Socket AF_INET6 SOCK_STREAM IPPROTO_TCP)
 --
 --     - This operation sets up a finalizer that automatically closes the socket
 --       when the garbage collection decides to collect it. This is just a
