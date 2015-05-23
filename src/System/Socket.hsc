@@ -217,7 +217,7 @@ socket = socket'
 --     [@EADDRNOTAVAIL@]  The address is not available.
 --     [@EAFNOSUPPORT@]   The address is domain invalid (should not occur due to type safety).
 --     [@EALREADY@]       An assignment request is already in progress.
---     [@EBADF@]          Not a valid file descriptor (should be impossible due to MVar).
+--     [@EBADF@]          Not a valid file descriptor (only after socket has been closed).
 --     [@EINPROGRESS@]    The assignment shall be performed asychronously.
 --     [@EINVAL@]         Socket is already bound and cannot be re-bound or the socket has been shut down.
 --     [@ENOBUFS@]        Insufficient resources.
@@ -247,7 +247,7 @@ bind (Socket ms) addr = do
 --   - Calling `listen` on a `close`d socket throws @EBADF@ even if the former file descriptor has been reassigned.
 --   - This operation throws `SocketException`s:
 --
---     [@EBADF@]          Not a valid file descriptor (should be impossible).
+--     [@EBADF@]          Not a valid file descriptor (only after socket has been closed).
 --     [@EDESTADDRREQ@]   The socket is not bound and the protocol does not support listening on an unbound socket.
 --     [@EINVAL@]         The socket is already connected or has been shut down.
 --     [@ENOTSOCK@]       The file descriptor is not a socket (should be impossible).
@@ -272,9 +272,19 @@ listen (Socket ms) backlog = do
 --     fail-safe. You might still run out of file descriptors as there's
 --     no guarantee about when the finalizer is run. You're advised to
 --     manually `close` the socket when it's no longer needed.
+--   - This operation catches @EAGAIN@, @EWOULDBLOCK@ and @EINTR@ internally and retries automatically.
 --   - This operation throws `SocketException`s:
 --
---     [@@]
+--     [@EBADF@]        Not a valid file descriptor (only after the socket has been closed).
+--     [@ECONNABORTED@] A connection has been aborted.
+--     [@EINVAL@]       The socket is not accepting/listening.
+--     [@EMFILE@]       The process is out file descriptors.
+--     [@ENFILE@]       The system is out file descriptors.
+--     [@ENOBUFS@]      No buffer space available.
+--     [@ENOMEM@]       Out of memory.
+--     [@ENOSOCK@]      Not a valid socket descriptor (should be impossible).
+--     [@EOPNOTSUPP@]   The socket type does not support accepting connections.
+--     [@EPROTO@]       Generic protocol error.
 accept :: (AddressFamily f, Type t, Protocol  p) => Socket f t p -> IO (Socket f t p, SockAddr f)
 accept s@(Socket mfd) = acceptWait
   where
