@@ -44,6 +44,8 @@ module System.Socket
   , IPPROTO_UDP
   -- *** IPPROTO_TCP
   , IPPROTO_TCP
+
+  , localhost
   ) where
 
 import Control.Exception
@@ -280,7 +282,10 @@ recvFrom :: Socket d t p -> Int -> IO (BS.ByteString, SocketAddress d)
 recvFrom = undefined
 
 send     :: Socket d t p -> BS.ByteString -> IO Int
-send = undefined
+send (Socket mfd) bs = do
+  threadWaitReadMVar mfd
+  print bs
+  return 0
 
 sendTo   :: Socket d t p -> BS.ByteString -> SocketAddress d -> IO Int
 sendTo = undefined
