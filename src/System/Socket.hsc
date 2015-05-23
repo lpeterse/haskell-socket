@@ -55,7 +55,7 @@ import Data.Typeable
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Unsafe as BS
 
-import GHC.Conc (threadWaitRead)
+import GHC.Conc (threadWaitReadSTM, threadWaitWriteSTM, atomically)
 
 import Foreign.C.Types
 import Foreign.C.Error
@@ -74,7 +74,7 @@ import System.Posix.Internals (setNonBlockingFD)
 #let alignment t = "%lu", (unsigned long)offsetof(struct {char x__; t (y__); }, y__)
 
 newtype Socket d t p
-      = Socket (MVar CInt)
+      = Socket (MVar Fd)
 
 data AF_UNIX
 data AF_INET
@@ -174,16 +174,16 @@ socket = socket'
        -- On failure after the c_socket call we try to close the socket to not leak file descriptors.
        -- If closing fails we cannot really do something about it. We tried at least.
        -- This part has exceptions masked as well. c_close is an unsafe FFI call.
-       ( \s-> when (s >= 0) (c_close s >> return ()) )
+       ( \fd-> when (fd >= 0) (c_close fd >> return ()) )
        -- If an exception is raised, it is reraised after the socket has been closed.
        -- This part has async exceptions unmasked (via restore).
-       ( \s-> if s < 0 then do
+       ( \fd-> if fd < 0 then do
                 getErrno >>= throwIO . SocketException
               else do
                 -- setNonBlockingFD calls c_fcntl_write which is an unsafe FFI call.
-                setNonBlockingFD s True
-                ms <- newMVar s
-                return (Socket ms)
+                let Fd s = fd in setNonBlockingFD s True
+                mfd <- newMVar fd
+                return (Socket mfd)
        )
 
 -- | Closes a socket.
@@ -192,17 +192,17 @@ socket = socket'
 -- On EBADF an error is thrown as this should be impossible according to the library's design.
 -- On EIO an error is thrown.
 close :: (SocketDomain d, SocketType t, SocketProtocol  p) => Socket d t p -> IO ()
-close (Socket ms) = do
-  failure <- modifyMVarMasked ms $ \s-> do
+close (Socket mfd) = do
+  failure <- modifyMVarMasked mfd $ \fd-> do
     -- The socket has already been closed.
-    if s == closed then do
+    if fd == closed then do
       return (closed, False)
     -- Close the socket via system call.
     else do
-      i <- c_close s
+      i <- c_close fd
       -- The close call failed. Preserve socket descriptor to allow a retry.
       if i < 0 then
-        return (s, True)
+        return (fd, True)
       -- The close call succeeded. Note this with a -1 as socket descriptor.
       else do
         return (closed, False)
@@ -211,7 +211,7 @@ close (Socket ms) = do
   else do
     return ()
   where
-    closed = -1
+    closed = Fd (-1)
 
 bind :: (SocketDomain d, SocketType t, SocketProtocol  p) => Socket d t p -> SocketAddress d -> IO ()
 bind (Socket ms) addr = do
@@ -239,29 +239,29 @@ accept :: (SocketDomain d, SocketType t, SocketProtocol  p) => Socket d t p -> I
 accept = accept'
   where
     accept' :: forall d t p. (SocketDomain d, SocketType t, SocketProtocol  p) => Socket d t p -> IO (Socket d t p, SocketAddress d)
-    accept' (Socket ms) = do
+    accept' (Socket mfd) = do
+      -- Block until notification about read.
+      -- IOError is thrown if the socket has been closed in the meantime.
+      -- We reraise this as a SocketError.
+      threadWaitReadMVar mfd `onException` throwIO (SocketException eBADF)
       -- Accept uses the socket exclusively by acquiring the MVar.
-      withMVar ms $ \s-> do
+      withMVar mfd $ \fd-> do
         -- If the socket has already been closed we fail excactly like the accept call would fail.
-        when (s < 0) $ do
+        when (fd < 0) $ do
           throwIO (SocketException eBADF)
-        -- Block until notification about read.
-        -- IOError is thrown if the socket has been closed in the meantime.
-        -- We reraise this as a SocketError.
-        threadWaitRead (Fd s) `onException` throwIO (SocketException eBADF)
         -- Allocate local (!) memory for the address.
         alloca $ \addrPtr-> do
           bracketOnError
-            ( c_accept s (castPtr addrPtr :: Ptr ()) (sizeOf (undefined :: SocketAddress d)) )
-            ( \t-> when (t >= 0) (c_close t >> return ()) )
-            ( \t-> if t < 0 then do
+            ( c_accept fd (castPtr addrPtr :: Ptr ()) (sizeOf (undefined :: SocketAddress d)) )
+            ( \ft-> when (fd >= 0) (c_close ft >> return ()) )
+            ( \ft-> if ft < 0 then do
                      getErrno >>= throwIO . SocketException
                    else do
                      -- setNonBlockingFD calls c_fcntl_write which is an unsafe FFI call.
-                     setNonBlockingFD t True
+                     let Fd i = ft in setNonBlockingFD i True
                      addr <- peek addrPtr :: IO (SocketAddress d)
-                     mt <- newMVar t
-                     return (Socket mt, addr)
+                     mft <- newMVar ft
+                     return (Socket mft, addr)
             )
 
 listen :: (SocketDomain d, SocketType t, SocketProtocol  p) => Socket d t p -> Int -> IO ()
@@ -315,22 +315,22 @@ localhost =
   }
 
 foreign import ccall safe "sys/socket.h socket"
-  c_socket  :: CInt -> CInt -> CInt -> IO CInt
+  c_socket  :: CInt -> CInt -> CInt -> IO Fd
 
 foreign import ccall safe "unistd.h close"
-  c_close   :: CInt -> IO CInt
+  c_close   :: Fd -> IO CInt
 
 foreign import ccall safe "sys/socket.h bind"
-  c_bind    :: CInt -> Ptr () -> Int -> IO CInt
+  c_bind    :: Fd -> Ptr () -> Int -> IO CInt
 
 foreign import ccall safe "sys/socket.h connect"
-  c_connect :: CInt -> Ptr () -> Int -> IO CInt
+  c_connect :: Fd -> Ptr () -> Int -> IO CInt
 
 foreign import ccall safe "sys/socket.h accept"
-  c_accept  :: CInt -> Ptr () -> Int -> IO CInt
+  c_accept  :: Fd -> Ptr () -> Int -> IO Fd
 
 foreign import ccall safe "sys/socket.h listen"
-  c_listen  :: CInt -> Int -> IO CInt
+  c_listen  :: Fd -> Int -> IO CInt
 
 instance Storable SockAddrUn where
   sizeOf = undefined
@@ -389,3 +389,13 @@ instance Storable SockAddrIn6 where
       sin6_scope_id = (#ptr struct sockaddr_in6, sin6_scope_id)
       sin6_port     = (#ptr struct sockaddr_in6, sin6_port)
       sin6_addr     = (#ptr struct in6_addr, s6_addr) . (#ptr struct sockaddr_in6, sin6_addr)
+
+-- helpers for threadsafe event registration on file descriptors
+
+threadWaitReadMVar :: MVar Fd -> IO ()
+threadWaitReadMVar mfd = do
+  withMVar mfd threadWaitWriteSTM >>= atomically . fst
+
+threadWaitWriteMVar :: MVar Fd -> IO ()
+threadWaitWriteMVar mfd = do
+  withMVar mfd threadWaitWriteSTM >>=  atomically . fst
