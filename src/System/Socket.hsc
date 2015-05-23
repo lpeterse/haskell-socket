@@ -53,6 +53,7 @@ import Control.Exception
 import Control.Monad
 import Control.Concurrent.MVar
 
+import Data.Function
 import Data.Word
 import Data.Typeable
 import qualified Data.ByteString as BS
@@ -262,35 +263,55 @@ listen (Socket ms) backlog = do
   else do
     return ()
 
+-- | Accept a new connection.
+--
+--   - Calling this operation on an already closed socket always throws `EBADF` even if the former descriptor has been reassigned.
+--   - This operation configures the new socket non-blocking (TODO: use `accept4` if available).
+--   - This operation sets up a finalizer for the new socket that automatically closes the socket
+--     when the garbage collection decides to collect it. This is just a
+--     fail-safe. You might still run out of file descriptors as there's
+--     no guarantee about when the finalizer is run. You're advised to
+--     manually `close` the socket when it's no longer needed.
+--   - This operation throws `SocketException`s:
+--
+--     [@@]
 accept :: (AddressFamily d, Type t, Protocol  p) => Socket d t p -> IO (Socket d t p, SockAddr d)
-accept = accept'
+accept s@(Socket mfd) = acceptWait
   where
-    accept' :: forall d t p. (AddressFamily d, Type t, Protocol  p) => Socket d t p -> IO (Socket d t p, SockAddr d)
-    accept' (Socket mfd) = do
-      -- Block until notification about read.
-      -- IOError is thrown if the socket has been closed in the meantime.
-      -- We reraise this as a SocketError.
+    acceptWait :: forall d t p. (AddressFamily d, Type t, Protocol  p) => IO (Socket d t p, SockAddr d)
+    acceptWait = do
+      -- This is the blocking operation waiting for an event.
       threadWaitReadMVar mfd `onException` throwIO (SocketException eBADF)
-      -- Accept uses the socket exclusively by acquiring the MVar.
-      withMVar mfd $ \fd-> do
-        -- If the socket has already been closed we fail excactly like the accept call would fail.
-        when (fd < 0) $ do
-          throwIO (SocketException eBADF)
+      -- We mask asynchronous exceptions during this critical section.
+      msa <- withMVarMasked mfd $ \fd-> do
         -- Allocate local (!) memory for the address.
-        alloca $ \addrPtr-> do
-          bracketOnError
-            ( c_accept fd (castPtr addrPtr :: Ptr ()) (sizeOf (undefined :: SockAddr d)) )
-            ( \ft-> when (fd >= 0) (c_close ft >> return ()) )
-            ( \ft-> if ft < 0 then do
-                     getErrno >>= throwIO . SocketException
-                   else do
-                     -- setNonBlockingFD calls c_fcntl_write which is an unsafe FFI call.
-                     let Fd i = ft in setNonBlockingFD i True
-                     addr <- peek addrPtr :: IO (SockAddr d)
-                     mft <- newMVar ft
-                     return (Socket mft, addr)
-            )
-
+        alloca $ \addrPtr->
+          -- Oh Haskell, my beauty!
+          fix $ \loop-> do
+            ft <- c_accept fd (castPtr addrPtr :: Ptr ()) (sizeOf (undefined :: SockAddr d))
+            if ft < 0 then do
+              e <- getErrno
+              if e == eWOULDBLOCK || e == eAGAIN 
+                then return Nothing
+                else if e == eINTR
+                  -- On EINTR it is good practice to just retry.
+                  then loop
+                  else throwIO (SocketException e)
+            -- This is the critical section: We got a valid descriptor we have not yet returned.
+             else do 
+              -- setNonBlockingFD calls c_fcntl_write which is an unsafe FFI call.
+              let Fd t = ft in setNonBlockingFD t True -- FIXME: throws exception
+              -- This peek operation might be a little expensive, but I don't see an alternative.
+              addr <- peek addrPtr :: IO (SockAddr d)
+              -- newMVar is guaranteed to be not interruptible.
+              mft <- newMVar ft
+              -- Register a finalizer on the new socket.
+              mkWeakMVar mft (close (Socket mft `asTypeOf` s))
+              return (Just (Socket mft, addr))
+      -- If msa is Nothing we got EAGAIN or EWOULDBLOCK and retry after the next event.
+      case msa of
+        Just sa -> return sa
+        Nothing -> acceptWait
 
 -- | Closes a socket.
 -- In contrast to the POSIX close this operation is idempotent.
@@ -305,26 +326,24 @@ close (Socket mfd) = do
     else do
       -- closeFdWith does not throw even on invalid file descriptors.
       -- It just assures no thread is blocking on the fd anymore and then executes the IO action.
-      closeFdWith closeLoop fd
+      closeFdWith
+        -- The c_close operation may (according to Posix documentation) fails with EINTR or EBADF or EIO.
+        -- EBADF: Should be ruled out by the library's design.
+        -- EINTR: It is best practice to just retry the operation what we do here.
+        -- EIO: Only occurs when filesystem is involved (?).
+        -- Conclusion: Our close should never fail. If it does, something is horribly wrong.
+        ( const $ fix $ \loop-> do
+            i <- c_close fd
+            if i < 0 then do
+              e <- getErrno
+              if e == eINTR 
+                then loop
+                else throwIO (SocketException e)
+            else return ()
+        ) fd
       -- When we arrive here, no exception has been thrown and the descriptor has been closed.
       -- We put an invalid file descriptor into the MVar.
       return (-1)
-  where
-    -- The c_close operation may (according to Posix documentation) fails with EINTR or EBADF or EIO.
-    -- EBADF: Should be ruled out by the library's design.
-    -- EINTR: It is best practice to just retry the operation what we do here.
-    -- EIO: Only occurs when filesystem is involved (?).
-    -- Conclusion: Our close should never fail. If it does, something is horribly wrong.
-    closeLoop fd = do
-      i <- c_close fd
-      if i < 0 then do
-        e <- getErrno
-        if e == eINTR 
-          then closeLoop fd
-          else throwIO (SocketException e)
-      else return ()
-
-
 
 connect :: (AddressFamily d, Type t, Protocol  p) => Socket d t p -> SockAddr d -> IO ()
 connect (Socket ms) addr = do
@@ -337,10 +356,6 @@ connect (Socket ms) addr = do
     else do
       return ()
 
-
-
-
-
 recv     :: Socket d t p -> Int -> IO BS.ByteString
 recv (Socket mfd) bufSize = recvWait
   where
@@ -350,29 +365,28 @@ recv (Socket mfd) bufSize = recvWait
         when (fd < 0) $ do
           throwIO (SocketException eBADF)
         ptr <- mallocBytes bufSize
-        let loop = do
-              i <- c_recv fd ptr bufSize 0
-              if (i < 0) then do
-                e <- getErrno
-                if e == eWOULDBLOCK || e == eAGAIN 
-                  then do
-                    -- At this exit we need to free the pointer manually.
-                    free ptr
-                    return Nothing
-                else if e == eINTR
-                  then loop
-                  else do
-                    -- At this exit we need to free the pointer manually as well.
-                    free ptr
-                    throwIO (SocketException e)
+        fix $ \loop-> do
+          i <- c_recv fd ptr bufSize 0
+          if (i < 0) then do
+            e <- getErrno
+            if e == eWOULDBLOCK || e == eAGAIN 
+              then do
+                -- At this exit we need to free the pointer manually.
+                free ptr
+                return Nothing
+            else if e == eINTR
+              then loop
               else do
-                -- Send succeeded, generate a ByteString.
-                -- From now on the ByteString takes care of freeing the pointer somewhen in the future.
-                -- The resulting ByteString might be shorter than the malloced buffer.
-                -- This is a fair tradeoff as otherwise we had to create a fresh copy.
-                bs <- BS.unsafePackMallocCStringLen (ptr, i)
-                return (Just bs)
-        loop
+                -- At this exit we need to free the pointer manually as well.
+                free ptr
+                throwIO (SocketException e)
+          else do
+            -- Send succeeded, generate a ByteString.
+            -- From now on the ByteString takes care of freeing the pointer somewhen in the future.
+            -- The resulting ByteString might be shorter than the malloced buffer.
+            -- This is a fair tradeoff as otherwise we had to create a fresh copy.
+            bs <- BS.unsafePackMallocCStringLen (ptr, i)
+            return (Just bs)
       -- We cannot loop from within the block above, because this would keep the MVar locked.
       case mbs of
         Nothing -> recvWait
@@ -387,18 +401,17 @@ send (Socket mfd) bs = sendWait
         when (fd < 0) $ do
           throwIO (SocketException eBADF)
         BS.unsafeUseAsCStringLen bs $ \(ptr,len)->
-          let loop = do
-                i <- c_send fd ptr len 0
-                if (i < 0) then do
-                  e <- getErrno
-                  if e == eWOULDBLOCK || e == eAGAIN 
-                    then return i
-                  else if e == eINTR
-                    then loop
-                    else throwIO (SocketException e)
-                -- Send succeeded. Return the bytes send.
-                else return i
-          in loop
+          fix $ \loop-> do
+            i <- c_send fd ptr len 0
+            if (i < 0) then do
+              e <- getErrno
+              if e == eWOULDBLOCK || e == eAGAIN 
+                then return i
+              else if e == eINTR
+                then loop
+                else throwIO (SocketException e)
+            -- Send succeeded. Return the bytes send.
+            else return i
       -- We cannot loop from within the block above, because this would keep the MVar locked.
       if bytesSend < 0
         then sendWait
