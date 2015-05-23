@@ -46,6 +46,7 @@ module System.Socket
   , IPPROTO_TCP
 
   , localhost
+  , SocketException (..)
   ) where
 
 import Control.Exception
@@ -165,6 +166,20 @@ instance Show SocketException where
 
 instance Exception SocketException
 
+-- | Creates a new socket. Certain properties are encoded in its type and 
+--   determine the behaviour and dependant types of the operations applicable
+--   on a certain socket.
+--
+--     - This operation sets up a finalizer that automatically closes the socket
+--       when the garbage collection decides to collect it. This is just a
+--       fail-safe. You might still run out of file descriptors as there's
+--       no guarantee about when the finalizer is run. You're advised to
+--       manually `close` the socket when it's no longer needed.
+--     - This operation configures the socket non-blocking to work seamlessly
+--       with the runtime system's event notification mechanism.
+--     - This operation can safely deal with asynchronous exceptions without
+--       leaking file descriptors.
+--     - This operation throws `SocketException`s:
 socket :: (SocketDomain d, SocketType t, SocketProtocol  p) => IO (Socket d t p)
 socket = socket'
  where
@@ -185,7 +200,9 @@ socket = socket'
                 -- setNonBlockingFD calls c_fcntl_write which is an unsafe FFI call.
                 let Fd s = fd in setNonBlockingFD s True
                 mfd <- newMVar fd
-                return (Socket mfd)
+                let s = Socket mfd
+                mkWeakMVar mfd (close s)
+                return s
        )
 
 -- | Closes a socket.
