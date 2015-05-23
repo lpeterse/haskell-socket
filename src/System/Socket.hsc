@@ -85,7 +85,8 @@ import System.Posix.Internals (setNonBlockingFD)
 --   If you do, the following rules must be obeyed:
 --
 --   - Make sure not to deadlock. Use `Control.Concurrent.MVar.withMVar` or similar.
---   - The lock __must not__ be held during a blocking call.
+--   - The lock __must not__ be held during a blocking call. This would make it impossible
+--     to send and receive simultaneously or to close the socket.
 --   - The lock __must__ be held when calling operations that use the file descriptor.
 --     Otherwise the socket might get closed or even reused by another
 --     thread/capability which might result in reading from or writing
