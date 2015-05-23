@@ -213,6 +213,37 @@ socket = socket'
                 return s
        )
 
+-- | Bind a socket to an address.
+--
+--   - This operation throws `SocketException`s (consult your Posix manpages for more protocol specific exceptions):
+--
+--     [@EADDRINUSE@]     The address is in use.
+--     [@EADDRNOTAVAIL@]  The address is not available.
+--     [@EAFNOSUPPORT@]   The address is domain invalid (should not occur due to type safety).
+--     [@EALREADY@]       An assignment request is already in progress.
+--     [@EBADF@]          Not a valid file descriptor (should be impossible due to MVar).
+--     [@EINPROGRESS@]    The assignment shall be performed asychronously.
+--     [@EINVAL@]         Socket is already bound and cannot be re-bound or the socket has been shut down.
+--     [@ENOBUFS@]        Insufficient resources.
+--     [@ENOTSOCK@]       The file descriptor is not a socket (should be impossible).
+--     [@EOPNOTSUPP@]     The socket type does not support binding.
+--     [@EACCES@]         The address is protected and the process is lacking permission.
+--     [@EINVAL@]         Address length does not match address family (should be impossible).
+--     [@EISCONN@]        The socket is already connected.
+--     [@ELOOP@]          More than {SYMLOOP_MAX} symbolic links were encountered during resolution of the pathname in address.
+--     [@ENAMETOOLONG@]   The length of a pathname exceeds {PATH_MAX}, or pathname resolution of a symbolic link produced an intermediate result  with  a  length  that  exceeds {PATH_MAX}.
+bind :: (SocketDomain d, SocketType t, SocketProtocol  p) => Socket d t p -> SockAddr d -> IO ()
+bind (Socket ms) addr = do
+  alloca $ \addrPtr-> do
+    poke addrPtr addr
+    i <- withMVar ms $ \s-> do
+      c_bind s (castPtr addrPtr :: Ptr ()) (sizeOf addr)
+    if i < 0 then do
+      getErrno >>= throwIO . SocketException
+    else do
+      return ()
+
+
 -- | Closes a socket.
 -- In contrast to the POSIX close this operation is idempotent.
 -- On EINTR the close operation is retried.
@@ -245,16 +276,7 @@ close (Socket mfd) = do
           else throwIO (SocketException e)
       else return ()
 
-bind :: (SocketDomain d, SocketType t, SocketProtocol  p) => Socket d t p -> SockAddr d -> IO ()
-bind (Socket ms) addr = do
-  alloca $ \addrPtr-> do
-    poke addrPtr addr
-    i <- withMVar ms $ \s-> do
-      c_bind s (castPtr addrPtr :: Ptr ()) (sizeOf addr)
-    if i < 0 then do
-      getErrno >>= throwIO . SocketException
-    else do
-      return ()
+
 
 connect :: (SocketDomain d, SocketType t, SocketProtocol  p) => Socket d t p -> SockAddr d -> IO ()
 connect (Socket ms) addr = do
