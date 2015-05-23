@@ -57,7 +57,7 @@ import Data.Typeable
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Unsafe as BS
 
-import GHC.Conc (threadWaitReadSTM, threadWaitWriteSTM, atomically)
+import GHC.Conc (threadWaitReadSTM, threadWaitWriteSTM, atomically, closeFdWith)
 
 import Foreign.C.Types
 import Foreign.C.Error
@@ -195,25 +195,29 @@ socket = socket'
 -- On EIO an error is thrown.
 close :: (SocketDomain d, SocketType t, SocketProtocol  p) => Socket d t p -> IO ()
 close (Socket mfd) = do
-  failure <- modifyMVarMasked mfd $ \fd-> do
-    -- The socket has already been closed.
-    if fd == closed then do
-      return (closed, False)
-    -- Close the socket via system call.
+  modifyMVarMasked_ mfd $ \fd-> do
+    if fd < 0 then do
+      return fd
     else do
-      i <- c_close fd
-      -- The close call failed. Preserve socket descriptor to allow a retry.
-      if i < 0 then
-        return (fd, True)
-      -- The close call succeeded. Note this with a -1 as socket descriptor.
-      else do
-        return (closed, False)
-  if failure then do
-    getErrno >>= throwIO . SocketException
-  else do
-    return ()
+      -- closeFdWith does not throw even on invalid file descriptors.
+      -- It just assures no thread is blocking on the fd anymore and then executes the IO action.
+      closeFdWith closeLoop fd
+      -- When we arrive here, no exception has been thrown and the descriptor has been closed.
+      -- We put an invalid file descriptor into the MVar.
+      return (-1)
   where
-    closed = Fd (-1)
+    -- The c_close operation may (according to Posix documentation) fail with EINTR or EBADF.
+    -- EBADF: Should be ruled out by the library's design.
+    -- EINTR: It is best practice to just retry the operation.
+    -- Conclusion: Our close should never fail. If it does, something is horribly wrong.
+    closeLoop fd = do
+      i <- c_close fd
+      if i < 0 then do
+        e <- getErrno
+        if e == eINTR 
+          then closeLoop fd
+          else throwIO (SocketException e)
+      else return ()
 
 bind :: (SocketDomain d, SocketType t, SocketProtocol  p) => Socket d t p -> SocketAddress d -> IO ()
 bind (Socket ms) addr = do

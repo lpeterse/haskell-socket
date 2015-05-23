@@ -9,10 +9,14 @@ main = do
   s <- socket :: IO (Socket AF_INET6 SOCK_STREAM IPPROTO_TCP)
   bind s localhost
   forkIO $ do
-    send s "abc"
+    send s "aaa"
+    send s "sss"
     return ()
   forkIO $ do
-    send s "def"
+    send s "bbb"
+    send s "ttt"
     return ()
   listen s 5
-  threadDelay 1000000000
+  threadDelay 1000000
+  close s
+  threadDelay 1000000
