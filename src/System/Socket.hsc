@@ -458,7 +458,7 @@ instance Storable SockAddrIn6 where
 
 threadWaitReadMVar :: MVar Fd -> IO ()
 threadWaitReadMVar mfd = do
-  withMVar mfd threadWaitWriteSTM >>= atomically . fst
+  withMVar mfd threadWaitReadSTM >>= atomically . fst
 
 threadWaitWriteMVar :: MVar Fd -> IO ()
 threadWaitWriteMVar mfd = do
