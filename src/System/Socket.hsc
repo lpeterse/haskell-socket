@@ -11,10 +11,10 @@ module System.Socket
    , accept
    -- ** connect
    , connect
-   -- ** send / sendTo
-   , send, sendTo
-   -- ** recv / recvFrom
-   , recv, recvFrom
+   -- ** send
+   , send
+   -- ** recv
+   , recv
       -- ** close
    , close
   -- * Sockets
@@ -281,10 +281,41 @@ listen (Socket ms) backlog = do
     return ()
 
 recv     :: Socket d t p -> Int -> IO BS.ByteString
-recv = undefined
-
-recvFrom :: Socket d t p -> Int -> IO (BS.ByteString, SocketAddress d)
-recvFrom = undefined
+recv (Socket mfd) bufSize = recvWait
+  where
+    recvWait = do
+      threadWaitReadMVar mfd
+      mbs <- withMVarMasked mfd $ \fd-> do
+        when (fd < 0) $ do
+          throwIO (SocketException eBADF)
+        ptr <- mallocBytes bufSize
+        let loop = do
+              i <- c_recv fd ptr bufSize 0
+              if (i < 0) then do
+                e <- getErrno
+                if e == eWOULDBLOCK || e == eAGAIN 
+                  then do
+                    -- At this exit we need to free the pointer manually.
+                    free ptr
+                    return Nothing
+                else if e == eINTR
+                  then loop
+                  else do
+                    -- At this exit we need to free the pointer manually as well.
+                    free ptr
+                    throwIO (SocketException e)
+              else do
+                -- Send succeeded, generate a ByteString.
+                -- From now on the ByteString takes care of freeing the pointer somewhen in the future.
+                -- The resulting ByteString might be shorter than the malloced buffer.
+                -- This is a fair tradeoff as otherwise we had to create a fresh copy.
+                bs <- BS.unsafePackMallocCStringLen (ptr, i)
+                return (Just bs)
+        loop
+      -- We cannot loop from within the block above, because this would keep the MVar locked.
+      case mbs of
+        Nothing -> recvWait
+        Just bs -> return bs
 
 send     :: Socket d t p -> BS.ByteString -> IO Int
 send (Socket mfd) bs = sendWait
@@ -311,9 +342,6 @@ send (Socket mfd) bs = sendWait
       if bytesSend < 0
         then sendWait
         else return bytesSend
-
-sendTo   :: Socket d t p -> BS.ByteString -> SocketAddress d -> IO Int
-sendTo = undefined
 
 data SockAddrUn
    = SockAddrUn
@@ -364,6 +392,9 @@ foreign import ccall safe "sys/socket.h listen"
 
 foreign import ccall safe "sys/socket.h send"
   c_send  :: Fd -> Ptr CChar -> Int -> Int -> IO Int
+
+foreign import ccall safe "sys/socket.h recv"
+  c_recv  :: Fd -> Ptr CChar -> Int -> Int -> IO Int
 
 instance Storable SockAddrUn where
   sizeOf = undefined
