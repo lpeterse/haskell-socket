@@ -183,14 +183,14 @@ instance Protocol  IPPROTO_TCP where
 --        [@EPROTOTYPE@]      The socket type is not supported by the protocol.
 --        [@EACCES@]          The process is lacking necessary privileges.
 --        [@ENOMEM@]          Insufficient memory.
-socket :: (AddressFamily d, Type t, Protocol  p) => IO (Socket d t p)
+socket :: (AddressFamily f, Type t, Protocol  p) => IO (Socket f t p)
 socket = socket'
  where
-   socket' :: forall d t p. (AddressFamily d, Type t, Protocol  p) => IO (Socket d t p)
+   socket' :: forall f t p. (AddressFamily f, Type t, Protocol  p) => IO (Socket f t p)
    socket'  = do
      bracketOnError
        -- Try to acquire the socket resource. This part has exceptions masked.
-       ( c_socket (addressFamilyNumber (undefined :: d)) (typeNumber (undefined :: t)) (protocolNumber (undefined :: p)) )
+       ( c_socket (addressFamilyNumber (undefined :: f)) (typeNumber (undefined :: t)) (protocolNumber (undefined :: p)) )
        -- On failure after the c_socket call we try to close the socket to not leak file descriptors.
        -- If closing fails we cannot really do something about it. We tried at least.
        -- This part has exceptions masked as well. c_close is an unsafe FFI call.
@@ -228,7 +228,7 @@ socket = socket'
 --     [@EISCONN@]        The socket is already connected.
 --     [@ELOOP@]          More than {SYMLOOP_MAX} symbolic links were encountered during resolution of the pathname in address.
 --     [@ENAMETOOLONG@]   The length of a pathname exceeds {PATH_MAX}, or pathname resolution of a symbolic link produced an intermediate result  with  a  length  that  exceeds {PATH_MAX}.
-bind :: (AddressFamily d, Type t, Protocol  p) => Socket d t p -> SockAddr d -> IO ()
+bind :: (AddressFamily f, Type t, Protocol  p) => Socket f t p -> SockAddr f -> IO ()
 bind (Socket ms) addr = do
   alloca $ \addrPtr-> do
     poke addrPtr addr
@@ -254,7 +254,7 @@ bind (Socket ms) addr = do
 --     [@EOPNOTSUPP@]     The protocol does not support listening.
 --     [@EACCES@]         The process is lacking privileges.
 --     [@ENOBUFS@]        Insufficient resources.
-listen :: (AddressFamily d, Type t, Protocol  p) => Socket d t p -> Int -> IO ()
+listen :: (AddressFamily f, Type t, Protocol  p) => Socket f t p -> Int -> IO ()
 listen (Socket ms) backlog = do
   i <- withMVar ms $ \s-> do
     c_listen s backlog
@@ -275,10 +275,10 @@ listen (Socket ms) backlog = do
 --   - This operation throws `SocketException`s:
 --
 --     [@@]
-accept :: (AddressFamily d, Type t, Protocol  p) => Socket d t p -> IO (Socket d t p, SockAddr d)
+accept :: (AddressFamily f, Type t, Protocol  p) => Socket f t p -> IO (Socket f t p, SockAddr f)
 accept s@(Socket mfd) = acceptWait
   where
-    acceptWait :: forall d t p. (AddressFamily d, Type t, Protocol  p) => IO (Socket d t p, SockAddr d)
+    acceptWait :: forall f t p. (AddressFamily f, Type t, Protocol  p) => IO (Socket f t p, SockAddr f)
     acceptWait = do
       -- This is the blocking operation waiting for an event.
       threadWaitReadMVar mfd `onException` throwIO (SocketException eBADF)
@@ -287,22 +287,22 @@ accept s@(Socket mfd) = acceptWait
         -- Allocate local (!) memory for the address.
         alloca $ \addrPtr->
           -- Oh Haskell, my beauty!
-          fix $ \loop-> do
-            ft <- c_accept fd (castPtr addrPtr :: Ptr ()) (sizeOf (undefined :: SockAddr d))
+          fix $ \retry-> do
+            ft <- c_accept fd (castPtr addrPtr :: Ptr ()) (sizeOf (undefined :: SockAddr f))
             if ft < 0 then do
               e <- getErrno
               if e == eWOULDBLOCK || e == eAGAIN 
                 then return Nothing
                 else if e == eINTR
                   -- On EINTR it is good practice to just retry.
-                  then loop
+                  then retry
                   else throwIO (SocketException e)
             -- This is the critical section: We got a valid descriptor we have not yet returned.
-             else do 
+            else do 
               -- setNonBlockingFD calls c_fcntl_write which is an unsafe FFI call.
               let Fd t = ft in setNonBlockingFD t True -- FIXME: throws exception
               -- This peek operation might be a little expensive, but I don't see an alternative.
-              addr <- peek addrPtr :: IO (SockAddr d)
+              addr <- peek addrPtr :: IO (SockAddr f)
               -- newMVar is guaranteed to be not interruptible.
               mft <- newMVar ft
               -- Register a finalizer on the new socket.
@@ -318,7 +318,7 @@ accept s@(Socket mfd) = acceptWait
 -- On EINTR the close operation is retried.
 -- On EBADF an error is thrown as this should be impossible according to the library's design.
 -- On EIO an error is thrown.
-close :: (AddressFamily d, Type t, Protocol  p) => Socket d t p -> IO ()
+close :: (AddressFamily f, Type t, Protocol  p) => Socket f t p -> IO ()
 close (Socket mfd) = do
   modifyMVarMasked_ mfd $ \fd-> do
     if fd < 0 then do
