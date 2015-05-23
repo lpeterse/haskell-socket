@@ -119,8 +119,8 @@ setSockOptSocketProtocol  :: (SocketDomain f, SocketType t, SocketProtocol  p) =
 setSockOptSocketProtocol 
   = undefined
 
-class (Storable (SocketAddress d)) => SocketDomain d where
-  type SocketAddress d
+class (Storable (SockAddr d)) => SocketDomain d where
+  type SockAddr d
   socketDomain :: d -> CInt
 
 type family SockOpt o :: *
@@ -129,15 +129,15 @@ type instance SockOpt AF_INET6    = IP6_SOCKOPT
 type instance SockOpt IPPROTO_TCP = TCP_SOCKOPT
 
 instance SocketDomain AF_UNIX where
-  type SocketAddress AF_UNIX = SockAddrUn
+  type SockAddr AF_UNIX = SockAddrUn
   socketDomain _ = (#const AF_UNIX)
 
 instance SocketDomain AF_INET where
-  type SocketAddress AF_INET = SockAddrIn
+  type SockAddr AF_INET = SockAddrIn
   socketDomain _ = (#const AF_INET)
 
 instance SocketDomain AF_INET6 where
-  type SocketAddress AF_INET6 = SockAddrIn6
+  type SockAddr AF_INET6 = SockAddrIn6
   socketDomain _ = (#const AF_INET6)
 
 class SocketType t where
@@ -180,6 +180,14 @@ instance Exception SocketException
 --     - This operation can safely deal with asynchronous exceptions without
 --       leaking file descriptors.
 --     - This operation throws `SocketException`s:
+--
+--        [@EAFNOSUPPORT@]    The socket domain is not supported.
+--        [@EMFILE@]          The process is out file descriptors.
+--        [@ENFILE@]          The system is out file descriptors.
+--        [@EPROTONOSUPPORT@] The socket protocol is not supported (for this socket domain).
+--        [@EPROTOTYPE@]      The socket type is not supported by the protocol.
+--        [@EACCES@]          The process is lacking necessary privileges.
+--        [@ENOMEM@]          Insufficient memory.
 socket :: (SocketDomain d, SocketType t, SocketProtocol  p) => IO (Socket d t p)
 socket = socket'
  where
@@ -237,7 +245,7 @@ close (Socket mfd) = do
           else throwIO (SocketException e)
       else return ()
 
-bind :: (SocketDomain d, SocketType t, SocketProtocol  p) => Socket d t p -> SocketAddress d -> IO ()
+bind :: (SocketDomain d, SocketType t, SocketProtocol  p) => Socket d t p -> SockAddr d -> IO ()
 bind (Socket ms) addr = do
   alloca $ \addrPtr-> do
     poke addrPtr addr
@@ -248,7 +256,7 @@ bind (Socket ms) addr = do
     else do
       return ()
 
-connect :: (SocketDomain d, SocketType t, SocketProtocol  p) => Socket d t p -> SocketAddress d -> IO ()
+connect :: (SocketDomain d, SocketType t, SocketProtocol  p) => Socket d t p -> SockAddr d -> IO ()
 connect (Socket ms) addr = do
   alloca $ \addrPtr-> do
     poke addrPtr addr
@@ -259,10 +267,10 @@ connect (Socket ms) addr = do
     else do
       return ()
 
-accept :: (SocketDomain d, SocketType t, SocketProtocol  p) => Socket d t p -> IO (Socket d t p, SocketAddress d)
+accept :: (SocketDomain d, SocketType t, SocketProtocol  p) => Socket d t p -> IO (Socket d t p, SockAddr d)
 accept = accept'
   where
-    accept' :: forall d t p. (SocketDomain d, SocketType t, SocketProtocol  p) => Socket d t p -> IO (Socket d t p, SocketAddress d)
+    accept' :: forall d t p. (SocketDomain d, SocketType t, SocketProtocol  p) => Socket d t p -> IO (Socket d t p, SockAddr d)
     accept' (Socket mfd) = do
       -- Block until notification about read.
       -- IOError is thrown if the socket has been closed in the meantime.
@@ -276,14 +284,14 @@ accept = accept'
         -- Allocate local (!) memory for the address.
         alloca $ \addrPtr-> do
           bracketOnError
-            ( c_accept fd (castPtr addrPtr :: Ptr ()) (sizeOf (undefined :: SocketAddress d)) )
+            ( c_accept fd (castPtr addrPtr :: Ptr ()) (sizeOf (undefined :: SockAddr d)) )
             ( \ft-> when (fd >= 0) (c_close ft >> return ()) )
             ( \ft-> if ft < 0 then do
                      getErrno >>= throwIO . SocketException
                    else do
                      -- setNonBlockingFD calls c_fcntl_write which is an unsafe FFI call.
                      let Fd i = ft in setNonBlockingFD i True
-                     addr <- peek addrPtr :: IO (SocketAddress d)
+                     addr <- peek addrPtr :: IO (SockAddr d)
                      mft <- newMVar ft
                      return (Socket mft, addr)
             )
