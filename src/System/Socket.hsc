@@ -215,6 +215,7 @@ socket = socket'
 
 -- | Bind a socket to an address.
 --
+--   - Calling `bind` on a `close`d socket throws @EBADF@ even if the former file descriptor has been reassigned.
 --   - This operation throws `SocketException`s (consult your Posix manpages for more protocol specific exceptions):
 --
 --     [@EADDRINUSE@]     The address is in use.
@@ -242,6 +243,59 @@ bind (Socket ms) addr = do
       getErrno >>= throwIO . SocketException
     else do
       return ()
+
+-- | Accept connections on a connection-mode socket.
+--
+--   - The second parameter is called /backlog/ and sets a limit on how many
+--     unaccepted connections the socket implementation shall queue. A value
+--     of @0@ leaves the decision to the implementation.
+--   - Calling `listen` on a `close`d socket throws @EBADF@ even if the former file descriptor has been reassigned.
+--   - This operation throws `SocketException`s:
+--
+--     [@EBADF@]          Not a valid file descriptor (should be impossible).
+--     [@EDESTADDRREQ@]   The socket is not bound and the protocol does not support listening on an unbound socket.
+--     [@EINVAL@]         The socket is already connected or has been shut down.
+--     [@ENOTSOCK@]       The file descriptor is not a socket (should be impossible).
+--     [@EOPNOTSUPP@]      The protocol does not support listening.
+--     [@EACCES@]         The process is lacking privileges.
+--     [@ENOBUFS@]        Insufficient resources.
+listen :: (AddressFamily d, Type t, Protocol  p) => Socket d t p -> Int -> IO ()
+listen (Socket ms) backlog = do
+  i <- withMVar ms $ \s-> do
+    c_listen s backlog
+  if i < 0 then do
+    getErrno >>= throwIO . SocketException
+  else do
+    return ()
+
+accept :: (AddressFamily d, Type t, Protocol  p) => Socket d t p -> IO (Socket d t p, SockAddr d)
+accept = accept'
+  where
+    accept' :: forall d t p. (AddressFamily d, Type t, Protocol  p) => Socket d t p -> IO (Socket d t p, SockAddr d)
+    accept' (Socket mfd) = do
+      -- Block until notification about read.
+      -- IOError is thrown if the socket has been closed in the meantime.
+      -- We reraise this as a SocketError.
+      threadWaitReadMVar mfd `onException` throwIO (SocketException eBADF)
+      -- Accept uses the socket exclusively by acquiring the MVar.
+      withMVar mfd $ \fd-> do
+        -- If the socket has already been closed we fail excactly like the accept call would fail.
+        when (fd < 0) $ do
+          throwIO (SocketException eBADF)
+        -- Allocate local (!) memory for the address.
+        alloca $ \addrPtr-> do
+          bracketOnError
+            ( c_accept fd (castPtr addrPtr :: Ptr ()) (sizeOf (undefined :: SockAddr d)) )
+            ( \ft-> when (fd >= 0) (c_close ft >> return ()) )
+            ( \ft-> if ft < 0 then do
+                     getErrno >>= throwIO . SocketException
+                   else do
+                     -- setNonBlockingFD calls c_fcntl_write which is an unsafe FFI call.
+                     let Fd i = ft in setNonBlockingFD i True
+                     addr <- peek addrPtr :: IO (SockAddr d)
+                     mft <- newMVar ft
+                     return (Socket mft, addr)
+            )
 
 
 -- | Closes a socket.
@@ -289,43 +343,9 @@ connect (Socket ms) addr = do
     else do
       return ()
 
-accept :: (AddressFamily d, Type t, Protocol  p) => Socket d t p -> IO (Socket d t p, SockAddr d)
-accept = accept'
-  where
-    accept' :: forall d t p. (AddressFamily d, Type t, Protocol  p) => Socket d t p -> IO (Socket d t p, SockAddr d)
-    accept' (Socket mfd) = do
-      -- Block until notification about read.
-      -- IOError is thrown if the socket has been closed in the meantime.
-      -- We reraise this as a SocketError.
-      threadWaitReadMVar mfd `onException` throwIO (SocketException eBADF)
-      -- Accept uses the socket exclusively by acquiring the MVar.
-      withMVar mfd $ \fd-> do
-        -- If the socket has already been closed we fail excactly like the accept call would fail.
-        when (fd < 0) $ do
-          throwIO (SocketException eBADF)
-        -- Allocate local (!) memory for the address.
-        alloca $ \addrPtr-> do
-          bracketOnError
-            ( c_accept fd (castPtr addrPtr :: Ptr ()) (sizeOf (undefined :: SockAddr d)) )
-            ( \ft-> when (fd >= 0) (c_close ft >> return ()) )
-            ( \ft-> if ft < 0 then do
-                     getErrno >>= throwIO . SocketException
-                   else do
-                     -- setNonBlockingFD calls c_fcntl_write which is an unsafe FFI call.
-                     let Fd i = ft in setNonBlockingFD i True
-                     addr <- peek addrPtr :: IO (SockAddr d)
-                     mft <- newMVar ft
-                     return (Socket mft, addr)
-            )
 
-listen :: (AddressFamily d, Type t, Protocol  p) => Socket d t p -> Int -> IO ()
-listen (Socket ms) backlog = do
-  i <- withMVar ms $ \s-> do
-    c_listen s backlog
-  if i < 0 then do
-    getErrno >>= throwIO . SocketException
-  else do
-    return ()
+
+
 
 recv     :: Socket d t p -> Int -> IO BS.ByteString
 recv (Socket mfd) bufSize = recvWait
