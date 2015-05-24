@@ -1,22 +1,29 @@
 {-# LANGUAGE TypeFamilies, FlexibleContexts, ScopedTypeVariables #-}
-module System.Socket
-  ( -- * Operations
-   -- ** socket
-     socket
-   -- ** bind
-   , bind
-   -- ** listen
-   , listen
-   -- ** accept
-   , accept
-   -- ** connect
-   , connect
-   -- ** send
-   , send
-   -- ** recv
-   , recv
-      -- ** close
-   , close
+module System.Socket (
+  -- * Operations
+  -- ** socket
+    socket
+  -- ** bind
+  , bind
+  -- ** listen
+  , listen
+  -- ** accept
+  , accept
+  -- ** connect
+  , connect
+  -- ** send
+  , send
+  -- ** recv
+  , recv
+  -- ** close
+  , close
+  -- * Options
+  -- ** get/setSockOptF
+  , setSockOptF
+  -- ** get/setSockOptT
+  , setSockOptT
+  -- ** get/setSockOptP
+  , setSockOptP
   -- * Sockets
   , Socket (..)
   -- ** Address Families
@@ -134,22 +141,22 @@ data TCP_SOCKOPT
    | TCP_USER_TIMEOUT
    | TCP_WINDOW_CLAMP
 
-setSockOptAddressFamily :: (AddressFamily f, Type t, Protocol  p) => Socket f t p -> SockOpt f -> IO ()
-setSockOptAddressFamily
+setSockOptF :: (AddressFamily f, Type t, Protocol  p) => Socket f t p -> SockOptF f -> IO ()
+setSockOptF
   = undefined
 
-setSockOptProtocol  :: (AddressFamily f, Type t, Protocol  p) => Socket f t p -> SockOpt p -> IO ()
-setSockOptProtocol 
+setSockOptT :: (AddressFamily f, Type t, Protocol  p) => Socket f t p -> SockOptT t -> IO ()
+setSockOptT
   = undefined
 
-class (Storable (SockAddr d)) => AddressFamily d where
-  type SockAddr d
-  addressFamilyNumber :: d -> CInt
+setSockOptP :: (AddressFamily f, Type t, Protocol  p) => Socket f t p -> SockOptP p -> IO ()
+setSockOptP
+  = undefined
 
-type family SockOpt o :: *
-type instance SockOpt AF_INET     = IP_SOCKOPT
-type instance SockOpt AF_INET6    = IP6_SOCKOPT
-type instance SockOpt IPPROTO_TCP = TCP_SOCKOPT
+class (Storable (SockAddr f)) => AddressFamily f where
+  type SockAddr f
+  type SockOptF f
+  addressFamilyNumber :: f -> CInt
 
 instance AddressFamily AF_UNIX where
   type SockAddr AF_UNIX = SockAddrUn
@@ -164,6 +171,7 @@ instance AddressFamily AF_INET6 where
   addressFamilyNumber _ = (#const AF_INET6)
 
 class Type t where
+  type SockOptT t
   typeNumber :: t -> CInt
 
 instance Type SOCK_STREAM where
@@ -176,11 +184,11 @@ instance Type SOCK_SEQPACKET where
   typeNumber _ = (#const SOCK_SEQPACKET)
 
 class Protocol  p where
+  type SockOptP p
   protocolNumber :: p -> CInt
 
 instance Protocol  IPPROTO_TCP where
   protocolNumber _ = (#const IPPROTO_TCP)
-
 
 
 -- | Creates a new socket.
