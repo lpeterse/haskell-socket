@@ -356,14 +356,13 @@ accept s@(Socket mfd) = acceptWait
 --
 --   - This operation blocks until either the connection has been established
 --     or throws an exception in case the connection attempt failed.
---     @EINTR@ and @EINPROGRESS@ are handled internally and won't be thrown.
---   - Calling connect twice from different threads throws @EISCONN@ or
---     @EALREADY@ in one of them depending on whether the other thread's connection
---     attempt already succeeded or not.
+--     @EINTR@, @EINPROGRESS@ and @EALREADY@ are handled internally and won't be thrown.
+--   - __Do not__ call `connect` twice from different threads as this imposes a race condition.
+--     Calling `connect` a second time after the first call return or threw is safe though.
+--     The semantics of doing so is protocol specific.
 --   - The following `SocketException`s are relevant and might be thrown:
 --
 --     [@EADDRNOTAVAIL@] The address is not available.
---     [@EALREADY@]      A connection request is already in progress.
 --     [@EBADF@]         The file descriptor is invalid.
 --     [@ECONNREFUSED@]  The target was not listening or refused the connection.
 --     [@EISCONN@]       The socket is already connected.
@@ -377,10 +376,6 @@ accept s@(Socket mfd) = acceptWait
 --     [@EPROTOTYPE@]    The address type does not match the socket.
 connect :: (AddressFamily d, Type t, Protocol  p) => Socket d t p -> SockAddr d -> IO ()
 connect (Socket mfd) addr = do
-  -- I assume that relating calls to `c_connect` are recognized by
-  -- pointer equality, but I'm not sure. Otherwise it's unclear how the kernel can
-  -- decide whether to return 0 or give EISCONN. That's why we itentionally
-  -- span the `addrPtr` over the whole block. TODO: Clarify!
   alloca $ \addrPtr-> do
     poke addrPtr addr
     fix $ \retry-> do
@@ -393,13 +388,13 @@ connect (Socket mfd) addr = do
           --      and the connection shall be established asynchronously.
           --   2. If the connection cannot be established immediately errno shall be set to EINPROGRESS
           --      and the connection shall be established asynchronously.
-          if e == eINTR || e == eINPROGRESS then do
+          if e == eINPROGRESS  || e == eALREADY  || e == eINTR then do
             -- During the first iteration we usually get EINPROGRESS and return here.
             return True
           else do
             throwIO (SocketException e)
         else do
-          -- During the second iteration the connect call doesn't fail if the connection
+          -- During the second iteration the connect call shouldn't fail if the connection
           -- has been established and we return here.
           return False
       -- "When  the connection has been established asynchronously, pselect(),
