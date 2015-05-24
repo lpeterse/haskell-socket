@@ -73,6 +73,7 @@ import System.Posix.Internals (setNonBlockingFD)
 
 #include "sys/types.h"
 #include "sys/socket.h"
+#include "sys/un.h"
 #include "netinet/in.h"
 #let alignment t = "%lu", (unsigned long)offsetof(struct {char x__; t (y__); }, y__)
 
@@ -554,8 +555,7 @@ close (Socket mfd) = do
 
 data SockAddrUn
    = SockAddrUn
-     {
-
+     { sunPath      :: BS.ByteString
      } deriving (Eq, Ord, Show)
 
 data SockAddrIn
@@ -572,35 +572,23 @@ data SockAddrIn6
      , sin6ScopeId   :: Word32
      } deriving (Eq, Ord, Show)
 
-foreign import ccall safe "sys/socket.h socket"
-  c_socket  :: CInt -> CInt -> CInt -> IO Fd
-
-foreign import ccall safe "unistd.h close"
-  c_close   :: Fd -> IO CInt
-
-foreign import ccall safe "sys/socket.h bind"
-  c_bind    :: Fd -> Ptr a -> Int -> IO CInt
-
-foreign import ccall safe "sys/socket.h connect"
-  c_connect :: Fd -> Ptr a -> Int -> IO CInt
-
-foreign import ccall safe "sys/socket.h accept"
-  c_accept  :: Fd -> Ptr a -> Ptr Int -> IO Fd
-
-foreign import ccall safe "sys/socket.h listen"
-  c_listen  :: Fd -> Int -> IO CInt
-
-foreign import ccall safe "sys/socket.h send"
-  c_send  :: Fd -> Ptr CChar -> Int -> Int -> IO Int
-
-foreign import ccall safe "sys/socket.h recv"
-  c_recv  :: Fd -> Ptr CChar -> Int -> Int -> IO Int
-
 instance Storable SockAddrUn where
-  sizeOf = undefined
-  alignment = undefined
-  peek = undefined
-  poke = undefined
+  sizeOf    _ = (#size struct sockaddr_un)
+  alignment _ = (#alignment struct sockaddr_un)
+  peek ptr    = do
+    path <- BS.packCString (sun_path ptr) :: IO BS.ByteString
+    return (SockAddrUn path)
+    where
+      sun_path = (#ptr struct sockaddr_un, sun_path)
+  poke ptr (SockAddrUn path) = do
+    -- useAsCString null-terminates the CString
+    BS.useAsCString truncatedPath $ \cs-> do
+      copyBytes (sun_path ptr) cs (BS.length truncatedPath + 1)-- copyBytes dest from count
+    where
+      sun_path      = (#ptr struct sockaddr_un, sun_path)
+      truncatedPath = BS.take ( sizeOf (undefined :: SockAddrUn)
+                              - sizeOf (undefined :: Word16)
+                              - 1 ) path
 
 instance Storable SockAddrIn where
   sizeOf    _ = (#size struct sockaddr_in)
@@ -654,7 +642,10 @@ instance Storable SockAddrIn6 where
       sin6_port     = (#ptr struct sockaddr_in6, sin6_port)
       sin6_addr     = (#ptr struct in6_addr, s6_addr) . (#ptr struct sockaddr_in6, sin6_addr)
 
--- helpers for threadsafe event registration on file descriptors
+
+-------------------------------------------------------------------------------
+-- Helpers for threadsafe event registration on file descriptors
+-------------------------------------------------------------------------------
 
 threadWaitReadMVar :: MVar Fd -> IO ()
 threadWaitReadMVar mfd = do
@@ -670,7 +661,11 @@ threadWaitWriteMVar mfd = do
     threadWaitWriteSTM fd >>= return . atomically . fst
   wait `onException` throwIO (SocketException eBADF)
 
--- exceptions
+
+-------------------------------------------------------------------------------
+-- Exceptions
+-------------------------------------------------------------------------------
+
 newtype SocketException = SocketException Errno
   deriving Typeable
 
@@ -781,3 +776,32 @@ instance Show SocketException where
         | errno == eXDEV           = "EXDEV"
         | otherwise                = let Errno i = errno
                                      in  show i
+
+
+-------------------------------------------------------------------------------
+-- FFI
+-------------------------------------------------------------------------------
+
+foreign import ccall safe "sys/socket.h socket"
+  c_socket  :: CInt -> CInt -> CInt -> IO Fd
+
+foreign import ccall safe "unistd.h close"
+  c_close   :: Fd -> IO CInt
+
+foreign import ccall safe "sys/socket.h bind"
+  c_bind    :: Fd -> Ptr a -> Int -> IO CInt
+
+foreign import ccall safe "sys/socket.h connect"
+  c_connect :: Fd -> Ptr a -> Int -> IO CInt
+
+foreign import ccall safe "sys/socket.h accept"
+  c_accept  :: Fd -> Ptr a -> Ptr Int -> IO Fd
+
+foreign import ccall safe "sys/socket.h listen"
+  c_listen  :: Fd -> Int -> IO CInt
+
+foreign import ccall safe "sys/socket.h send"
+  c_send  :: Fd -> Ptr CChar -> Int -> Int -> IO Int
+
+foreign import ccall safe "sys/socket.h recv"
+  c_recv  :: Fd -> Ptr CChar -> Int -> Int -> IO Int
