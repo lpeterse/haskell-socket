@@ -45,7 +45,6 @@ module System.Socket
   -- *** IPPROTO_TCP
   , IPPROTO_TCP
 
-  , localhost
   , SocketException (..)
   ) where
 
@@ -331,7 +330,7 @@ accept s@(Socket mfd) = acceptWait
             ft <- c_accept fd (castPtr addrPtr :: Ptr ()) (sizeOf (undefined :: SockAddr f))
             if ft < 0 then do
               e <- getErrno
-              if e == eWOULDBLOCK || e == eAGAIN 
+              if e == eWOULDBLOCK || e == eAGAIN
                 then return Nothing
                 else if e == eINTR
                   -- On EINTR it is good practice to just retry.
@@ -353,18 +352,62 @@ accept s@(Socket mfd) = acceptWait
         Just sa -> return sa
         Nothing -> acceptWait
 
-
-
+-- | Connects to an remote address.
+--
+--   - This operation blocks until either the connection has been established
+--     or throws an exception in case the connection attempt failed.
+--     @EINTR@ and @EINPROGRESS@ are handled internally and won't be thrown.
+--   - Calling connect twice from different threads throws @EISCONN@ or
+--     @EALREADY@ in one of them depending on whether the other thread's connection
+--     attempt already succeeded or not.
+--   - The following `SocketException`s are relevant and might be thrown:
+--
+--     [@EADDRNOTAVAIL@] The address is not available.
+--     [@EALREADY@]      A connection request is already in progress.
+--     [@EBADF@]         The file descriptor is invalid.
+--     [@ECONNREFUSED@]  The target was not listening or refused the connection.
+--     [@EISCONN@]       The socket is already connected.
+--     [@ENETUNREACH@]   The network is unreachable.
+--     [@ETIMEDOUT@]     The connect timed out before a connection was established.
+--
+--   - The following `SocketException`s are theoretically possible, but should not occur if the library is correct:
+--
+--     [@EAFNOTSUPPORT@] Address family does not match the socket.
+--     [@ENOTSOCK@]      The descriptor is not a socket.
+--     [@EPROTOTYPE@]    The address type does not match the socket.
 connect :: (AddressFamily d, Type t, Protocol  p) => Socket d t p -> SockAddr d -> IO ()
-connect (Socket ms) addr = do
+connect (Socket mfd) addr = do
+  -- I assume that relating calls to `c_connect` are recognized by
+  -- pointer equality, but I'm not sure. Otherwise it's unclear how the kernel can
+  -- decide whether to return 0 or give EISCONN. That's why we itentionally
+  -- span the `addrPtr` over the whole block. TODO: Clarify!
   alloca $ \addrPtr-> do
     poke addrPtr addr
-    i <- withMVar ms $ \s-> do
-      c_connect s (castPtr addrPtr :: Ptr ()) (sizeOf addr)
-    if i < 0 then do
-      getErrno >>= throwIO . SocketException
-    else do
-      return ()
+    fix $ \retry-> do
+      shallWait <- withMVar mfd $ \fd-> do
+        i <- c_connect fd (castPtr addrPtr :: Ptr ()) (sizeOf addr)
+        if i < 0 then do
+          e <- getErrno
+          -- The manpage says:
+          --   1. On interruption errno shall be set to EINTR, but the connection request shall not be aborted
+          --      and the connection shall be established asynchronously.
+          --   2. If the connection cannot be established immediately errno shall be set to EINPROGRESS
+          --      and the connection shall be established asynchronously.
+          if e == eINTR || e == eINPROGRESS then do
+            -- During the first iteration we usually get EINPROGRESS and return here.
+            return True
+          else do
+            throwIO (SocketException e)
+        else do
+          -- During the second iteration the connect call doesn't fail if the connection
+          -- has been established and we return here.
+          return False
+      -- "When  the connection has been established asynchronously, pselect(),
+      -- select(), and poll() shall indicate that the file descriptor for the
+      -- socket is ready for writing."
+      -- It is generally assumed that the call unblocks when the socket's state
+      -- changes (i.e. ECONNREFUSED).
+      when shallWait (threadWaitWriteMVar mfd >> retry)
 
 send     :: Socket d t p -> BS.ByteString -> IO Int
 send (Socket mfd) bs = sendWait
@@ -479,14 +522,7 @@ data SockAddrIn6
      , sin6ScopeId   :: Word32
      } deriving (Eq, Ord, Show)
 
-localhost :: SockAddrIn6
-localhost =
-  SockAddrIn6
-  { sin6Port     = 5555
-  , sin6Flowinfo = 0
-  , sin6Addr     = BS.pack [0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,1]
-  , sin6ScopeId  = 0
-  }
+
 
 foreign import ccall safe "sys/socket.h socket"
   c_socket  :: CInt -> CInt -> CInt -> IO Fd
