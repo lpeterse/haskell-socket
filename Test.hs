@@ -17,6 +17,6 @@ main = do
     send s "ttt"
     return ()
   listen s 5
-  threadDelay 1000000
+  threadDelay 10000000
   close s
-  threadDelay 1000000
+  threadDelay 10000000

@@ -353,37 +353,7 @@ accept s@(Socket mfd) = acceptWait
         Just sa -> return sa
         Nothing -> acceptWait
 
--- | Closes a socket.
--- In contrast to the POSIX close this operation is idempotent.
--- On EINTR the close operation is retried.
--- On EBADF an error is thrown as this should be impossible according to the library's design.
--- On EIO an error is thrown.
-close :: (AddressFamily f, Type t, Protocol  p) => Socket f t p -> IO ()
-close (Socket mfd) = do
-  modifyMVarMasked_ mfd $ \fd-> do
-    if fd < 0 then do
-      return fd
-    else do
-      -- closeFdWith does not throw even on invalid file descriptors.
-      -- It just assures no thread is blocking on the fd anymore and then executes the IO action.
-      closeFdWith
-        -- The c_close operation may (according to Posix documentation) fails with EINTR or EBADF or EIO.
-        -- EBADF: Should be ruled out by the library's design.
-        -- EINTR: It is best practice to just retry the operation what we do here.
-        -- EIO: Only occurs when filesystem is involved (?).
-        -- Conclusion: Our close should never fail. If it does, something is horribly wrong.
-        ( const $ fix $ \loop-> do
-            i <- c_close fd
-            if i < 0 then do
-              e <- getErrno
-              if e == eINTR 
-                then loop
-                else throwIO (SocketException e)
-            else return ()
-        ) fd
-      -- When we arrive here, no exception has been thrown and the descriptor has been closed.
-      -- We put an invalid file descriptor into the MVar.
-      return (-1)
+
 
 connect :: (AddressFamily d, Type t, Protocol  p) => Socket d t p -> SockAddr d -> IO ()
 connect (Socket ms) addr = do
@@ -395,6 +365,31 @@ connect (Socket ms) addr = do
       getErrno >>= throwIO . SocketException
     else do
       return ()
+
+send     :: Socket d t p -> BS.ByteString -> IO Int
+send (Socket mfd) bs = sendWait
+  where
+    sendWait = do
+      threadWaitWriteMVar mfd
+      bytesSend <- withMVar mfd $ \fd-> do
+        when (fd < 0) $ do
+          throwIO (SocketException eBADF)
+        BS.unsafeUseAsCStringLen bs $ \(ptr,len)->
+          fix $ \loop-> do
+            i <- c_send fd ptr len 0
+            if (i < 0) then do
+              e <- getErrno
+              if e == eWOULDBLOCK || e == eAGAIN 
+                then return i
+              else if e == eINTR
+                then loop
+                else throwIO (SocketException e)
+            -- Send succeeded. Return the bytes send.
+            else return i
+      -- We cannot loop from within the block above, because this would keep the MVar locked.
+      if bytesSend < 0
+        then sendWait
+        else return bytesSend
 
 recv     :: Socket d t p -> Int -> IO BS.ByteString
 recv (Socket mfd) bufSize = recvWait
@@ -432,30 +427,37 @@ recv (Socket mfd) bufSize = recvWait
         Nothing -> recvWait
         Just bs -> return bs
 
-send     :: Socket d t p -> BS.ByteString -> IO Int
-send (Socket mfd) bs = sendWait
-  where
-    sendWait = do
-      threadWaitWriteMVar mfd
-      bytesSend <- withMVar mfd $ \fd-> do
-        when (fd < 0) $ do
-          throwIO (SocketException eBADF)
-        BS.unsafeUseAsCStringLen bs $ \(ptr,len)->
-          fix $ \loop-> do
-            i <- c_send fd ptr len 0
-            if (i < 0) then do
+-- | Closes a socket.
+-- In contrast to the POSIX close this operation is idempotent.
+-- On EINTR the close operation is retried.
+-- On EBADF an error is thrown as this should be impossible according to the library's design.
+-- On EIO an error is thrown.
+close :: (AddressFamily f, Type t, Protocol  p) => Socket f t p -> IO ()
+close (Socket mfd) = do
+  modifyMVarMasked_ mfd $ \fd-> do
+    if fd < 0 then do
+      return fd
+    else do
+      -- closeFdWith does not throw even on invalid file descriptors.
+      -- It just assures no thread is blocking on the fd anymore and then executes the IO action.
+      closeFdWith
+        -- The c_close operation may (according to Posix documentation) fails with EINTR or EBADF or EIO.
+        -- EBADF: Should be ruled out by the library's design.
+        -- EINTR: It is best practice to just retry the operation what we do here.
+        -- EIO: Only occurs when filesystem is involved (?).
+        -- Conclusion: Our close should never fail. If it does, something is horribly wrong.
+        ( const $ fix $ \loop-> do
+            i <- c_close fd
+            if i < 0 then do
               e <- getErrno
-              if e == eWOULDBLOCK || e == eAGAIN 
-                then return i
-              else if e == eINTR
+              if e == eINTR 
                 then loop
                 else throwIO (SocketException e)
-            -- Send succeeded. Return the bytes send.
-            else return i
-      -- We cannot loop from within the block above, because this would keep the MVar locked.
-      if bytesSend < 0
-        then sendWait
-        else return bytesSend
+            else return ()
+        ) fd
+      -- When we arrive here, no exception has been thrown and the descriptor has been closed.
+      -- We put an invalid file descriptor into the MVar.
+      return (-1)
 
 data SockAddrUn
    = SockAddrUn
@@ -572,11 +574,17 @@ instance Storable SockAddrIn6 where
 
 threadWaitReadMVar :: MVar Fd -> IO ()
 threadWaitReadMVar mfd = do
-  withMVar mfd threadWaitReadSTM >>= atomically . fst
+  wait <- withMVar mfd $ \fd-> do
+    when (fd < 0) $ throwIO (SocketException eBADF)
+    threadWaitReadSTM fd >>= return . atomically . fst
+  wait `onException` throwIO (SocketException eBADF)
 
 threadWaitWriteMVar :: MVar Fd -> IO ()
 threadWaitWriteMVar mfd = do
-  withMVar mfd threadWaitWriteSTM >>=  atomically . fst
+  wait <- withMVar mfd $ \fd-> do
+    when (fd < 0) $ throwIO (SocketException eBADF)
+    threadWaitWriteSTM fd >>= return . atomically . fst
+  wait `onException` throwIO (SocketException eBADF)
 
 -- exceptions
 newtype SocketException = SocketException Errno
