@@ -404,66 +404,106 @@ connect (Socket mfd) addr = do
       -- changes (i.e. ECONNREFUSED).
       when shallWait (threadWaitWriteMVar mfd >> retry)
 
+-- | Send a message on a connected socket.
+--
+--   - The operation returns the number of bytes sent.
+--   - @EAGAIN@, @EWOULDBLOCK@ and @EINTR@ and handled internally and won't be thrown.
+--   - The flag @MSG_NOSIGNAL@ is set to supress signals which are pointless.
+--   - The following `SocketException`s are relevant and might be thrown:
+--
+--     [@EBADF@]         The file descriptor is invalid.
+--     [@ECONNRESET@]    The peer forcibly closed the connection.
+--     [@EDESTADDREQ@]   Remote address has not been set, but is required.
+--     [@EMSGSIZE@]      The message is too large to be sent all at once, but the protocol requires this.
+--     [@ENOTCONN@]      The socket is not connected.
+--     [@EPIPE@]         The socket is shut down for writing or the socket is not connected anymore.
+--     [@EACCESS@]       The process is lacking permissions.
+--     [@EIO@]           An I/O error occured while writing to the filesystem.
+--     [@ENETDOWN@]      The local network interface is down.
+--     [@ENETUNREACH@]   No route to network.
+--     [@ENOBUFS@]       Insufficient resources to fulfill the request.
+--
+--   - The following `SocketException`s are theoretically possible, but should not occur if the library is correct:
+--
+--     [@EOPNOTSUPP@]    The specified flags are not supported.
+--     [@ENOTSOCK@]      The descriptor does not refer to a socket.
 send     :: Socket d t p -> BS.ByteString -> IO Int
-send (Socket mfd) bs = sendWait
-  where
-    sendWait = do
-      threadWaitWriteMVar mfd
-      bytesSend <- withMVar mfd $ \fd-> do
-        when (fd < 0) $ do
-          throwIO (SocketException eBADF)
-        BS.unsafeUseAsCStringLen bs $ \(ptr,len)->
-          fix $ \loop-> do
-            i <- c_send fd ptr len 0
-            if (i < 0) then do
-              e <- getErrno
-              if e == eWOULDBLOCK || e == eAGAIN 
-                then return i
-              else if e == eINTR
-                then loop
-                else throwIO (SocketException e)
-            -- Send succeeded. Return the bytes send.
-            else return i
-      -- We cannot loop from within the block above, because this would keep the MVar locked.
-      if bytesSend < 0
-        then sendWait
-        else return bytesSend
-
-recv     :: Socket d t p -> Int -> IO BS.ByteString
-recv (Socket mfd) bufSize = recvWait
-  where
-    recvWait = do
-      threadWaitReadMVar mfd
-      mbs <- withMVarMasked mfd $ \fd-> do
-        when (fd < 0) $ do
-          throwIO (SocketException eBADF)
-        ptr <- mallocBytes bufSize
-        fix $ \loop-> do
-          i <- c_recv fd ptr bufSize 0
+send (Socket mfd) bs =
+  fix $ \wait-> do
+    threadWaitWriteMVar mfd
+    bytesSend <- withMVar mfd $ \fd-> do
+      when (fd < 0) $ do
+        throwIO (SocketException eBADF)
+      BS.unsafeUseAsCStringLen bs $ \(ptr,len)->
+        fix $ \retry-> do
+          i <- c_send fd ptr len 0
           if (i < 0) then do
             e <- getErrno
             if e == eWOULDBLOCK || e == eAGAIN 
-              then do
-                -- At this exit we need to free the pointer manually.
-                free ptr
-                return Nothing
+              then return i
             else if e == eINTR
-              then loop
-              else do
-                -- At this exit we need to free the pointer manually as well.
-                free ptr
-                throwIO (SocketException e)
-          else do
-            -- Send succeeded, generate a ByteString.
-            -- From now on the ByteString takes care of freeing the pointer somewhen in the future.
-            -- The resulting ByteString might be shorter than the malloced buffer.
-            -- This is a fair tradeoff as otherwise we had to create a fresh copy.
-            bs <- BS.unsafePackMallocCStringLen (ptr, i)
-            return (Just bs)
-      -- We cannot loop from within the block above, because this would keep the MVar locked.
-      case mbs of
-        Nothing -> recvWait
-        Just bs -> return bs
+              then retry
+              else throwIO (SocketException e)
+          -- Send succeeded. Return the bytes send.
+          else return i
+    -- We cannot loop from within the block above, because this would keep the MVar locked.
+    if bytesSend < 0
+      then wait
+      else return bytesSend
+
+-- | Receive a message on a connected socket.
+--
+--   - The operation takes a buffer size in bytes a first parameter which
+--     limits the maximum length of the returned `Data.ByteString.ByteString`.
+--   - @EAGAIN@, @EWOULDBLOCK@ and @EINTR@ and handled internally and won't be thrown.
+--   - The following `SocketException`s are relevant and might be thrown:
+--
+--     [@EBADF@]         The file descriptor is invalid.
+--     [@ECONNRESET@]    The peer forcibly closed the connection.
+--     [@ENOTCONN@]      The socket is not connected.
+--     [@ETIMEDOUT@]     The connection timed out.
+--     [@EIO@]           An I/O error occured while writing to the filesystem.
+--     [@ENOBUFS@]       Insufficient resources to fulfill the request.
+--     [@ENONMEM@]       Insufficient memory to fulfill the request.
+--
+--   - The following `SocketException`s are theoretically possible, but should not occur if the library is correct:
+--
+--     [@EOPNOTSUPP@]    The specified flags are not supported.
+--     [@ENOTSOCK@]      The descriptor does not refer to a socket.
+recv :: Socket d t p -> Int -> IO BS.ByteString
+recv (Socket mfd) bufSize =
+  fix $ \wait-> do
+    threadWaitReadMVar mfd
+    mbs <- withMVarMasked mfd $ \fd-> do
+      when (fd < 0) $ do
+        throwIO (SocketException eBADF)
+      ptr <- mallocBytes bufSize
+      fix $ \retry-> do
+        i <- c_recv fd ptr bufSize 0
+        if (i < 0) then do
+          e <- getErrno
+          if e == eWOULDBLOCK || e == eAGAIN 
+            then do
+              -- At this exit we need to free the pointer manually.
+              free ptr
+              return Nothing
+          else if e == eINTR
+            then retry
+            else do
+              -- At this exit we need to free the pointer manually as well.
+              free ptr
+              throwIO (SocketException e)
+        else do
+          -- Send succeeded, generate a ByteString.
+          -- From now on the ByteString takes care of freeing the pointer somewhen in the future.
+          -- The resulting ByteString might be shorter than the malloced buffer.
+          -- This is a fair tradeoff as otherwise we had to create a fresh copy.
+          bs <- BS.unsafePackMallocCStringLen (ptr, i)
+          return (Just bs)
+    -- We cannot loop from within the block above, because this would keep the MVar locked.
+    case mbs of
+      Nothing -> wait
+      Just bs -> return bs
 
 -- | Closes a socket.
 -- In contrast to the POSIX close this operation is idempotent.
