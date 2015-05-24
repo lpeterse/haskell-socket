@@ -436,7 +436,7 @@ send (Socket mfd) bs =
         throwIO (SocketException eBADF)
       BS.unsafeUseAsCStringLen bs $ \(ptr,len)->
         fix $ \retry-> do
-          i <- c_send fd ptr len 0
+          i <- c_send fd ptr len (#const MSG_NOSIGNAL)
           if (i < 0) then do
             e <- getErrno
             if e == eWOULDBLOCK || e == eAGAIN 
