@@ -5,57 +5,55 @@ import qualified Data.ByteString as BS
 import System.Socket
 import Control.Concurrent
 import Control.Exception
+import Control.Monad
 
 localhost :: SockAddrIn
 localhost =
   SockAddrIn
-  { sinPort     = 80
-  , sinAddr     = BS.pack [5,9,235,145]
-  }
-
-localhost3 :: SockAddrIn
-localhost3 =
-  SockAddrIn
-  { sinPort     = 80
+  { sinPort     = 1025
   , sinAddr     = BS.pack [127,0,0,1]
   }
 
-localhost2 :: SockAddrIn
-localhost2 =
-  SockAddrIn
-  { sinPort     = 443
-  , sinAddr     = BS.pack [5,9,235,145]
-  }
-
-dropping :: SockAddrIn
-dropping =
-  SockAddrIn
-  { sinPort     = 444
-  , sinAddr     = BS.pack [5,9,235,145]
+localhost6 :: SockAddrIn6
+localhost6 =
+  SockAddrIn6
+  { sin6Port     = 1025
+  , sin6Flowinfo = 0
+  , sin6ScopeId  = 0
+  , sin6Addr     = BS.pack [0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,1]
   }
 
 main :: IO ()
 main = do
-  s <- socket :: IO (Socket AF_INET SOCK_STREAM IPPROTO_TCP)
   forkIO $ do
-      threadDelay 1000000000
-      print "close"
-      close s
-  --forkIO $ do 
-  --  threadDelay 1000000
-  --  print "connect2"
-  --  connect s localhost2 `catch` (\e@(SomeException _)-> print e)
-  --  print "connected2"
-  forkIO $ do 
-    threadDelay 2000000
-    print "connect3"
-    connect s localhost `catch` (\e@(SomeException _)-> print e)
-  connect s dropping `catch` (\e@(SomeException _)-> print e)
-  print "connected 1"
-  threadDelay 10000000
+    server `catch` (\e-> putStrLn $ "server" ++ show (e :: SomeException))
 
-  connect s localhost
-  print "connected 2"
-  threadDelay 1000000
+  threadDelay 100000
+
+  forkIO $ do
+    client `catch` (\e-> putStrLn $ "client" ++ show (e :: SomeException))
 
   threadDelay 1000000000
+
+server :: IO ()
+server = do
+  s <- socket :: IO (Socket AF_INET6 SOCK_STREAM IPPROTO_TCP)
+  bind s localhost6
+  listen s 5
+  forever $ do
+    (p, addr) <- accept s
+    print addr
+    msg <- recv p 4096
+    print (msg, addr)
+
+client :: IO ()
+client = do
+  s <- socket :: IO (Socket AF_INET6 SOCK_STREAM IPPROTO_TCP)
+  connect s localhost6
+  print "client connected"
+  threadDelay 100000
+  i <- send s "foobarnerd"
+  print "client sent"
+  print i
+
+

@@ -58,7 +58,7 @@ import Data.Typeable
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Unsafe as BS
 
-import GHC.Conc (threadWaitReadSTM, threadWaitWriteSTM, atomically, closeFdWith)
+import GHC.Conc (threadWaitReadSTM, threadWaitWriteSTM, atomically, closeFdWith, threadDelay)
 
 import Foreign.C.Types
 import Foreign.C.Error
@@ -324,29 +324,31 @@ accept s@(Socket mfd) = acceptWait
       -- We mask asynchronous exceptions during this critical section.
       msa <- withMVarMasked mfd $ \fd-> do
         -- Allocate local (!) memory for the address.
-        alloca $ \addrPtr->
-          -- Oh Haskell, my beauty!
-          fix $ \retry-> do
-            ft <- c_accept fd (castPtr addrPtr :: Ptr ()) (sizeOf (undefined :: SockAddr f))
-            if ft < 0 then do
-              e <- getErrno
-              if e == eWOULDBLOCK || e == eAGAIN
-                then return Nothing
-                else if e == eINTR
-                  -- On EINTR it is good practice to just retry.
-                  then retry
-                  else throwIO (SocketException e)
-            -- This is the critical section: We got a valid descriptor we have not yet returned.
-            else do 
-              -- setNonBlockingFD calls c_fcntl_write which is an unsafe FFI call.
-              let Fd t = ft in setNonBlockingFD t True -- FIXME: throws exception
-              -- This peek operation might be a little expensive, but I don't see an alternative.
-              addr <- peek addrPtr :: IO (SockAddr f)
-              -- newMVar is guaranteed to be not interruptible.
-              mft <- newMVar ft
-              -- Register a finalizer on the new socket.
-              mkWeakMVar mft (close (Socket mft `asTypeOf` s))
-              return (Just (Socket mft, addr))
+        alloca $ \addrPtr-> do
+          alloca $ \addrPtrLen-> do
+          -- Oh Haskell, my beauty
+            fix $ \retry-> do
+              poke addrPtrLen (sizeOf (undefined :: SockAddr f))
+              ft <- c_accept fd addrPtr addrPtrLen
+              if ft < 0 then do
+                e <- getErrno
+                if e == eWOULDBLOCK || e == eAGAIN
+                  then return Nothing
+                  else if e == eINTR
+                    -- On EINTR it is good practice to just retry.
+                    then retry
+                    else throwIO (SocketException e)
+              -- This is the critical section: We got a valid descriptor we have not yet returned.
+              else do 
+                -- setNonBlockingFD calls c_fcntl_write which is an unsafe FFI call.
+                let Fd t = ft in setNonBlockingFD t True -- FIXME: throws exception
+                -- This peek operation might be a little expensive, but I don't see an alternative.
+                addr <- peek addrPtr :: IO (SockAddr f)
+                -- newMVar is guaranteed to be not interruptible.
+                mft <- newMVar ft
+                -- Register a finalizer on the new socket.
+                mkWeakMVar mft (close (Socket mft `asTypeOf` s))
+                return (Just (Socket mft, addr))
       -- If msa is Nothing we got EAGAIN or EWOULDBLOCK and retry after the next event.
       case msa of
         Just sa -> return sa
@@ -570,8 +572,6 @@ data SockAddrIn6
      , sin6ScopeId   :: Word32
      } deriving (Eq, Ord, Show)
 
-
-
 foreign import ccall safe "sys/socket.h socket"
   c_socket  :: CInt -> CInt -> CInt -> IO Fd
 
@@ -579,13 +579,13 @@ foreign import ccall safe "unistd.h close"
   c_close   :: Fd -> IO CInt
 
 foreign import ccall safe "sys/socket.h bind"
-  c_bind    :: Fd -> Ptr () -> Int -> IO CInt
+  c_bind    :: Fd -> Ptr a -> Int -> IO CInt
 
 foreign import ccall safe "sys/socket.h connect"
-  c_connect :: Fd -> Ptr () -> Int -> IO CInt
+  c_connect :: Fd -> Ptr a -> Int -> IO CInt
 
 foreign import ccall safe "sys/socket.h accept"
-  c_accept  :: Fd -> Ptr () -> Int -> IO Fd
+  c_accept  :: Fd -> Ptr a -> Ptr Int -> IO Fd
 
 foreign import ccall safe "sys/socket.h listen"
   c_listen  :: Fd -> Int -> IO CInt
