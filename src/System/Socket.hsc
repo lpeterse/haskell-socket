@@ -506,10 +506,23 @@ recv (Socket mfd) bufSize =
       Just bs -> return bs
 
 -- | Closes a socket.
--- In contrast to the POSIX close this operation is idempotent.
--- On EINTR the close operation is retried.
--- On EBADF an error is thrown as this should be impossible according to the library's design.
--- On EIO an error is thrown.
+--
+--   - This operation is idempotent and thus can be performed more than once without throwing an exception.
+--     If it throws an exception it is presumably a not recoverable situation and the process should exit.
+--   - This operation does not block.
+--   - This operation wakes up all threads that are currently blocking on this
+--     socket. All other threads are guaranteed not to block on operations on this socket in the future.
+--     Threads that perform operations other than `close` on this socket will fail with @EBADF@
+--     after the socket has been closed (`close` replaces the 
+--     `System.Posix.Types.Fd` in the `Control.Concurrent.MVar.MVar` with @-1@
+--     to reliably avoid use-after-free situations).
+--   - The following `SocketException`s are relevant and might be thrown:
+--
+--     [@EIO@]           An I/O error occured while writing to the filesystem.
+--
+--   - The following `SocketException`s are theoretically possible, but should not occur if the library is correct:
+--
+--     [@EBADF@]         The file descriptor is invalid.
 close :: (AddressFamily f, Type t, Protocol  p) => Socket f t p -> IO ()
 close (Socket mfd) = do
   modifyMVarMasked_ mfd $ \fd-> do
@@ -524,12 +537,12 @@ close (Socket mfd) = do
         -- EINTR: It is best practice to just retry the operation what we do here.
         -- EIO: Only occurs when filesystem is involved (?).
         -- Conclusion: Our close should never fail. If it does, something is horribly wrong.
-        ( const $ fix $ \loop-> do
+        ( const $ fix $ \retry-> do
             i <- c_close fd
             if i < 0 then do
               e <- getErrno
               if e == eINTR 
-                then loop
+                then retry
                 else throwIO (SocketException e)
             else return ()
         ) fd
