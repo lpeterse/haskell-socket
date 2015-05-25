@@ -53,7 +53,7 @@ module System.Socket (
   , AddressFamily (..)
   -- *** AF_UNIX
   , AF_UNIX
-  , SockAddrUn
+  , SockAddrUn (..)
   -- *** AF_INET
   , AF_INET
   , SockAddrIn (..)
