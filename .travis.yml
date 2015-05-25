@@ -38,5 +38,5 @@ install:
 script:
  - cabal configure --enable-tests
  - cabal build
-# - cabal test
-# - cabal check
+ - cabal test
+ - cabal check
