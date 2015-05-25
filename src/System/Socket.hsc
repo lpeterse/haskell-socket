@@ -1,4 +1,5 @@
-{-# LANGUAGE TypeFamilies, FlexibleContexts, ScopedTypeVariables #-}
+{-# LANGUAGE TypeFamilies, FlexibleContexts, ScopedTypeVariables,
+             DeriveDataTypeable #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  System.Socket
