@@ -120,11 +120,8 @@ data SOCK_SEQPACKET
 data IPPROTO_UDP
 data IPPROTO_TCP
 
-
-
 class (Storable (SockAddr f)) => AddressFamily f where
   type SockAddr f
-  type SockOptF f
   addressFamilyNumber :: f -> CInt
 
 instance AddressFamily AF_UNIX where
@@ -140,7 +137,6 @@ instance AddressFamily AF_INET6 where
   addressFamilyNumber _ = (#const AF_INET6)
 
 class Type t where
-  type SockOptT t
   typeNumber :: t -> CInt
 
 instance Type SOCK_STREAM where
@@ -153,7 +149,6 @@ instance Type SOCK_SEQPACKET where
   typeNumber _ = (#const SOCK_SEQPACKET)
 
 class Protocol  p where
-  type SockOptP p
   protocolNumber :: p -> CInt
 
 instance Protocol  IPPROTO_TCP where
