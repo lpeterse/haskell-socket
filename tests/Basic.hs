@@ -22,15 +22,17 @@ test0001 dummy addr = do
   serverRecv <- async $ do
     (peerSock, peerAddr) <- accept server
     recv peerSock 4096
-
   client <- socket `asTypeOf` return server
   connect client addr
   send client helloWorld
-  
   msg <- wait serverRecv
+  close server
+  close client
+
   if (msg /= helloWorld)
     then return (Left  "Received message was bogus.")
     else return (Right "")
+
   where
     helloWorld = "Hello world!"
 
