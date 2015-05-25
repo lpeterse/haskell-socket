@@ -183,6 +183,8 @@ class Protocol  p where
 instance Protocol  IPPROTO_TCP where
   protocolNumber _ = (#const IPPROTO_TCP)
 
+instance Protocol  IPPROTO_UDP where
+  protocolNumber _ = (#const IPPROTO_UDP)
 
 -- | Creates a new socket.
 --
