@@ -1,4 +1,32 @@
 {-# LANGUAGE TypeFamilies, FlexibleContexts, ScopedTypeVariables #-}
+-----------------------------------------------------------------------------
+-- |
+-- Module      :  System.Socket
+-- Copyright   :  (c) Lars Petersen 2015
+-- License     :  MIT
+--
+-- Maintainer  :  info@lars-petersen.net
+-- Stability   :  experimental
+--
+-- > {-# LANGUAGE OverloadedStrings #-}
+-- > module Main where
+-- >
+-- > import System.Socket
+-- > import Data.ByteString
+-- > import Control.Monad
+-- > import Control.Concurrent
+-- >
+-- > main :: IO ()
+-- > main = do
+-- >   s <- socket :: IO (Socket AF_INET SOCK_STREAM IPPROTO_TCP)
+-- >   bind s (SockAddrIn 8080 (pack [127,0,0,1]))
+-- >   listen s 5
+-- >   forever $ do
+-- >     (peer,addr) <- accept s
+-- >     forkIO $ do
+-- >       send peer "Hello world!"
+-- >       close peer
+-----------------------------------------------------------------------------
 module System.Socket (
   -- * Operations
   -- ** socket
