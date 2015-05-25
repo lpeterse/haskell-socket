@@ -80,6 +80,7 @@ module System.Socket (
   -- * Options
   -- ** setSockOpt, getSockOpt
   , GetSockOpt (..)
+  , SetSockOpt (..)
   -- ** SO_ACCEPTCONN
   , SO_ACCEPTCONN (..)
   ) where
@@ -94,7 +95,7 @@ import Data.Typeable
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Unsafe as BS
 
-import GHC.Conc (threadWaitReadSTM, threadWaitWriteSTM, atomically, closeFdWith, threadDelay)
+import GHC.Conc (threadWaitReadSTM, threadWaitWriteSTM, atomically, closeFdWith)
 
 import Foreign.C.Types
 import Foreign.C.Error
@@ -103,7 +104,6 @@ import Foreign.Storable
 import Foreign.Marshal.Alloc
 import Foreign.Marshal.Utils
 
-import System.IO
 import System.Posix.Types
 import System.Posix.Internals (setNonBlockingFD)
 
@@ -235,7 +235,7 @@ socket = socket'
                 let Fd s = fd in setNonBlockingFD s True
                 mfd <- newMVar fd
                 let s = Socket mfd
-                mkWeakMVar mfd (close s)
+                _ <- mkWeakMVar mfd (close s)
                 return s
        )
 
@@ -355,7 +355,7 @@ accept s@(Socket mfd) = acceptWait
                 -- newMVar is guaranteed to be not interruptible.
                 mft <- newMVar ft
                 -- Register a finalizer on the new socket.
-                mkWeakMVar mft (close (Socket mft `asTypeOf` s))
+                _ <- mkWeakMVar mft (close (Socket mft `asTypeOf` s))
                 return (Just (Socket mft, addr))
       -- If msa is Nothing we got EAGAIN or EWOULDBLOCK and retry after the next event.
       case msa of
