@@ -328,7 +328,7 @@ accept s@(Socket mfd) = acceptWait
     acceptWait :: forall f t p. (AddressFamily f, Type t, Protocol  p) => IO (Socket f t p, SockAddr f)
     acceptWait = do
       -- This is the blocking operation waiting for an event.
-      threadWaitReadMVar mfd `onException` throwIO (SocketException eBADF)
+      threadWaitReadMVar mfd
       -- We mask asynchronous exceptions during this critical section.
       msa <- withMVarMasked mfd $ \fd-> do
         -- Allocate local (!) memory for the address.
