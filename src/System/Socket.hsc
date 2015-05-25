@@ -218,40 +218,46 @@ socket = socket'
 -- | Bind a socket to an address.
 --
 --   - Calling `bind` on a `close`d socket throws @EBADF@ even if the former file descriptor has been reassigned.
---   - This operation throws `SocketException`s (consult your Posix manpages for more protocol specific exceptions):
+--   - This operation automatically retries on @EINPROGRESS@ and @EALREADY@ and these exceptions won't be thrown.
+--   - The following `SocketException`s are relevant and might be thrown (see @man bind@ for more exceptions regarding Unix sockets):
 --
 --     [@EADDRINUSE@]     The address is in use.
 --     [@EADDRNOTAVAIL@]  The address is not available.
---     [@EAFNOSUPPORT@]   The address is domain invalid (should not occur due to type safety).
---     [@EALREADY@]       An assignment request is already in progress.
---     [@EBADF@]          Not a valid file descriptor (only after socket has been closed).
---     [@EINPROGRESS@]    The assignment shall be performed asychronously.
+--     [@EBADF@]          Not a valid file descriptor.
 --     [@EINVAL@]         Socket is already bound and cannot be re-bound or the socket has been shut down.
 --     [@ENOBUFS@]        Insufficient resources.
---     [@ENOTSOCK@]       The file descriptor is not a socket (should be impossible).
 --     [@EOPNOTSUPP@]     The socket type does not support binding.
 --     [@EACCES@]         The address is protected and the process is lacking permission.
---     [@EINVAL@]         Address length does not match address family (should be impossible).
 --     [@EISCONN@]        The socket is already connected.
 --     [@ELOOP@]          More than {SYMLOOP_MAX} symbolic links were encountered during resolution of the pathname in address.
 --     [@ENAMETOOLONG@]   The length of a pathname exceeds {PATH_MAX}, or pathname resolution of a symbolic link produced an intermediate result  with  a  length  that  exceeds {PATH_MAX}.
+--
+--   - The following `SocketException`s are theoretically possible, but should not occur if the library is correct:
+--
+--     [@EAFNOSUPPORT@]   The address family is invalid.
+--     [@ENOTSOCK@]       The file descriptor is not a socket.
+--     [@EINVAL@]         Address length does not match address family.
 bind :: (AddressFamily f, Type t, Protocol  p) => Socket f t p -> SockAddr f -> IO ()
-bind (Socket ms) addr = do
+bind (Socket mfd) addr = do
   alloca $ \addrPtr-> do
     poke addrPtr addr
-    i <- withMVar ms $ \s-> do
-      c_bind s (castPtr addrPtr :: Ptr ()) (sizeOf addr)
-    if i < 0 then do
-      getErrno >>= throwIO . SocketException
-    else do
-      return ()
+    fix $ \retry-> do
+      i <- withMVar mfd $ \fd-> do
+        c_bind fd (castPtr addrPtr :: Ptr ()) (sizeOf addr)
+      if i < 0 then do
+        e <- getErrno
+        if e == eINPROGRESS || e == eALREADY
+          then threadWaitWriteMVar mfd >> retry
+          else throwIO (SocketException e)
+      else do
+        return ()
 
 -- | Accept connections on a connection-mode socket.
 --
+--   - Calling `listen` on a `close`d socket throws @EBADF@ even if the former file descriptor has been reassigned.
 --   - The second parameter is called /backlog/ and sets a limit on how many
 --     unaccepted connections the socket implementation shall queue. A value
 --     of @0@ leaves the decision to the implementation.
---   - Calling `listen` on a `close`d socket throws @EBADF@ even if the former file descriptor has been reassigned.
 --   - This operation throws `SocketException`s:
 --
 --     [@EBADF@]          Not a valid file descriptor (only after socket has been closed).
@@ -272,7 +278,7 @@ listen (Socket ms) backlog = do
 
 -- | Accept a new connection.
 --
---   - Calling this operation on an already closed socket always throws `EBADF` even if the former descriptor has been reassigned.
+--   - Calling `accept` on a `close`d socket throws @EBADF@ even if the former file descriptor has been reassigned.
 --   - This operation configures the new socket non-blocking (TODO: use `accept4` if available).
 --   - This operation sets up a finalizer for the new socket that automatically closes the socket
 --     when the garbage collection decides to collect it. This is just a
@@ -334,6 +340,7 @@ accept s@(Socket mfd) = acceptWait
 
 -- | Connects to an remote address.
 --
+--   - Calling `connect` on a `close`d socket throws @EBADF@ even if the former file descriptor has been reassigned.
 --   - This operation blocks until either the connection has been established
 --     or throws an exception in case the connection attempt failed.
 --     @EINTR@, @EINPROGRESS@ and @EALREADY@ are handled internally and won't be thrown.
@@ -386,6 +393,7 @@ connect (Socket mfd) addr = do
 
 -- | Send a message on a connected socket.
 --
+--   - Calling `send` on a `close`d socket throws @EBADF@ even if the former file descriptor has been reassigned.
 --   - The operation returns the number of bytes sent.
 --   - @EAGAIN@, @EWOULDBLOCK@ and @EINTR@ and handled internally and won't be thrown.
 --   - The flag @MSG_NOSIGNAL@ is set to supress signals which are pointless.
@@ -433,6 +441,7 @@ send (Socket mfd) bs =
 
 -- | Receive a message on a connected socket.
 --
+--   - Calling `recv` on a `close`d socket throws @EBADF@ even if the former file descriptor has been reassigned.
 --   - The operation takes a buffer size in bytes a first parameter which
 --     limits the maximum length of the returned `Data.ByteString.ByteString`.
 --   - @EAGAIN@, @EWOULDBLOCK@ and @EINTR@ and handled internally and won't be thrown.
