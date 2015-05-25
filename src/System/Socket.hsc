@@ -17,13 +17,7 @@ module System.Socket (
   , recv
   -- ** close
   , close
-  -- * Options
-  -- ** get/setSockOptF
-  , setSockOptF
-  -- ** get/setSockOptT
-  , setSockOptT
-  -- ** get/setSockOptP
-  , setSockOptP
+
   -- * Sockets
   , Socket (..)
   -- ** Address Families
@@ -53,6 +47,12 @@ module System.Socket (
   , IPPROTO_TCP
 
   , SocketException (..)
+
+  -- * Options
+  -- ** setSockOpt, getSockOpt
+  , GetSockOpt (..)
+  -- ** SO_ACCEPTCONN
+  , SO_ACCEPTCONN (..)
   ) where
 
 import Control.Exception
@@ -120,38 +120,7 @@ data SOCK_SEQPACKET
 data IPPROTO_UDP
 data IPPROTO_TCP
 
-data IP_SOCKOPT
-   = IP_MTU
-   | IP_TTL
 
-data IP6_SOCKOPT
-
-data TCP_SOCKOPT
-   = TCP_CONGESTION
-   | TCP_CORK
-   | TCP_DEFER_ACCEPT
-   | TCP_INFO
-   | TCP_KEEPCNT
-   | TCP_KEEPIDLE
-   | TCP_KEEPINTVL
-   | TCP_MAXSEG
-   | TCP_NODELAY
-   | TCP_QUICKACK
-   | TCP_SYNCNT
-   | TCP_USER_TIMEOUT
-   | TCP_WINDOW_CLAMP
-
-setSockOptF :: (AddressFamily f, Type t, Protocol  p) => Socket f t p -> SockOptF f -> IO ()
-setSockOptF
-  = undefined
-
-setSockOptT :: (AddressFamily f, Type t, Protocol  p) => Socket f t p -> SockOptT t -> IO ()
-setSockOptT
-  = undefined
-
-setSockOptP :: (AddressFamily f, Type t, Protocol  p) => Socket f t p -> SockOptP p -> IO ()
-setSockOptP
-  = undefined
 
 class (Storable (SockAddr f)) => AddressFamily f where
   type SockAddr f
@@ -652,6 +621,31 @@ instance Storable SockAddrIn6 where
 
 
 -------------------------------------------------------------------------------
+-- SockOpt
+-------------------------------------------------------------------------------
+
+class GetSockOpt o where
+  getSockOpt :: Socket f t p -> IO o
+
+class SetSockOpt o where
+  setSockOpt :: Socket f t p -> o -> IO ()
+
+data SO_ACCEPTCONN
+   = SO_ACCEPTCONN Bool
+
+instance GetSockOpt SO_ACCEPTCONN where
+  getSockOpt (Socket mfd) = do
+    withMVar mfd $ \fd->
+      alloca $ \vPtr-> do
+        alloca $ \lPtr-> do
+          i <- c_getsockopt fd (#const SOL_SOCKET) (#const SO_ACCEPTCONN) (vPtr :: Ptr Int) (lPtr :: Ptr Int)
+          if i < 0 then do
+            throwIO . SocketException =<< getErrno
+          else do
+            v <- peek vPtr
+            return $ SO_ACCEPTCONN (v == 1)
+
+-------------------------------------------------------------------------------
 -- Helpers for threadsafe event registration on file descriptors
 -------------------------------------------------------------------------------
 
@@ -790,26 +784,29 @@ instance Show SocketException where
 -- FFI
 -------------------------------------------------------------------------------
 
-foreign import ccall safe "sys/socket.h socket"
+foreign import ccall unsafe "sys/socket.h socket"
   c_socket  :: CInt -> CInt -> CInt -> IO Fd
 
-foreign import ccall safe "unistd.h close"
+foreign import ccall unsafe "unistd.h close"
   c_close   :: Fd -> IO CInt
 
-foreign import ccall safe "sys/socket.h bind"
+foreign import ccall unsafe "sys/socket.h bind"
   c_bind    :: Fd -> Ptr a -> Int -> IO CInt
 
-foreign import ccall safe "sys/socket.h connect"
+foreign import ccall unsafe "sys/socket.h connect"
   c_connect :: Fd -> Ptr a -> Int -> IO CInt
 
-foreign import ccall safe "sys/socket.h accept"
+foreign import ccall unsafe "sys/socket.h accept"
   c_accept  :: Fd -> Ptr a -> Ptr Int -> IO Fd
 
-foreign import ccall safe "sys/socket.h listen"
+foreign import ccall unsafe "sys/socket.h listen"
   c_listen  :: Fd -> Int -> IO CInt
 
-foreign import ccall safe "sys/socket.h send"
+foreign import ccall unsafe "sys/socket.h send"
   c_send  :: Fd -> Ptr CChar -> Int -> Int -> IO Int
 
-foreign import ccall safe "sys/socket.h recv"
+foreign import ccall unsafe "sys/socket.h recv"
   c_recv  :: Fd -> Ptr CChar -> Int -> Int -> IO Int
+
+foreign import ccall unsafe "sys/socket.h getsockopt"
+  c_getsockopt  :: Fd -> CInt -> CInt -> Ptr a -> Ptr Int -> IO CInt
