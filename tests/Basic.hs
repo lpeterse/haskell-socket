@@ -12,6 +12,8 @@ main :: IO ()
 main = do 
   test "test0001.01" $ test0001 (undefined :: Socket AF_INET  SOCK_STREAM IPPROTO_TCP) localhost
   test "test0001.02" $ test0001 (undefined :: Socket AF_INET6 SOCK_STREAM IPPROTO_TCP) localhost6
+  test "test0001.03" $ test0001 (undefined :: Socket AF_INET  SOCK_STREAM IPPROTO_SCTP) localhost
+  test "test0001.04" $ test0001 (undefined :: Socket AF_INET6 SOCK_STREAM IPPROTO_SCTP) localhost6
   test "test0002.01" $ test0002 (undefined :: Socket AF_INET  SOCK_DGRAM  IPPROTO_UDP) localhost
   test "test0002.02" $ test0002 (undefined :: Socket AF_INET6 SOCK_DGRAM  IPPROTO_UDP) localhost6
 
@@ -25,8 +27,11 @@ test0001 dummy addr = do
     (peerSock, peerAddr) <- accept server
     recv peerSock 4096
   client <- socket `asTypeOf` return server
+  print "abc"
   connect client addr
+  print "print"
   send client helloWorld
+  print "foo"
   msg <- wait serverRecv
   close server
   close client

@@ -74,10 +74,14 @@ module System.Socket (
   , SOCK_SEQPACKET
   -- ** Protocols
   , Protocol  (..)
+  -- *** DefaultProtocol
+  , DefaultProtocol
   -- *** IPPROTO_UDP
   , IPPROTO_UDP
   -- *** IPPROTO_TCP
   , IPPROTO_TCP
+  -- *** IPPROTO_SCTP
+  , IPPROTO_SCTP
 
   , SocketException (..)
 
@@ -150,8 +154,10 @@ data SOCK_STREAM
 data SOCK_DGRAM
 data SOCK_SEQPACKET
 
+data DefaultProtocol
 data IPPROTO_UDP
 data IPPROTO_TCP
+data IPPROTO_SCTP
 
 class (Storable (SockAddr f)) => AddressFamily f where
   type SockAddr f
@@ -184,11 +190,17 @@ instance Type SOCK_SEQPACKET where
 class Protocol  p where
   protocolNumber :: p -> CInt
 
+instance Protocol DefaultProtocol where
+  protocolNumber _ = 0
+
 instance Protocol  IPPROTO_TCP where
   protocolNumber _ = (#const IPPROTO_TCP)
 
 instance Protocol  IPPROTO_UDP where
   protocolNumber _ = (#const IPPROTO_UDP)
+
+instance Protocol  IPPROTO_SCTP where
+  protocolNumber _ = (#const IPPROTO_SCTP)
 
 -- | Creates a new socket.
 --
@@ -393,33 +405,36 @@ accept s@(Socket mfd) = acceptWait
 --     [@EPROTOTYPE@]    The address type does not match the socket.
 connect :: (AddressFamily f, Type t, Protocol  p) => Socket f t p -> SockAddr f -> IO ()
 connect (Socket mfd) addr = do
-  alloca $ \addrPtr-> do
-    poke addrPtr addr
-    fix $ \retry-> do
-      shallWait <- withMVar mfd $ \fd-> do
+  shallWait <- withMVar mfd $ \fd-> do
+    alloca $ \addrPtr-> do
+      poke addrPtr addr
+      fix $ \retry-> do
         i <- c_connect fd (castPtr addrPtr :: Ptr ()) (sizeOf addr)
         if i < 0 then do
           e <- getErrno
-          -- The manpage says:
-          --   1. On interruption errno shall be set to EINTR, but the connection request shall not be aborted
-          --      and the connection shall be established asynchronously.
-          --   2. If the connection cannot be established immediately errno shall be set to EINPROGRESS
-          --      and the connection shall be established asynchronously.
-          if e == eINPROGRESS  || e == eALREADY  || e == eINTR then do
-            -- During the first iteration we usually get EINPROGRESS and return here.
+          if (e == eINTR) then do
+            retry
+          else if e == eINPROGRESS then do
+            -- During the first iteration we get EINPROGRESS and return here.
             return True
           else do
             throwIO (SocketException e)
         else do
-          -- During the second iteration the connect call shouldn't fail if the connection
-          -- has been established and we return here.
+          -- This should not be the case on non-blocking socket, but better safe than sorry.
           return False
-      -- "When  the connection has been established asynchronously, pselect(),
-      -- select(), and poll() shall indicate that the file descriptor for the
-      -- socket is ready for writing."
-      -- It is generally assumed that the call unblocks when the socket's state
-      -- changes (i.e. ECONNREFUSED).
-      when shallWait (threadWaitWriteMVar mfd >> retry)
+  when shallWait $ do
+    threadWaitWriteMVar mfd
+    withMVar mfd $ \fd-> do
+      alloca $ \errPtr-> do
+        alloca $ \errPtrLen-> do
+          poke errPtrLen (sizeOf (undefined :: CInt))
+          i <- c_getsockopt fd (#const SOL_SOCKET) (#const SO_ERROR)
+                               (errPtr :: Ptr CInt) (errPtrLen :: Ptr Int)
+          e <- peek errPtr
+          if i < 0 then do
+            throwIO (SocketException (Errno e))
+          else do
+            return ()
 
 -- | Send a message on a connected socket.
 --
