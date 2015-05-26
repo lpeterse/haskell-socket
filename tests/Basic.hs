@@ -12,6 +12,8 @@ main :: IO ()
 main = do 
   test "test0001.01" $ test0001 (undefined :: Socket AF_INET  SOCK_STREAM IPPROTO_TCP) localhost
   test "test0001.02" $ test0001 (undefined :: Socket AF_INET6 SOCK_STREAM IPPROTO_TCP) localhost6
+  test "test0002.01" $ test0002 (undefined :: Socket AF_INET  SOCK_DGRAM  IPPROTO_UDP) localhost
+  test "test0002.02" $ test0002 (undefined :: Socket AF_INET6 SOCK_DGRAM  IPPROTO_UDP) localhost6
 
 -- Test connection oriented sockets (i.e. TCP).
 test0001 :: (AddressFamily f, Type t, Protocol p) => Socket f t p -> SockAddr f -> IO (Either String String)
@@ -28,14 +30,29 @@ test0001 dummy addr = do
   msg <- wait serverRecv
   close server
   close client
-
   if (msg /= helloWorld)
     then return (Left  "Received message was bogus.")
     else return (Right "")
-
   where
     helloWorld = "Hello world!"
 
+-- Test stateless sockets (i.e. UDP).
+test0002 :: (AddressFamily f, Type t, Protocol p) => Socket f t p -> SockAddr f -> IO (Either String String)
+test0002 dummy addr = do
+  server <- socket `asTypeOf` return dummy
+  bind server addr
+  serverRecv <- async $ do
+    recvFrom server 4096
+  client <- socket `asTypeOf` return server
+  sendTo client helloWorld addr
+  (msg,peerAddr) <- wait serverRecv
+  close server
+  close client
+  if (msg /= helloWorld)
+    then return (Left  "Received message was bogus.")
+    else return (Right "")
+  where
+    helloWorld = "Hello world!"
 
 localhost :: SockAddrIn
 localhost =
