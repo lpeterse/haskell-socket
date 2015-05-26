@@ -46,6 +46,8 @@ module System.Socket (
   , sendTo
   -- ** recv
   , recv
+  -- ** recvFrom
+  , recvFrom
   -- ** close
   , close
 
@@ -580,6 +582,65 @@ recv (Socket mfd) bufSize =
       Nothing -> wait
       Just bs -> return bs
 
+-- | Receive a message on a socket and additionally yield the peer address.
+--
+--   - Calling `recvFrom` on a `close`d socket throws @EBADF@ even if the former file descriptor has been reassigned.
+--   - The operation takes a buffer size in bytes a first parameter which
+--     limits the maximum length of the returned `Data.ByteString.ByteString`.
+--   - @EAGAIN@, @EWOULDBLOCK@ and @EINTR@ and handled internally and won't be thrown.
+--   - The following `SocketException`s are relevant and might be thrown:
+--
+--     [@EBADF@]         The file descriptor is invalid.
+--     [@ECONNRESET@]    The peer forcibly closed the connection.
+--     [@ENOTCONN@]      The socket is not connected.
+--     [@ETIMEDOUT@]     The connection timed out.
+--     [@EIO@]           An I/O error occured while writing to the filesystem.
+--     [@ENOBUFS@]       Insufficient resources to fulfill the request.
+--     [@ENONMEM@]       Insufficient memory to fulfill the request.
+--
+--   - The following `SocketException`s are theoretically possible, but should not occur if the library is correct:
+--
+--     [@EOPNOTSUPP@]    The specified flags are not supported.
+--     [@ENOTSOCK@]      The descriptor does not refer to a socket.
+recvFrom :: forall f t p. (AddressFamily f, Type t, Protocol  p) => Socket f t p -> Int -> IO (BS.ByteString, SockAddr f)
+recvFrom (Socket mfd) bufSize =
+  alloca $ \addrPtr-> do
+    alloca $ \addrPtrLen-> do
+      poke addrPtrLen (sizeOf (undefined :: SockAddr f))
+      fix $ \wait-> do
+        threadWaitReadMVar mfd
+        mbsa <- withMVarMasked mfd $ \fd-> do
+          when (fd < 0) $ do
+            throwIO (SocketException eBADF)
+          ptr <- mallocBytes bufSize
+          fix $ \retry-> do
+            i <- c_recvfrom fd ptr bufSize 0 (castPtr addrPtr) addrPtrLen
+            if (i < 0) then do
+              e <- getErrno
+              if e == eWOULDBLOCK || e == eAGAIN 
+                then do
+                  -- At this exit we need to free the pointer manually.
+                  free ptr
+                  return Nothing
+              else if e == eINTR
+                then retry
+                else do
+                  -- At this exit we need to free the pointer manually as well.
+                  free ptr
+                  throwIO (SocketException e)
+            else do
+              -- Send succeeded, generate a ByteString.
+              -- From now on the ByteString takes care of freeing the pointer somewhen in the future.
+              -- The resulting ByteString might be shorter than the malloced buffer.
+              -- This is a fair tradeoff as otherwise we had to create a fresh copy.
+              bs   <- BS.unsafePackMallocCStringLen (ptr, i)
+              addr <- peek addrPtr
+              return (Just (bs,addr))
+        -- We cannot loop from within the block above, because this would keep the MVar locked.
+        case mbsa of
+          Nothing -> wait
+          Just bsa -> return bsa
+
 -- | Closes a socket.
 --
 --   - This operation is idempotent and thus can be performed more than once without throwing an exception.
@@ -905,6 +966,9 @@ foreign import ccall unsafe "sys/socket.h sendto"
 
 foreign import ccall unsafe "sys/socket.h recv"
   c_recv    :: Fd -> Ptr CChar -> Int -> Int -> IO Int
+
+foreign import ccall unsafe "sys/socket.h recvfrom"
+  c_recvfrom :: Fd -> Ptr CChar -> Int -> Int -> Ptr CChar -> Ptr Int -> IO Int
 
 foreign import ccall unsafe "sys/socket.h getsockopt"
   c_getsockopt  :: Fd -> CInt -> CInt -> Ptr a -> Ptr Int -> IO CInt
