@@ -5,6 +5,7 @@ import Data.ByteString (pack)
 import Control.Monad
 import Control.Exception
 import Control.Concurrent.Async
+import Foreign.C.Error
 import System.Socket
 import System.Exit
 
@@ -20,26 +21,28 @@ main = do
 -- Test connection oriented sockets (i.e. TCP).
 test0001 :: (AddressFamily f, Type t, Protocol p) => Socket f t p -> SockAddr f -> IO (Either String String)
 test0001 dummy addr = do
-  server <- socket `asTypeOf` return dummy
-  bind server addr
-  listen server 5
-  serverRecv <- async $ do
-    (peerSock, peerAddr) <- accept server
-    recv peerSock 4096
-  client <- socket `asTypeOf` return server
-  print "abc"
-  connect client addr
-  print "print"
-  send client helloWorld
-  print "foo"
-  msg <- wait serverRecv
-  close server
-  close client
-  if (msg /= helloWorld)
-    then return (Left  "Received message was bogus.")
-    else return (Right "")
-  where
-    helloWorld = "Hello world!"
+  eServer <- try (socket `asTypeOf` return dummy)
+  case eServer of
+    Left e@(SocketException er) -> if er == ePROTONOSUPPORT
+                                     then return (Right "Protocol not supported. System dependant.")
+                                     else throwIO e
+    Right server -> do
+      bind server addr
+      listen server 5
+      serverRecv <- async $ do
+        (peerSock, peerAddr) <- accept server
+        recv peerSock 4096
+      client <- socket `asTypeOf` return server
+      connect client addr
+      send client helloWorld
+      msg <- wait serverRecv
+      close server
+      close client
+      if (msg /= helloWorld)
+        then return (Left  "Received message was bogus.")
+        else return (Right "")
+      where
+        helloWorld = "Hello world!"
 
 -- Test stateless sockets (i.e. UDP).
 test0002 :: (AddressFamily f, Type t, Protocol p) => Socket f t p -> SockAddr f -> IO (Either String String)
