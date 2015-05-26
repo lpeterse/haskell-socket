@@ -42,6 +42,8 @@ module System.Socket (
   , connect
   -- ** send
   , send
+  -- ** sendTo
+  , sendTo
   -- ** recv
   , recv
   -- ** close
@@ -387,7 +389,7 @@ accept s@(Socket mfd) = acceptWait
 --     [@EAFNOTSUPPORT@] Address family does not match the socket.
 --     [@ENOTSOCK@]      The descriptor is not a socket.
 --     [@EPROTOTYPE@]    The address type does not match the socket.
-connect :: (AddressFamily d, Type t, Protocol  p) => Socket d t p -> SockAddr d -> IO ()
+connect :: (AddressFamily f, Type t, Protocol  p) => Socket f t p -> SockAddr f -> IO ()
 connect (Socket mfd) addr = do
   alloca $ \addrPtr-> do
     poke addrPtr addr
@@ -441,7 +443,7 @@ connect (Socket mfd) addr = do
 --
 --     [@EOPNOTSUPP@]    The specified flags are not supported.
 --     [@ENOTSOCK@]      The descriptor does not refer to a socket.
-send     :: Socket d t p -> BS.ByteString -> IO Int
+send :: (AddressFamily f, Type t, Protocol  p) => Socket f t p -> BS.ByteString -> IO Int
 send (Socket mfd) bs =
   fix $ \wait-> do
     threadWaitWriteMVar mfd
@@ -465,6 +467,64 @@ send (Socket mfd) bs =
       then wait
       else return bytesSend
 
+-- | Send a message on a socket with a specific destination address.
+--
+--   - Calling `sendTo` on a `close`d socket throws @EBADF@ even if the former file descriptor has been reassigned.
+--   - The operation returns the number of bytes sent.
+--   - @EAGAIN@, @EWOULDBLOCK@ and @EINTR@ and handled internally and won't be thrown.
+--   - The flag @MSG_NOSIGNAL@ is set to supress signals which are pointless.
+--   - The following `SocketException`s are relevant and might be thrown:
+--
+--     [@EBADF@]         The file descriptor is invalid.
+--     [@ECONNRESET@]    The peer forcibly closed the connection.
+--     [@EDESTADDREQ@]   Remote address has not been set, but is required.
+--     [@EMSGSIZE@]      The message is too large to be sent all at once, but the protocol requires this.
+--     [@ENOTCONN@]      The socket is not connected.
+--     [@EPIPE@]         The socket is shut down for writing or the socket is not connected anymore.
+--     [@EACCESS@]       The process is lacking permissions.
+--     [@EDESTADDRREQ@]  The destination address is required.
+--     [@EHOSTUNREACH@]  The destination host cannot be reached.
+--     [@EIO@]           An I/O error occured.
+--     [@EISCONN@]       The socket is already connected.
+--     [@ENETDOWN@]      The local network is down.
+--     [@ENETUNREACH@]   No route to the network.
+--     [@ENUBUFS@]       Insufficient resources to fulfill the request.
+--     [@ENOMEM@]        Insufficient memory to fulfill the request.
+--     [@ELOOP@]         @AF_UNIX@ only.
+--     [@ENAMETOOLONG@]  @AF_UNIX@ only.
+--
+--   - The following `SocketException`s are theoretically possible, but should not occur if the library is correct:
+--
+--     [@EAFNOTSUPP@]    The address family does not match.
+--     [@EOPNOTSUPP@]    The specified flags are not supported.
+--     [@ENOTSOCK@]      The descriptor does not refer to a socket.
+--     [@EINVAL@]        The address len does not match.
+sendTo :: (AddressFamily f, Type t, Protocol  p) => Socket f t p -> BS.ByteString -> SockAddr f -> IO Int
+sendTo (Socket mfd) bs addr =
+  alloca $ \addrPtr-> do
+    poke addrPtr addr
+    fix $ \wait-> do
+      threadWaitWriteMVar mfd
+      bytesSend <- withMVar mfd $ \fd-> do
+        when (fd < 0) $ do
+          throwIO (SocketException eBADF)
+        BS.unsafeUseAsCStringLen bs $ \(msgPtr,msgLen)-> do
+          fix $ \retry-> do
+            i <- c_sendto fd msgPtr msgLen (#const MSG_NOSIGNAL) (castPtr addrPtr) (sizeOf addr)
+            if (i < 0) then do
+              e <- getErrno
+              if e == eWOULDBLOCK || e == eAGAIN
+                then return i
+              else if e == eINTR
+                then retry
+                else throwIO (SocketException e)
+            -- Send succeeded. Return the bytes send.
+            else return i
+      -- We cannot loop from within the block above, because this would keep the MVar locked.
+      if bytesSend < 0
+        then wait
+        else return bytesSend
+
 -- | Receive a message on a connected socket.
 --
 --   - Calling `recv` on a `close`d socket throws @EBADF@ even if the former file descriptor has been reassigned.
@@ -485,7 +545,7 @@ send (Socket mfd) bs =
 --
 --     [@EOPNOTSUPP@]    The specified flags are not supported.
 --     [@ENOTSOCK@]      The descriptor does not refer to a socket.
-recv :: Socket d t p -> Int -> IO BS.ByteString
+recv :: (AddressFamily f, Type t, Protocol  p) => Socket f t p -> Int -> IO BS.ByteString
 recv (Socket mfd) bufSize =
   fix $ \wait-> do
     threadWaitReadMVar mfd
@@ -838,10 +898,13 @@ foreign import ccall unsafe "sys/socket.h listen"
   c_listen  :: Fd -> Int -> IO CInt
 
 foreign import ccall unsafe "sys/socket.h send"
-  c_send  :: Fd -> Ptr CChar -> Int -> Int -> IO Int
+  c_send    :: Fd -> Ptr CChar -> Int -> Int -> IO Int
+
+foreign import ccall unsafe "sys/socket.h sendto"
+  c_sendto  :: Fd -> Ptr CChar -> Int -> Int -> Ptr CChar -> Int -> IO Int
 
 foreign import ccall unsafe "sys/socket.h recv"
-  c_recv  :: Fd -> Ptr CChar -> Int -> Int -> IO Int
+  c_recv    :: Fd -> Ptr CChar -> Int -> Int -> IO Int
 
 foreign import ccall unsafe "sys/socket.h getsockopt"
   c_getsockopt  :: Fd -> CInt -> CInt -> Ptr a -> Ptr Int -> IO CInt
