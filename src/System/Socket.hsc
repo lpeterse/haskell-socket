@@ -405,7 +405,7 @@ accept s@(Socket mfd) = acceptWait
 --     [@EPROTOTYPE@]    The address type does not match the socket.
 connect :: (AddressFamily f, Type t, Protocol  p) => Socket f t p -> SockAddr f -> IO ()
 connect (Socket mfd) addr = do
-  shallWait <- withMVar mfd $ \fd-> do
+  mwait <- withMVar mfd $ \fd-> do
     alloca $ \addrPtr-> do
       poke addrPtr addr
       fix $ \retry-> do
@@ -416,25 +416,29 @@ connect (Socket mfd) addr = do
             retry
           else if e == eINPROGRESS then do
             -- During the first iteration we get EINPROGRESS and return here.
-            return True
+            -- Register waiting on the descriptor.
+            wait <- threadWaitWrite' fd
+            return (Just wait)
           else do
             throwIO (SocketException e)
         else do
           -- This should not be the case on non-blocking socket, but better safe than sorry.
-          return False
-  when shallWait $ do
-    threadWaitWriteMVar mfd
-    withMVar mfd $ \fd-> do
-      alloca $ \errPtr-> do
-        alloca $ \errPtrLen-> do
-          poke errPtrLen (sizeOf (undefined :: CInt))
-          i <- c_getsockopt fd (#const SOL_SOCKET) (#const SO_ERROR)
-                               (errPtr :: Ptr CInt) (errPtrLen :: Ptr Int)
-          e <- peek errPtr
-          if i < 0 then do
-            throwIO (SocketException (Errno e))
-          else do
-            return ()
+          return Nothing
+  case mwait of
+    Nothing -> return ()
+    Just wait -> do
+      wait
+      withMVar mfd $ \fd-> do
+        alloca $ \errPtr-> do
+          alloca $ \errPtrLen-> do
+            poke errPtrLen (sizeOf (undefined :: CInt))
+            i <- c_getsockopt fd (#const SOL_SOCKET) (#const SO_ERROR)
+                                 (errPtr :: Ptr CInt) (errPtrLen :: Ptr Int)
+            e <- peek errPtr
+            if i < 0 then do
+              throwIO (SocketException (Errno e))
+            else do
+              return ()
 
 -- | Send a message on a connected socket.
 --
@@ -834,6 +838,9 @@ threadWaitWriteMVar mfd = do
     threadWaitWriteSTM fd >>= return . atomically . fst
   wait `onException` throwIO (SocketException eBADF)
 
+threadWaitWrite' :: Fd -> IO (IO ())
+threadWaitWrite' fd = do
+  threadWaitWriteSTM fd >>= return . atomically . fst
 
 -------------------------------------------------------------------------------
 -- Exceptions
