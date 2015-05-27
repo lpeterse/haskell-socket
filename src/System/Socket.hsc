@@ -406,6 +406,8 @@ accept s@(Socket mfd) = acceptWait
 connect :: (AddressFamily f, Type t, Protocol  p) => Socket f t p -> SockAddr f -> IO ()
 connect (Socket mfd) addr = do
   mwait <- withMVar mfd $ \fd-> do
+    when (fd < 0) $ do
+      throwIO (SocketException eBADF)
     alloca $ \addrPtr-> do
       poke addrPtr addr
       fix $ \retry-> do
@@ -428,6 +430,9 @@ connect (Socket mfd) addr = do
     Nothing -> return ()
     Just wait -> do
       wait
+      -- FIXME: Is this a race condition?
+      -- `c_getsockopt` might not reflect the result of the `connect` call, because
+      -- we don't hold the lock right here.
       withMVar mfd $ \fd-> do
         alloca $ \errPtr-> do
           alloca $ \errPtrLen-> do
