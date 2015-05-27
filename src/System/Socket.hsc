@@ -264,46 +264,44 @@ listen (Socket ms) backlog = do
 --     [@EOPNOTSUPP@]   The socket type does not support accepting connections.
 --     [@EPROTO@]       Generic protocol error.
 accept :: (Address a, Type t, Protocol  p) => Socket a t p -> IO (Socket a t p, a)
-accept s@(Socket mfd) = acceptWait
+accept s@(Socket mfd) = accept'
   where
-    acceptWait :: forall a t p. (Address a, Type t, Protocol  p) => IO (Socket a t p, a)
-    acceptWait = do
-      -- This is the blocking operation waiting for an event.
-      threadWaitReadMVar mfd
-      -- We mask asynchronous exceptions during this critical section.
-      msa <- withMVarMasked mfd $ \fd-> do
-        -- Allocate local (!) memory for the address.
-        alloca $ \addrPtr-> do
-          alloca $ \addrPtrLen-> do
-          -- Oh Haskell, my beauty
-            fix $ \retry-> do
-              poke addrPtrLen (fromIntegral $ sizeOf (undefined :: a))
-              ft <- c_accept fd addrPtr addrPtrLen
-              if ft < 0 then do
-                e <- getErrno
-                if e == eWOULDBLOCK || e == eAGAIN
-                  then return Nothing
-                  else if e == eINTR
-                    -- On EINTR it is good practice to just retry.
-                    then retry
-                    else throwIO (SocketException e)
-              -- This is the critical section: We got a valid descriptor we have not yet returned.
-              else do 
-                i <- c_setnonblocking ft
-                if i < 0 then do
-                  getErrno >>= throwIO . SocketException
-                else do
-                  -- This peek operation might be a little expensive, but I don't see an alternative.
-                  addr <- peek addrPtr :: IO (a)
-                  -- newMVar is guaranteed to be not interruptible.
-                  mft <- newMVar ft
-                  -- Register a finalizer on the new socket.
-                  _ <- mkWeakMVar mft (close (Socket mft `asTypeOf` s))
-                  return (Just (Socket mft, addr))
-      -- If msa is Nothing we got EAGAIN or EWOULDBLOCK and retry after the next event.
-      case msa of
-        Just sa -> return sa
-        Nothing -> acceptWait
+    accept' :: forall a t p. (Address a, Type t, Protocol  p) => IO (Socket a t p, a)
+    accept' = do
+      -- Allocate local (!) memory for the address.
+      alloca $ \addrPtr-> do
+        alloca $ \addrPtrLen-> do
+          poke addrPtrLen (fromIntegral $ sizeOf (undefined :: a))
+          fix $ \again-> do
+            -- We mask asynchronous exceptions during this critical section.
+            ews <- withMVarMasked mfd $ \fd-> do
+              fix $ \retry-> do
+                ft <- c_accept fd addrPtr addrPtrLen
+                if ft < 0 then do
+                  e <- getErrno
+                  if e == eWOULDBLOCK || e == eAGAIN
+                    then threadWaitRead' fd >>= return . Left
+                    else if e == eINTR
+                      -- On EINTR it is good practice to just retry.
+                      then retry
+                      else throwIO (SocketException e)
+                -- This is the critical section: We got a valid descriptor we have not yet returned.
+                else do 
+                  i <- c_setnonblocking ft
+                  if i < 0 then do
+                    getErrno >>= throwIO . SocketException
+                  else do
+                    -- This peek operation might be a little expensive, but I don't see an alternative.
+                    addr <- peek addrPtr :: IO (a)
+                    -- newMVar is guaranteed to be not interruptible.
+                    mft <- newMVar ft
+                    -- Register a finalizer on the new socket.
+                    _ <- mkWeakMVar mft (close (Socket mft `asTypeOf` s))
+                    return (Right (Socket mft, addr))
+            -- If ews is Left we got EAGAIN or EWOULDBLOCK and retry after the next event.
+            case ews of
+              Left  wait -> wait >> again
+              Right sock -> return sock
 
 -- | Connects to an remote address.
 --
