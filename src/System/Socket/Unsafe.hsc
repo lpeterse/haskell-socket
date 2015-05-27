@@ -12,12 +12,16 @@ import Control.Concurrent.MVar
 import Foreign.C.Error
 import Foreign.Ptr
 
-import System.Socket.Exception
-import System.Socket.Internal
+import System.Socket.Internal.Socket
+import System.Socket.Internal.Event
+import System.Socket.Internal.FFI
+import System.Socket.Address
+import System.Socket.Type
+import System.Socket.Protocol
 
 #include "sys/socket.h"
 
-unsafeSend :: (AddressFamily f, Type t, Protocol  p) => Socket f t p -> Ptr a -> Int -> IO Int
+unsafeSend :: (Address a, Type t, Protocol  p) => Socket a t p -> Ptr b -> Int -> IO Int
 unsafeSend (Socket mfd) ptr len = do
   fix $ \wait-> do
     threadWaitWriteMVar mfd

@@ -18,7 +18,7 @@
 -- >
 -- > main :: IO ()
 -- > main = do
--- >   s <- socket :: IO (Socket AF_INET SOCK_STREAM IPPROTO_TCP)
+-- >   s <- socket :: IO (Socket Inet STREAM TCP)
 -- >   bind s (SockAddrIn 8080 (pack [127,0,0,1]))
 -- >   listen s 5
 -- >   forever $ do
@@ -53,34 +53,29 @@ module System.Socket (
   -- * Sockets
   , Socket ()
   -- ** Address Families
-  , AddressFamily (..)
-  -- *** AF_UNIX
-  , AF_UNIX
-  , SockAddrUn (..)
-  -- *** AF_INET
-  , AF_INET
-  , SockAddrIn (..)
-  -- *** AF_INET6
-  , AF_INET6
-  , SockAddrIn6 (..)
+  , Address (..)
+  -- *** Unix
+  , Unix (..)
+  -- *** Inet
+  , Inet (..)
+  -- *** Inet6
+  , Inet6 (..)
   -- ** Types
   , Type (..)
-  -- *** SOCK_STREAM
-  , SOCK_STREAM
-  -- *** SOCK_DGRAM
-  , SOCK_DGRAM
-  -- *** SOCK_SEQPACKET
-  , SOCK_SEQPACKET
+  -- *** STREAM
+  , STREAM
+  -- *** DGRAM
+  , DGRAM
+  -- *** SEQPACKET
+  , SEQPACKET
   -- ** Protocols
   , Protocol  (..)
-  -- *** DefaultProtocol
-  , DefaultProtocol
-  -- *** IPPROTO_UDP
-  , IPPROTO_UDP
-  -- *** IPPROTO_TCP
-  , IPPROTO_TCP
-  -- *** IPPROTO_SCTP
-  , IPPROTO_SCTP
+  -- *** UDP
+  , UDP
+  -- *** TCP
+  , TCP
+  -- *** SCTP
+  , SCTP
 
   -- * SocketException
   , SocketException (..)
@@ -101,9 +96,26 @@ import Foreign.Ptr
 import Foreign.Storable
 import Foreign.Marshal.Alloc
 
-import System.Socket.Exception
 import System.Socket.Unsafe
-import System.Socket.Internal
+
+import System.Socket.Internal.Socket
+import System.Socket.Internal.Event
+import System.Socket.Internal.FFI
+
+import System.Socket.Address
+import System.Socket.Address.Unix
+import System.Socket.Address.Inet
+import System.Socket.Address.Inet6
+
+import System.Socket.Type
+import System.Socket.Type.STREAM
+import System.Socket.Type.DGRAM
+import System.Socket.Type.SEQPACKET
+
+import System.Socket.Protocol
+import System.Socket.Protocol.UDP
+import System.Socket.Protocol.TCP
+import System.Socket.Protocol.SCTP
 
 #include "sys/socket.h"
 
@@ -115,9 +127,9 @@ import System.Socket.Internal
 --   associated type families). Examples:
 --
 --   > -- create a IPv4-UDP-datagram socket
---   > sock <- socket :: IO (Socket AF_INET SOCK_DGRAM IPPROTO_UDP)
+--   > sock <- socket :: IO (Socket Inet DGRAM UDP)
 --   > -- create a IPv6-TCP-streaming socket
---   > sock6 <- socket :: IO (Socket AF_INET6 SOCK_STREAM IPPROTO_TCP)
+--   > sock6 <- socket :: IO (Socket Inet6 STREAM TCP)
 --
 --     - This operation sets up a finalizer that automatically closes the socket
 --       when the garbage collection decides to collect it. This is just a
@@ -137,14 +149,14 @@ import System.Socket.Internal
 --        [@EPROTOTYPE@]      The socket type is not supported by the protocol.
 --        [@EACCES@]          The process is lacking necessary privileges.
 --        [@ENOMEM@]          Insufficient memory.
-socket :: (AddressFamily f, Type t, Protocol  p) => IO (Socket f t p)
+socket :: (Address a, Type t, Protocol  p) => IO (Socket a t p)
 socket = socket'
  where
-   socket' :: forall f t p. (AddressFamily f, Type t, Protocol  p) => IO (Socket f t p)
+   socket' :: forall a t p. (Address a, Type t, Protocol  p) => IO (Socket a t p)
    socket'  = do
      bracketOnError
        -- Try to acquire the socket resource. This part has exceptions masked.
-       ( c_socket (addressFamilyNumber (undefined :: f)) (typeNumber (undefined :: t)) (protocolNumber (undefined :: p)) )
+       ( c_socket (addressFamilyNumber (undefined :: a)) (typeNumber (undefined :: t)) (protocolNumber (undefined :: p)) )
        -- On failure after the c_socket call we try to close the socket to not leak file descriptors.
        -- If closing fails we cannot really do something about it. We tried at least.
        -- This part has exceptions masked as well. c_close is an unsafe FFI call.
@@ -187,7 +199,7 @@ socket = socket'
 --     [@EAFNOSUPPORT@]   The address family is invalid.
 --     [@ENOTSOCK@]       The file descriptor is not a socket.
 --     [@EINVAL@]         Address length does not match address family.
-bind :: (AddressFamily f, Type t, Protocol  p) => Socket f t p -> SockAddr f -> IO ()
+bind :: (Address a, Type t, Protocol  p) => Socket a t p -> a -> IO ()
 bind (Socket mfd) addr = do
   alloca $ \addrPtr-> do
     poke addrPtr addr
@@ -217,7 +229,7 @@ bind (Socket mfd) addr = do
 --     [@EOPNOTSUPP@]     The protocol does not support listening.
 --     [@EACCES@]         The process is lacking privileges.
 --     [@ENOBUFS@]        Insufficient resources.
-listen :: (AddressFamily f, Type t, Protocol  p) => Socket f t p -> Int -> IO ()
+listen :: (Address a, Type t, Protocol  p) => Socket a t p -> Int -> IO ()
 listen (Socket ms) backlog = do
   i <- withMVar ms $ \s-> do
     c_listen s backlog
@@ -248,10 +260,10 @@ listen (Socket ms) backlog = do
 --     [@ENOSOCK@]      Not a valid socket descriptor (should be impossible).
 --     [@EOPNOTSUPP@]   The socket type does not support accepting connections.
 --     [@EPROTO@]       Generic protocol error.
-accept :: (AddressFamily f, Type t, Protocol  p) => Socket f t p -> IO (Socket f t p, SockAddr f)
+accept :: (Address a, Type t, Protocol  p) => Socket a t p -> IO (Socket a t p, a)
 accept s@(Socket mfd) = acceptWait
   where
-    acceptWait :: forall f t p. (AddressFamily f, Type t, Protocol  p) => IO (Socket f t p, SockAddr f)
+    acceptWait :: forall a t p. (Address a, Type t, Protocol  p) => IO (Socket a t p, a)
     acceptWait = do
       -- This is the blocking operation waiting for an event.
       threadWaitReadMVar mfd
@@ -262,7 +274,7 @@ accept s@(Socket mfd) = acceptWait
           alloca $ \addrPtrLen-> do
           -- Oh Haskell, my beauty
             fix $ \retry-> do
-              poke addrPtrLen (sizeOf (undefined :: SockAddr f))
+              poke addrPtrLen (sizeOf (undefined :: a))
               ft <- c_accept fd addrPtr addrPtrLen
               if ft < 0 then do
                 e <- getErrno
@@ -279,7 +291,7 @@ accept s@(Socket mfd) = acceptWait
                   getErrno >>= throwIO . SocketException
                 else do
                   -- This peek operation might be a little expensive, but I don't see an alternative.
-                  addr <- peek addrPtr :: IO (SockAddr f)
+                  addr <- peek addrPtr :: IO (a)
                   -- newMVar is guaranteed to be not interruptible.
                   mft <- newMVar ft
                   -- Register a finalizer on the new socket.
@@ -315,7 +327,7 @@ accept s@(Socket mfd) = acceptWait
 --     [@EAFNOTSUPPORT@] Address family does not match the socket.
 --     [@ENOTSOCK@]      The descriptor is not a socket.
 --     [@EPROTOTYPE@]    The address type does not match the socket.
-connect :: (AddressFamily f, Type t, Protocol  p) => Socket f t p -> SockAddr f -> IO ()
+connect :: (Address a, Type t, Protocol  p) => Socket a t p -> a -> IO ()
 connect (Socket mfd) addr = do
   mwait <- withMVar mfd $ \fd-> do
     when (fd < 0) $ do
@@ -364,7 +376,7 @@ connect (Socket mfd) addr = do
 --
 --     [@EOPNOTSUPP@]    The specified flags are not supported.
 --     [@ENOTSOCK@]      The descriptor does not refer to a socket.
-send :: (AddressFamily f, Type t, Protocol  p) => Socket f t p -> BS.ByteString -> IO Int
+send :: (Address a, Type t, Protocol  p) => Socket a t p -> BS.ByteString -> IO Int
 send s bs = do
   BS.unsafeUseAsCStringLen bs $ \(ptr,len)->
     unsafeSend s ptr len
@@ -401,7 +413,7 @@ send s bs = do
 --     [@EOPNOTSUPP@]    The specified flags are not supported.
 --     [@ENOTSOCK@]      The descriptor does not refer to a socket.
 --     [@EINVAL@]        The address len does not match.
-sendTo :: (AddressFamily f, Type t, Protocol  p) => Socket f t p -> BS.ByteString -> SockAddr f -> IO Int
+sendTo :: (Address a, Type t, Protocol  p) => Socket a t p -> BS.ByteString -> a -> IO Int
 sendTo (Socket mfd) bs addr =
   alloca $ \addrPtr-> do
     poke addrPtr addr
@@ -447,7 +459,7 @@ sendTo (Socket mfd) bs addr =
 --
 --     [@EOPNOTSUPP@]    The specified flags are not supported.
 --     [@ENOTSOCK@]      The descriptor does not refer to a socket.
-recv :: (AddressFamily f, Type t, Protocol  p) => Socket f t p -> Int -> IO BS.ByteString
+recv :: (Address a, Type t, Protocol  p) => Socket a t p -> Int -> IO BS.ByteString
 recv (Socket mfd) bufSize =
   fix $ \wait-> do
     threadWaitReadMVar mfd
@@ -502,11 +514,11 @@ recv (Socket mfd) bufSize =
 --
 --     [@EOPNOTSUPP@]    The specified flags are not supported.
 --     [@ENOTSOCK@]      The descriptor does not refer to a socket.
-recvFrom :: forall f t p. (AddressFamily f, Type t, Protocol  p) => Socket f t p -> Int -> IO (BS.ByteString, SockAddr f)
+recvFrom :: forall a t p. (Address a, Type t, Protocol  p) => Socket a t p -> Int -> IO (BS.ByteString, a)
 recvFrom (Socket mfd) bufSize =
   alloca $ \addrPtr-> do
     alloca $ \addrPtrLen-> do
-      poke addrPtrLen (sizeOf (undefined :: SockAddr f))
+      poke addrPtrLen (sizeOf (undefined :: a))
       fix $ \wait-> do
         threadWaitReadMVar mfd
         mbsa <- withMVarMasked mfd $ \fd-> do
@@ -559,7 +571,7 @@ recvFrom (Socket mfd) bufSize =
 --   - The following `SocketException`s are theoretically possible, but should not occur if the library is correct:
 --
 --     [@EBADF@]         The file descriptor is invalid.
-close :: (AddressFamily f, Type t, Protocol  p) => Socket f t p -> IO ()
+close :: (Address a, Type t, Protocol  p) => Socket a t p -> IO ()
 close (Socket mfd) = do
   modifyMVarMasked_ mfd $ \fd-> do
     if fd < 0 then do

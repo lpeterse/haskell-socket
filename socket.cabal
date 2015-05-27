@@ -21,11 +21,22 @@ bug-reports:         https://github.com/lpeterse/haskell-socket/issues
 
 library
   exposed-modules:     System.Socket
-                     , System.Socket.Exception
-                     , System.Socket.Options
+                     , System.Socket.Address
+                     , System.Socket.Address.Unix
+                     , System.Socket.Address.Inet
+                     , System.Socket.Address.Inet6
+                     , System.Socket.Type
+                     , System.Socket.Type.DGRAM
+                     , System.Socket.Type.STREAM
+                     , System.Socket.Type.SEQPACKET
+                     , System.Socket.Protocol
+                     , System.Socket.Protocol.UDP
+                     , System.Socket.Protocol.TCP
+                     , System.Socket.Protocol.SCTP
                      , System.Socket.Unsafe
-                     , System.Socket.Internal
                      , System.Socket.Internal.FFI
+                     , System.Socket.Internal.Event
+                     , System.Socket.Internal.Socket
   build-depends:       base < 5
                      , bytestring
   hs-source-dirs:      src
