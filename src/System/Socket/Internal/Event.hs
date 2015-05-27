@@ -1,5 +1,5 @@
 module System.Socket.Internal.Event
-  ( threadWaitReadMVar, threadWaitWriteMVar, threadWaitWrite'
+  ( threadWaitReadMVar, threadWaitWriteMVar, threadWaitWrite', threadWaitRead'
   ) where
 
 import Control.Concurrent.MVar
@@ -35,3 +35,7 @@ threadWaitWriteMVar mfd = do
 threadWaitWrite' :: Fd -> IO (IO ())
 threadWaitWrite' fd = do
   threadWaitWriteSTM fd >>= return . atomically . fst
+
+threadWaitRead' :: Fd -> IO (IO ())
+threadWaitRead' fd = do
+  threadWaitReadSTM fd >>= return . atomically . fst

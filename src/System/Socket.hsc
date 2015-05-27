@@ -465,39 +465,14 @@ sendTo (Socket mfd) bs addr =
 --     [@EOPNOTSUPP@]    The specified flags are not supported.
 --     [@ENOTSOCK@]      The descriptor does not refer to a socket.
 recv :: (Address a, Type t, Protocol  p) => Socket a t p -> Int -> IO BS.ByteString
-recv (Socket mfd) bufSize =
-  fix $ \wait-> do
-    threadWaitReadMVar mfd
-    mbs <- withMVarMasked mfd $ \fd-> do
-      when (fd < 0) $ do
-        throwIO (SocketException eBADF)
-      ptr <- mallocBytes bufSize
-      fix $ \retry-> do
-        i <- c_recv fd ptr bufSize 0
-        if (i < 0) then do
-          e <- getErrno
-          if e == eWOULDBLOCK || e == eAGAIN 
-            then do
-              -- At this exit we need to free the pointer manually.
-              free ptr
-              return Nothing
-          else if e == eINTR
-            then retry
-            else do
-              -- At this exit we need to free the pointer manually as well.
-              free ptr
-              throwIO (SocketException e)
-        else do
-          -- Send succeeded, generate a ByteString.
-          -- From now on the ByteString takes care of freeing the pointer somewhen in the future.
-          -- The resulting ByteString might be shorter than the malloced buffer.
-          -- This is a fair tradeoff as otherwise we had to create a fresh copy.
-          bs <- BS.unsafePackMallocCStringLen (ptr, i)
-          return (Just bs)
-    -- We cannot loop from within the block above, because this would keep the MVar locked.
-    case mbs of
-      Nothing -> wait
-      Just bs -> return bs
+recv s bufSize =
+  bracketOnError
+    ( mallocBytes bufSize )
+    (\bufPtr-> free bufPtr )
+    (\bufPtr-> do
+        bytesReceived <- unsafeRecv s bufPtr bufSize
+        BS.unsafePackMallocCStringLen (bufPtr, bytesReceived)
+    )
 
 -- | Receive a message on a socket and additionally yield the peer address.
 --

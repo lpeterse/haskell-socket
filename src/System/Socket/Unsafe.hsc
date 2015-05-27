@@ -1,6 +1,8 @@
 module System.Socket.Unsafe (
   -- * unsafeSend
     unsafeSend
+  -- * unsafeRecv
+  , unsafeRecv
   ) where
 
 import Data.Function
@@ -22,24 +24,42 @@ import System.Socket.Protocol
 #include "sys/socket.h"
 
 unsafeSend :: (Address a, Type t, Protocol  p) => Socket a t p -> Ptr b -> Int -> IO Int
-unsafeSend (Socket mfd) ptr len = do
-  fix $ \wait-> do
-    threadWaitWriteMVar mfd
-    bytesSend <- withMVar mfd $ \fd-> do
+unsafeSend (Socket mfd) bufPtr bufSize = do
+  fix $ \again-> do
+    ewb <- withMVar mfd $ \fd-> do
       when (fd < 0) $ do
         throwIO (SocketException eBADF)
       fix $ \retry-> do
-        i <- c_send fd ptr (fromIntegral len) (#const MSG_NOSIGNAL)
+        i <- c_send fd bufPtr (fromIntegral bufSize) (#const MSG_NOSIGNAL)
         if (i < 0) then do
           e <- getErrno
-          if e == eWOULDBLOCK || e == eAGAIN 
-            then return i
+          if e == eWOULDBLOCK || e == eAGAIN
+            then threadWaitRead' fd >>= return . Left
           else if e == eINTR
             then retry
             else throwIO (SocketException e)
         -- Send succeeded. Return the bytes send.
-        else return i
-    -- We cannot loop from within the block above, because this would keep the MVar locked.
-    if bytesSend < 0
-      then wait
-      else return (fromIntegral bytesSend)
+        else return (Right i)
+    case ewb of
+      Left  wait          -> wait >> again
+      Right bytesSent     -> return (fromIntegral bytesSent)
+
+unsafeRecv :: (Address a, Type t, Protocol  p) => Socket a t p -> Ptr b -> Int -> IO Int
+unsafeRecv (Socket mfd) bufPtr bufSize =
+  fix $ \again-> do
+    ewb <- withMVar mfd $ \fd-> do
+        when (fd < 0) $ do
+          throwIO (SocketException eBADF)
+        fix $ \retry-> do
+          i <- c_recv fd bufPtr (fromIntegral bufSize) 0
+          if (i < 0) then do
+            e <- getErrno
+            if e == eWOULDBLOCK || e == eAGAIN then do
+              threadWaitRead' fd >>= return . Left
+            else if e == eINTR
+              then retry
+              else throwIO (SocketException e)
+          else return (Right i)
+    case ewb of
+      Left  wait          -> wait >> again
+      Right bytesReceived -> return (fromIntegral bytesReceived)

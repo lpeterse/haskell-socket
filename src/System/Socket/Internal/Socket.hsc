@@ -4,7 +4,7 @@ module System.Socket.Internal.Socket (
   , SocketException (..)
   , GetSockOpt (..)
   , SetSockOpt (..)
-  , SO_ACCEPTCONN
+  , SO_ACCEPTCONN (..)
   ) where
 
 import Control.Concurrent.MVar

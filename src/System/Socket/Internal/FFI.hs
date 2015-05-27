@@ -27,13 +27,13 @@ foreign import ccall unsafe "sys/socket.h send"
   c_send    :: Fd -> Ptr a -> CInt -> CInt -> IO CInt
 
 foreign import ccall unsafe "sys/socket.h sendto"
-  c_sendto  :: Fd -> Ptr CChar -> Int -> Int -> Ptr CChar -> Int -> IO Int
+  c_sendto  :: Fd -> Ptr a -> Int -> Int -> Ptr CChar -> Int -> IO Int
 
 foreign import ccall unsafe "sys/socket.h recv"
-  c_recv    :: Fd -> Ptr CChar -> Int -> Int -> IO Int
+  c_recv    :: Fd -> Ptr a -> CInt -> CInt -> IO Int
 
 foreign import ccall unsafe "sys/socket.h recvfrom"
-  c_recvfrom :: Fd -> Ptr CChar -> Int -> Int -> Ptr CChar -> Ptr Int -> IO Int
+  c_recvfrom :: Fd -> Ptr a -> Int -> Int -> Ptr CChar -> Ptr Int -> IO Int
 
 foreign import ccall unsafe "sys/socket.h getsockopt"
   c_getsockopt  :: Fd -> CInt -> CInt -> Ptr a -> Ptr Int -> IO CInt
