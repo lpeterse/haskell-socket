@@ -1,6 +1,7 @@
 module System.Socket.Internal.FFI where
 
 import Data.Bits
+import Data.Monoid
 
 import Foreign.Ptr
 import Foreign.C.Types

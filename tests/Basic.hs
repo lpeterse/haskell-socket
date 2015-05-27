@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings, ScopedTypeVariables, TypeFamilies #-}
 module Main where
 
+import Data.Monoid
 import Data.ByteString (pack)
 import Control.Monad
 import Control.Exception
