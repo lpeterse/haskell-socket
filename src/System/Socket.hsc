@@ -97,7 +97,6 @@ import qualified Data.ByteString.Unsafe as BS
 import GHC.Conc (closeFdWith)
 
 import Foreign.C.Error
-import Foreign.Ptr
 import Foreign.Storable
 import Foreign.Marshal.Alloc
 
@@ -210,7 +209,7 @@ bind (Socket mfd) addr = do
     poke addrPtr addr
     fix $ \retry-> do
       i <- withMVar mfd $ \fd-> do
-        c_bind fd (castPtr addrPtr :: Ptr ()) (sizeOf addr)
+        c_bind fd addrPtr (fromIntegral $ sizeOf addr)
       if i < 0 then do
         e <- getErrno
         if e == eINPROGRESS || e == eALREADY
@@ -383,8 +382,9 @@ connect (Socket mfd) addr = do
 --     [@ENOTSOCK@]      The descriptor does not refer to a socket.
 send :: (Address a, Type t, Protocol  p) => Socket a t p -> BS.ByteString -> IO Int
 send s bs = do
-  BS.unsafeUseAsCStringLen bs $ \(ptr,len)->
-    unsafeSend s ptr len
+  bytesSent <- BS.unsafeUseAsCStringLen bs $ \(bufPtr,bufSize)->
+    unsafeSend s bufPtr (fromIntegral bufSize)
+  return (fromIntegral bytesSent)
 
 -- | Send a message on a socket with a specific destination address.
 --
@@ -419,30 +419,12 @@ send s bs = do
 --     [@ENOTSOCK@]      The descriptor does not refer to a socket.
 --     [@EINVAL@]        The address len does not match.
 sendTo :: (Address a, Type t, Protocol  p) => Socket a t p -> BS.ByteString -> a -> IO Int
-sendTo (Socket mfd) bs addr =
-  alloca $ \addrPtr-> do
+sendTo s bs addr = do
+  bytesSent <- alloca $ \addrPtr-> do
     poke addrPtr addr
-    fix $ \wait-> do
-      threadWaitWriteMVar mfd
-      bytesSend <- withMVar mfd $ \fd-> do
-        when (fd < 0) $ do
-          throwIO (SocketException eBADF)
-        BS.unsafeUseAsCStringLen bs $ \(msgPtr,msgLen)-> do
-          fix $ \retry-> do
-            i <- c_sendto fd msgPtr msgLen (#const MSG_NOSIGNAL) (castPtr addrPtr) (sizeOf addr)
-            if (i < 0) then do
-              e <- getErrno
-              if e == eWOULDBLOCK || e == eAGAIN
-                then return i
-              else if e == eINTR
-                then retry
-                else throwIO (SocketException e)
-            -- Send succeeded. Return the bytes send.
-            else return i
-      -- We cannot loop from within the block above, because this would keep the MVar locked.
-      if bytesSend < 0
-        then wait
-        else return bytesSend
+    BS.unsafeUseAsCStringLen bs $ \(bufPtr,bufSize)->
+      unsafeSendTo s bufPtr (fromIntegral bufSize) addrPtr (fromIntegral $ sizeOf addr)
+  return (fromIntegral bytesSent)
 
 -- | Receive a message on a connected socket.
 --
@@ -470,8 +452,8 @@ recv s bufSize =
     ( mallocBytes bufSize )
     (\bufPtr-> free bufPtr )
     (\bufPtr-> do
-        bytesReceived <- unsafeRecv s bufPtr bufSize
-        BS.unsafePackMallocCStringLen (bufPtr, bytesReceived)
+        bytesReceived <- unsafeRecv s bufPtr (fromIntegral bufSize)
+        BS.unsafePackMallocCStringLen (bufPtr, fromIntegral bytesReceived)
     )
 
 -- | Receive a message on a socket and additionally yield the peer address.
@@ -495,43 +477,19 @@ recv s bufSize =
 --     [@EOPNOTSUPP@]    The specified flags are not supported.
 --     [@ENOTSOCK@]      The descriptor does not refer to a socket.
 recvFrom :: forall a t p. (Address a, Type t, Protocol  p) => Socket a t p -> Int -> IO (BS.ByteString, a)
-recvFrom (Socket mfd) bufSize =
+recvFrom s bufSize =
   alloca $ \addrPtr-> do
-    alloca $ \addrPtrLen-> do
-      poke addrPtrLen (sizeOf (undefined :: a))
-      fix $ \wait-> do
-        threadWaitReadMVar mfd
-        mbsa <- withMVarMasked mfd $ \fd-> do
-          when (fd < 0) $ do
-            throwIO (SocketException eBADF)
-          ptr <- mallocBytes bufSize
-          fix $ \retry-> do
-            i <- c_recvfrom fd ptr bufSize 0 (castPtr addrPtr) addrPtrLen
-            if (i < 0) then do
-              e <- getErrno
-              if e == eWOULDBLOCK || e == eAGAIN 
-                then do
-                  -- At this exit we need to free the pointer manually.
-                  free ptr
-                  return Nothing
-              else if e == eINTR
-                then retry
-                else do
-                  -- At this exit we need to free the pointer manually as well.
-                  free ptr
-                  throwIO (SocketException e)
-            else do
-              -- Send succeeded, generate a ByteString.
-              -- From now on the ByteString takes care of freeing the pointer somewhen in the future.
-              -- The resulting ByteString might be shorter than the malloced buffer.
-              -- This is a fair tradeoff as otherwise we had to create a fresh copy.
-              bs   <- BS.unsafePackMallocCStringLen (ptr, i)
-              addr <- peek addrPtr
-              return (Just (bs,addr))
-        -- We cannot loop from within the block above, because this would keep the MVar locked.
-        case mbsa of
-          Nothing -> wait
-          Just bsa -> return bsa
+    alloca $ \addrSizePtr-> do
+      poke addrSizePtr (fromIntegral $ sizeOf (undefined :: a))
+      bracketOnError
+        ( mallocBytes bufSize )
+        (\bufPtr-> free bufPtr )
+        (\bufPtr-> do
+            bytesReceived <- unsafeRecvFrom s bufPtr (fromIntegral bufSize) addrPtr addrSizePtr
+            addr <- peek addrPtr
+            bs   <- BS.unsafePackMallocCStringLen (bufPtr, fromIntegral bytesReceived)
+            return (bs, addr)
+        )
 
 -- | Closes a socket.
 --
