@@ -2,6 +2,10 @@
 module System.Socket.Internal.Socket (
     Socket (..)
   , SocketException (..)
+  , MsgFlags (..)
+  , msgEOR
+  , msgOOB
+  , msgNOSIGNAL
   , GetSockOpt (..)
   , SetSockOpt (..)
   , SO_ACCEPTCONN (..)
@@ -47,6 +51,14 @@ import System.Socket.Internal.FFI
 newtype Socket d t p
       = Socket (MVar Fd)
 
+msgOOB      :: MsgFlags
+msgOOB       = MsgFlags (#const MSG_NOSIGNAL)
+
+msgEOR      :: MsgFlags
+msgEOR       = MsgFlags (#const MSG_NOSIGNAL)
+
+msgNOSIGNAL :: MsgFlags
+msgNOSIGNAL  = MsgFlags (#const MSG_NOSIGNAL)
 
 newtype SocketException = SocketException Errno
   deriving Typeable

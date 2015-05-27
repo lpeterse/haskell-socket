@@ -76,6 +76,14 @@ module System.Socket (
   , TCP
   -- *** SCTP
   , SCTP
+  -- * MsgFlags
+  , MsgFlags
+  -- ** msgEOR
+  , msgEOR
+    -- ** msgOOB
+  , msgOOB
+    -- ** msgNOSIGNAL
+  , msgNOSIGNAL
   -- * getSockOpt / setSockOpt
   , GetSockOpt (..)
   , SetSockOpt (..)
@@ -377,10 +385,10 @@ connect (Socket mfd) addr = do
 --
 --     [@EOPNOTSUPP@]    The specified flags are not supported.
 --     [@ENOTSOCK@]      The descriptor does not refer to a socket.
-send :: (Address a, Type t, Protocol  p) => Socket a t p -> BS.ByteString -> IO Int
-send s bs = do
+send :: (Address a, Type t, Protocol  p) => Socket a t p -> BS.ByteString -> MsgFlags -> IO Int
+send s bs flags = do
   bytesSent <- BS.unsafeUseAsCStringLen bs $ \(bufPtr,bufSize)->
-    unsafeSend s bufPtr (fromIntegral bufSize)
+    unsafeSend s bufPtr (fromIntegral bufSize) flags
   return (fromIntegral bytesSent)
 
 -- | Send a message on a socket with a specific destination address.
@@ -415,12 +423,12 @@ send s bs = do
 --     [@EOPNOTSUPP@]    The specified flags are not supported.
 --     [@ENOTSOCK@]      The descriptor does not refer to a socket.
 --     [@EINVAL@]        The address len does not match.
-sendTo :: (Address a, Type t, Protocol  p) => Socket a t p -> BS.ByteString -> a -> IO Int
-sendTo s bs addr = do
+sendTo :: (Address a, Type t, Protocol  p) => Socket a t p -> BS.ByteString -> MsgFlags -> a -> IO Int
+sendTo s bs flags addr = do
   bytesSent <- alloca $ \addrPtr-> do
     poke addrPtr addr
     BS.unsafeUseAsCStringLen bs $ \(bufPtr,bufSize)->
-      unsafeSendTo s bufPtr (fromIntegral bufSize) addrPtr (fromIntegral $ sizeOf addr)
+      unsafeSendTo s bufPtr (fromIntegral bufSize) flags addrPtr (fromIntegral $ sizeOf addr)
   return (fromIntegral bytesSent)
 
 -- | Receive a message on a connected socket.
@@ -443,13 +451,13 @@ sendTo s bs addr = do
 --
 --     [@EOPNOTSUPP@]    The specified flags are not supported.
 --     [@ENOTSOCK@]      The descriptor does not refer to a socket.
-recv :: (Address a, Type t, Protocol  p) => Socket a t p -> Int -> IO BS.ByteString
-recv s bufSize =
+recv :: (Address a, Type t, Protocol  p) => Socket a t p -> Int -> MsgFlags -> IO BS.ByteString
+recv s bufSize flags =
   bracketOnError
     ( mallocBytes bufSize )
     (\bufPtr-> free bufPtr )
     (\bufPtr-> do
-        bytesReceived <- unsafeRecv s bufPtr (fromIntegral bufSize)
+        bytesReceived <- unsafeRecv s bufPtr (fromIntegral bufSize) flags
         BS.unsafePackMallocCStringLen (bufPtr, fromIntegral bytesReceived)
     )
 
@@ -473,8 +481,8 @@ recv s bufSize =
 --
 --     [@EOPNOTSUPP@]    The specified flags are not supported.
 --     [@ENOTSOCK@]      The descriptor does not refer to a socket.
-recvFrom :: forall a t p. (Address a, Type t, Protocol  p) => Socket a t p -> Int -> IO (BS.ByteString, a)
-recvFrom s bufSize =
+recvFrom :: forall a t p. (Address a, Type t, Protocol  p) => Socket a t p -> Int -> MsgFlags -> IO (BS.ByteString, a)
+recvFrom s bufSize flags =
   alloca $ \addrPtr-> do
     alloca $ \addrSizePtr-> do
       poke addrSizePtr (fromIntegral $ sizeOf (undefined :: a))
@@ -482,7 +490,7 @@ recvFrom s bufSize =
         ( mallocBytes bufSize )
         (\bufPtr-> free bufPtr )
         (\bufPtr-> do
-            bytesReceived <- unsafeRecvFrom s bufPtr (fromIntegral bufSize) addrPtr addrSizePtr
+            bytesReceived <- unsafeRecvFrom s bufPtr (fromIntegral bufSize) flags addrPtr addrSizePtr
             addr <- peek addrPtr
             bs   <- BS.unsafePackMallocCStringLen (bufPtr, fromIntegral bytesReceived)
             return (bs, addr)

@@ -28,14 +28,14 @@ import System.Socket.Protocol
 
 #include "sys/socket.h"
 
-unsafeSend :: (Address a, Type t, Protocol  p) => Socket a t p -> Ptr b -> CSize -> IO CInt
-unsafeSend (Socket mfd) bufPtr bufSize = do
+unsafeSend :: (Address a, Type t, Protocol  p) => Socket a t p -> Ptr b -> CSize -> MsgFlags -> IO CInt
+unsafeSend (Socket mfd) bufPtr bufSize flags = do
   fix $ \again-> do
     ewb <- withMVar mfd $ \fd-> do
       when (fd < 0) $ do
         throwIO (SocketException eBADF)
       fix $ \retry-> do
-        i <- c_send fd bufPtr bufSize (#const MSG_NOSIGNAL)
+        i <- c_send fd bufPtr bufSize (flags `mappend` msgNOSIGNAL)
         if (i < 0) then do
           e <- getErrno
           if e == eWOULDBLOCK || e == eAGAIN
@@ -49,14 +49,14 @@ unsafeSend (Socket mfd) bufPtr bufSize = do
       Left  wait          -> wait >> again
       Right bytesSent     -> return bytesSent
 
-unsafeSendTo :: (Address a, Type t, Protocol  p) => Socket a t p -> Ptr b -> CSize -> Ptr a -> CInt -> IO CInt
-unsafeSendTo (Socket mfd) bufPtr bufSize addrPtr addrSize = do
+unsafeSendTo :: (Address a, Type t, Protocol  p) => Socket a t p -> Ptr b -> CSize -> MsgFlags -> Ptr a -> CInt -> IO CInt
+unsafeSendTo (Socket mfd) bufPtr bufSize flags addrPtr addrSize = do
   fix $ \again-> do
     ewb <- withMVar mfd $ \fd-> do
       when (fd < 0) $ do
         throwIO (SocketException eBADF)
       fix $ \retry-> do
-        i <- c_sendto fd bufPtr (fromIntegral bufSize) (#const MSG_NOSIGNAL) addrPtr addrSize
+        i <- c_sendto fd bufPtr (fromIntegral bufSize) (flags `mappend` msgNOSIGNAL) addrPtr addrSize
         if (i < 0) then do
           e <- getErrno
           if e == eWOULDBLOCK || e == eAGAIN
@@ -70,14 +70,14 @@ unsafeSendTo (Socket mfd) bufPtr bufSize addrPtr addrSize = do
       Left  wait          -> wait >> again
       Right bytesSent     -> return (fromIntegral bytesSent)
 
-unsafeRecv :: (Address a, Type t, Protocol  p) => Socket a t p -> Ptr b -> CSize -> IO CInt
-unsafeRecv (Socket mfd) bufPtr bufSize =
+unsafeRecv :: (Address a, Type t, Protocol  p) => Socket a t p -> Ptr b -> CSize -> MsgFlags -> IO CInt
+unsafeRecv (Socket mfd) bufPtr bufSize flags =
   fix $ \again-> do
     ewb <- withMVar mfd $ \fd-> do
         when (fd < 0) $ do
           throwIO (SocketException eBADF)
         fix $ \retry-> do
-          i <- c_recv fd bufPtr bufSize 0
+          i <- c_recv fd bufPtr bufSize flags
           if (i < 0) then do
             e <- getErrno
             if e == eWOULDBLOCK || e == eAGAIN then do
@@ -90,14 +90,14 @@ unsafeRecv (Socket mfd) bufPtr bufSize =
       Left  wait          -> wait >> again
       Right bytesReceived -> return bytesReceived
 
-unsafeRecvFrom :: (Address a, Type t, Protocol  p) => Socket a t p -> Ptr b -> CSize -> Ptr a -> Ptr CInt -> IO CInt
-unsafeRecvFrom (Socket mfd) bufPtr bufSize addrPtr addrSizePtr = do
+unsafeRecvFrom :: (Address a, Type t, Protocol  p) => Socket a t p -> Ptr b -> CSize -> MsgFlags -> Ptr a -> Ptr CInt -> IO CInt
+unsafeRecvFrom (Socket mfd) bufPtr bufSize flags addrPtr addrSizePtr = do
   fix $ \again-> do
     ewb <- withMVar mfd $ \fd-> do
         when (fd < 0) $ do
           throwIO (SocketException eBADF)
         fix $ \retry-> do
-          i <- c_recvfrom fd bufPtr bufSize 0 addrPtr addrSizePtr
+          i <- c_recvfrom fd bufPtr bufSize flags addrPtr addrSizePtr
           if (i < 0) then do
             e <- getErrno
             if e == eWOULDBLOCK || e == eAGAIN then do

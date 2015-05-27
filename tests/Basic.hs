@@ -31,10 +31,10 @@ test0001 dummy addr = do
       listen server 5
       serverRecv <- async $ do
         (peerSock, peerAddr) <- accept server
-        recv peerSock 4096
+        recv peerSock 4096 mempty
       client <- socket `asTypeOf` return server
       connect client addr
-      send client helloWorld
+      send client helloWorld mempty
       msg <- wait serverRecv
       close server
       close client
@@ -50,9 +50,9 @@ test0002 dummy addr = do
   server <- socket `asTypeOf` return dummy
   bind server addr
   serverRecv <- async $ do
-    recvFrom server 4096
+    recvFrom server 4096 mempty
   client <- socket `asTypeOf` return server
-  sendTo client helloWorld addr
+  sendTo client helloWorld mempty addr
   (msg,peerAddr) <- wait serverRecv
   close server
   close client
