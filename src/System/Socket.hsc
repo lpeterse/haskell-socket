@@ -363,13 +363,15 @@ accept s@(Socket mfd) = acceptWait
 -- | Connects to an remote address.
 --
 --   - Calling `connect` on a `close`d socket throws @EBADF@ even if the former file descriptor has been reassigned.
---   - This operation blocks until either the connection has been established
---     or throws an exception in case the connection attempt failed.
---     @EINTR@, @EINPROGRESS@ and @EALREADY@ are handled internally and won't be thrown.
---   - __Do not__ call `connect` twice from different threads as this imposes a race condition.
---     Calling `connect` a second time after the first call return or threw is safe though.
---     The semantics of doing so is protocol specific.
---   - The following `SocketException`s are relevant and might be thrown:
+--   - This function returns as soon as a connection has either been established
+--     or refused. A failed connection attempt does not throw an exception
+--     if @EINTR@ or @EINPROGRESS@ were caught internally. The operation
+--     just unblocks and returns in this case. The approach is to
+--     just try to read or write the socket and eventually fail there instead.
+--     Also see [these considerations](http://cr.yp.to/docs/connect.html) for an explanation.
+--     @EINTR@ and @EINPROGRESS@ are handled internally and won't be thrown.
+--   - The following `SocketException`s are relevant and might be thrown if the
+--     OS was able to decide the connection request synchronously:
 --
 --     [@EADDRNOTAVAIL@] The address is not available.
 --     [@EBADF@]         The file descriptor is invalid.
@@ -390,40 +392,23 @@ connect (Socket mfd) addr = do
       throwIO (SocketException eBADF)
     alloca $ \addrPtr-> do
       poke addrPtr addr
-      fix $ \retry-> do
-        i <- c_connect fd (castPtr addrPtr :: Ptr ()) (sizeOf addr)
-        if i < 0 then do
-          e <- getErrno
-          if (e == eINTR) then do
-            retry
-          else if e == eINPROGRESS then do
-            -- During the first iteration we get EINPROGRESS and return here.
-            -- Register waiting on the descriptor.
-            wait <- threadWaitWrite' fd
-            return (Just wait)
-          else do
-            throwIO (SocketException e)
+      i <- c_connect fd addrPtr (fromIntegral $ sizeOf addr)
+      if i < 0 then do
+        e <- getErrno
+        if e == eINPROGRESS || e == eINTR then do
+          -- The manpage says that in this case the connection
+          -- shall be established asynchronously and one is
+          -- supposed to wait.
+          wait <- threadWaitWrite' fd
+          return (Just wait)
         else do
-          -- This should not be the case on non-blocking socket, but better safe than sorry.
-          return Nothing
+          throwIO (SocketException e)
+      else do
+        -- This should not be the case on non-blocking socket, but better safe than sorry.
+        return Nothing
   case mwait of
-    Nothing -> return ()
-    Just wait -> do
-      wait
-      -- FIXME: Is this a race condition?
-      -- `c_getsockopt` might not reflect the result of the `connect` call, because
-      -- we don't hold the lock right here.
-      withMVar mfd $ \fd-> do
-        alloca $ \errPtr-> do
-          alloca $ \errPtrLen-> do
-            poke errPtrLen (sizeOf (undefined :: CInt))
-            i <- c_getsockopt fd (#const SOL_SOCKET) (#const SO_ERROR)
-                                 (errPtr :: Ptr CInt) (errPtrLen :: Ptr Int)
-            e <- peek errPtr
-            if i < 0 then do
-              throwIO (SocketException (Errno e))
-            else do
-              return ()
+    Just wait -> wait
+    Nothing   -> return ()
 
 -- | Send a message on a connected socket.
 --
