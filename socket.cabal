@@ -21,6 +21,8 @@ bug-reports:         https://github.com/lpeterse/haskell-socket/issues
 
 library
   exposed-modules:     System.Socket
+                     , System.Socket.Internal
+                     , System.Socket.Internal.Exception
   build-depends:       base < 5
                      , bytestring
   hs-source-dirs:      src
