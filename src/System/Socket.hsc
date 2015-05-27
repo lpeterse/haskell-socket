@@ -435,28 +435,32 @@ connect (Socket mfd) addr = do
 --     [@EOPNOTSUPP@]    The specified flags are not supported.
 --     [@ENOTSOCK@]      The descriptor does not refer to a socket.
 send :: (AddressFamily f, Type t, Protocol  p) => Socket f t p -> BS.ByteString -> IO Int
-send (Socket mfd) bs =
+send s bs = do
+  BS.unsafeUseAsCStringLen bs $ \(ptr,len)->
+    unsafeSend s ptr len
+
+unsafeSend :: (AddressFamily f, Type t, Protocol  p) => Socket f t p -> Ptr a -> Int -> IO Int
+unsafeSend (Socket mfd) ptr len = do
   fix $ \wait-> do
     threadWaitWriteMVar mfd
     bytesSend <- withMVar mfd $ \fd-> do
       when (fd < 0) $ do
         throwIO (SocketException eBADF)
-      BS.unsafeUseAsCStringLen bs $ \(ptr,len)->
-        fix $ \retry-> do
-          i <- c_send fd ptr len (#const MSG_NOSIGNAL)
-          if (i < 0) then do
-            e <- getErrno
-            if e == eWOULDBLOCK || e == eAGAIN 
-              then return i
-            else if e == eINTR
-              then retry
-              else throwIO (SocketException e)
-          -- Send succeeded. Return the bytes send.
-          else return i
+      fix $ \retry-> do
+        i <- c_send fd ptr (fromIntegral len) (#const MSG_NOSIGNAL)
+        if (i < 0) then do
+          e <- getErrno
+          if e == eWOULDBLOCK || e == eAGAIN 
+            then return i
+          else if e == eINTR
+            then retry
+            else throwIO (SocketException e)
+        -- Send succeeded. Return the bytes send.
+        else return i
     -- We cannot loop from within the block above, because this would keep the MVar locked.
     if bytesSend < 0
       then wait
-      else return bytesSend
+      else return (fromIntegral bytesSend)
 
 -- | Send a message on a socket with a specific destination address.
 --

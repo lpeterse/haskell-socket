@@ -24,7 +24,7 @@ foreign import ccall unsafe "sys/socket.h listen"
   c_listen  :: Fd -> Int -> IO CInt
 
 foreign import ccall unsafe "sys/socket.h send"
-  c_send    :: Fd -> Ptr CChar -> Int -> Int -> IO Int
+  c_send    :: Fd -> Ptr a -> CInt -> CInt -> IO CInt
 
 foreign import ccall unsafe "sys/socket.h sendto"
   c_sendto  :: Fd -> Ptr CChar -> Int -> Int -> Ptr CChar -> Int -> IO Int
