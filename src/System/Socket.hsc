@@ -84,13 +84,6 @@ module System.Socket (
 
   -- * SocketException
   , SocketException (..)
-
-  -- * Options
-  -- ** setSockOpt, getSockOpt
-  , GetSockOpt (..)
-  , SetSockOpt (..)
-  -- ** SO_ACCEPTCONN
-  , SO_ACCEPTCONN (..)
   ) where
 
 import Control.Exception
@@ -108,6 +101,7 @@ import Foreign.Ptr
 import Foreign.Storable
 import Foreign.Marshal.Alloc
 
+import System.Socket.Exception
 import System.Socket.Unsafe
 import System.Socket.Internal
 
@@ -591,30 +585,4 @@ close (Socket mfd) = do
       -- When we arrive here, no exception has been thrown and the descriptor has been closed.
       -- We put an invalid file descriptor into the MVar.
       return (-1)
-
-
--------------------------------------------------------------------------------
--- SockOpt
--------------------------------------------------------------------------------
-
-class GetSockOpt o where
-  getSockOpt :: Socket f t p -> IO o
-
-class SetSockOpt o where
-  setSockOpt :: Socket f t p -> o -> IO ()
-
-data SO_ACCEPTCONN
-   = SO_ACCEPTCONN Bool
-
-instance GetSockOpt SO_ACCEPTCONN where
-  getSockOpt (Socket mfd) = do
-    withMVar mfd $ \fd->
-      alloca $ \vPtr-> do
-        alloca $ \lPtr-> do
-          i <- c_getsockopt fd (#const SOL_SOCKET) (#const SO_ACCEPTCONN) (vPtr :: Ptr Int) (lPtr :: Ptr Int)
-          if i < 0 then do
-            throwIO . SocketException =<< getErrno
-          else do
-            v <- peek vPtr
-            return $ SO_ACCEPTCONN (v == 1)
 

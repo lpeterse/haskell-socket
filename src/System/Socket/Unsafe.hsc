@@ -12,6 +12,7 @@ import Control.Concurrent.MVar
 import Foreign.C.Error
 import Foreign.Ptr
 
+import System.Socket.Exception
 import System.Socket.Internal
 
 #include "sys/socket.h"

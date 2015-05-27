@@ -1,5 +1,5 @@
 {-# LANGUAGE DeriveDataTypeable #-}
-module System.Socket.Internal.Exception
+module System.Socket.Exception
   ( SocketException (..)
   ) where
 

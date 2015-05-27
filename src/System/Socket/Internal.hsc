@@ -2,8 +2,6 @@
 module System.Socket.Internal (
   -- * Socket
     Socket (..)
-  -- * SocketException
-  , SocketException (..)
   -- Other Types
     , AddressFamily (..)
   -- *** AF_UNIX
@@ -68,8 +66,8 @@ import GHC.Conc (threadWaitReadSTM, threadWaitWriteSTM, atomically)
 
 import System.Posix.Types ( Fd(..) )
 
+import System.Socket.Exception
 import System.Socket.Internal.FFI
-import System.Socket.Internal.Exception
 
 #include "sys/types.h"
 #include "sys/socket.h"
