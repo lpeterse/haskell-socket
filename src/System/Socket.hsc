@@ -184,7 +184,11 @@ socket = socket'
 -- | Bind a socket to an address.
 --
 --   - Calling `bind` on a `close`d socket throws @EBADF@ even if the former file descriptor has been reassigned.
---   - This operation automatically retries on @EINPROGRESS@ and @EALREADY@ and these exceptions won't be thrown.
+--   - It is assumed that `c_bind` never blocks and therefore @EINPROGRESS@, @EALREADY@ and @EINTR@ don't occur.
+--     This assumption is supported by the fact that the Linux manpage doesn't mention any of these errors,
+--     the Posix manpage doesn't mention the last one and even MacOS' implementation will never
+--     fail with any of these when the socket is configured non-blocking as
+--     [argued here](http://stackoverflow.com/a/14485305).
 --   - The following `SocketException`s are relevant and might be thrown (see @man bind@ for more exceptions regarding SockAddrUn sockets):
 --
 --     [@EADDRINUSE@]     The address is in use.
@@ -207,16 +211,11 @@ bind :: (Address a, Type t, Protocol  p) => Socket a t p -> a -> IO ()
 bind (Socket mfd) addr = do
   alloca $ \addrPtr-> do
     poke addrPtr addr
-    fix $ \retry-> do
-      i <- withMVar mfd $ \fd-> do
-        c_bind fd addrPtr (fromIntegral $ sizeOf addr)
-      if i < 0 then do
-        e <- getErrno
-        if e == eINPROGRESS || e == eALREADY
-          then threadWaitWriteMVar mfd >> retry
-          else throwIO (SocketException e)
-      else do
-        return ()
+    withMVar mfd $ \fd-> do
+      i <- c_bind fd addrPtr (fromIntegral $ sizeOf addr)
+      if i < 0
+        then getErrno >>= throwIO . SocketException
+        else return ()
 
 -- | Accept connections on a connection-mode socket.
 --
@@ -236,7 +235,7 @@ bind (Socket mfd) addr = do
 listen :: (Address a, Type t, Protocol  p) => Socket a t p -> Int -> IO ()
 listen (Socket ms) backlog = do
   i <- withMVar ms $ \s-> do
-    c_listen s backlog
+    c_listen s (fromIntegral backlog)
   if i < 0 then do
     getErrno >>= throwIO . SocketException
   else do
@@ -278,7 +277,7 @@ accept s@(Socket mfd) = acceptWait
           alloca $ \addrPtrLen-> do
           -- Oh Haskell, my beauty
             fix $ \retry-> do
-              poke addrPtrLen (sizeOf (undefined :: a))
+              poke addrPtrLen (fromIntegral $ sizeOf (undefined :: a))
               ft <- c_accept fd addrPtr addrPtrLen
               if ft < 0 then do
                 e <- getErrno

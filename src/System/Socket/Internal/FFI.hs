@@ -18,10 +18,10 @@ foreign import ccall unsafe "sys/socket.h connect"
   c_connect :: Fd -> Ptr a -> CSize -> IO CInt
 
 foreign import ccall unsafe "sys/socket.h accept"
-  c_accept  :: Fd -> Ptr a -> Ptr Int -> IO Fd
+  c_accept  :: Fd -> Ptr a -> Ptr CInt -> IO Fd
 
 foreign import ccall unsafe "sys/socket.h listen"
-  c_listen  :: Fd -> Int -> IO CInt
+  c_listen  :: Fd -> CInt -> IO CInt
 
 foreign import ccall unsafe "sys/socket.h send"
   c_send    :: Fd -> Ptr a -> CSize -> CInt -> IO CInt
