@@ -11,15 +11,15 @@ import System.Exit
 
 main :: IO ()
 main = do 
-  test "test0001.01" $ test0001 (undefined :: Socket AF_INET  SOCK_STREAM IPPROTO_TCP) localhost
-  test "test0001.02" $ test0001 (undefined :: Socket AF_INET6 SOCK_STREAM IPPROTO_TCP) localhost6
-  test "test0001.03" $ test0001 (undefined :: Socket AF_INET  SOCK_STREAM IPPROTO_SCTP) localhost
-  test "test0001.04" $ test0001 (undefined :: Socket AF_INET6 SOCK_STREAM IPPROTO_SCTP) localhost6
-  test "test0002.01" $ test0002 (undefined :: Socket AF_INET  SOCK_DGRAM  IPPROTO_UDP) localhost
-  test "test0002.02" $ test0002 (undefined :: Socket AF_INET6 SOCK_DGRAM  IPPROTO_UDP) localhost6
+  test "test0001.01" $ test0001 (undefined :: Socket SockAddrIn  STREAM TCP) localhost
+  test "test0001.02" $ test0001 (undefined :: Socket SockAddrIn6 STREAM TCP) localhost6
+  test "test0001.03" $ test0001 (undefined :: Socket SockAddrIn  STREAM SCTP) localhost
+  test "test0001.04" $ test0001 (undefined :: Socket SockAddrIn6 STREAM SCTP) localhost6
+  test "test0002.01" $ test0002 (undefined :: Socket SockAddrIn  DGRAM  UDP) localhost
+  test "test0002.02" $ test0002 (undefined :: Socket SockAddrIn6 DGRAM  UDP) localhost6
 
 -- Test connection oriented sockets (i.e. TCP).
-test0001 :: (AddressFamily f, Type t, Protocol p) => Socket f t p -> SockAddr f -> IO (Either String String)
+test0001 :: (Address a, Type t, Protocol p) => Socket a t p -> a -> IO (Either String String)
 test0001 dummy addr = do
   eServer <- try (socket `asTypeOf` return dummy)
   case eServer of
@@ -45,7 +45,7 @@ test0001 dummy addr = do
         helloWorld = "Hello world!"
 
 -- Test stateless sockets (i.e. UDP).
-test0002 :: (AddressFamily f, Type t, Protocol p) => Socket f t p -> SockAddr f -> IO (Either String String)
+test0002 :: (Address a, Type t, Protocol p) => Socket a t p -> a -> IO (Either String String)
 test0002 dummy addr = do
   server <- socket `asTypeOf` return dummy
   bind server addr

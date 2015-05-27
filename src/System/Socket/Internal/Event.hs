@@ -6,15 +6,7 @@ import Control.Concurrent.MVar
 import Control.Exception
 import Control.Monad
 
-import Data.Word
-import qualified Data.ByteString as BS
-import qualified Data.ByteString.Unsafe as BS
-
-import Foreign.C.Types
 import Foreign.C.Error
-import Foreign.Ptr
-import Foreign.Storable
-import Foreign.Marshal.Utils
 
 import GHC.Conc (threadWaitReadSTM, threadWaitWriteSTM, atomically)
 

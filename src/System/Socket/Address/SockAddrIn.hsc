@@ -1,5 +1,5 @@
-module System.Socket.Address.Inet
-  ( Inet (..)
+module System.Socket.Address.SockAddrIn
+  ( SockAddrIn (..)
   ) where
 
 import Data.Word
@@ -18,16 +18,16 @@ import System.Socket.Address
 #include "netinet/in.h"
 #let alignment t = "%lu", (unsigned long)offsetof(struct {char x__; t (y__); }, y__)
 
-instance Address Inet where
+instance Address SockAddrIn where
   addressFamilyNumber _ = (#const AF_INET)
 
-data Inet
+data SockAddrIn
    = SockAddrIn
      { sinPort      :: Word16
      , sinAddr      :: BS.ByteString
      } deriving (Eq, Ord, Show)
 
-instance Storable Inet where
+instance Storable SockAddrIn where
   sizeOf    _ = (#size struct sockaddr_in)
   alignment _ = (#alignment struct sockaddr_in)
   peek ptr    = do

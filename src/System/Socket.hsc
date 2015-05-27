@@ -18,7 +18,7 @@
 -- >
 -- > main :: IO ()
 -- > main = do
--- >   s <- socket :: IO (Socket Inet STREAM TCP)
+-- >   s <- socket :: IO (Socket SockAddrIn STREAM TCP)
 -- >   bind s (SockAddrIn 8080 (pack [127,0,0,1]))
 -- >   listen s 5
 -- >   forever $ do
@@ -52,14 +52,14 @@ module System.Socket (
 
   -- * Sockets
   , Socket ()
-  -- ** Address Families
+  -- ** Addresses
   , Address (..)
-  -- *** Unix
-  , Unix (..)
-  -- *** Inet
-  , Inet (..)
-  -- *** Inet6
-  , Inet6 (..)
+  -- *** SockAddrUn
+  , SockAddrUn (..)
+  -- *** SockAddrIn
+  , SockAddrIn (..)
+  -- *** SockAddrIn6
+  , SockAddrIn6 (..)
   -- ** Types
   , Type (..)
   -- *** STREAM
@@ -76,7 +76,12 @@ module System.Socket (
   , TCP
   -- *** SCTP
   , SCTP
-
+  -- * getSockOpt / setSockOpt
+  , GetSockOpt (..)
+  , SetSockOpt (..)
+  -- * Generic socket options
+  -- ** SO_ACCEPTCONN
+  , SO_ACCEPTCONN (..)
   -- * SocketException
   , SocketException (..)
   ) where
@@ -103,9 +108,9 @@ import System.Socket.Internal.Event
 import System.Socket.Internal.FFI
 
 import System.Socket.Address
-import System.Socket.Address.Unix
-import System.Socket.Address.Inet
-import System.Socket.Address.Inet6
+import System.Socket.Address.SockAddrUn
+import System.Socket.Address.SockAddrIn
+import System.Socket.Address.SockAddrIn6
 
 import System.Socket.Type
 import System.Socket.Type.STREAM
@@ -127,9 +132,9 @@ import System.Socket.Protocol.SCTP
 --   associated type families). Examples:
 --
 --   > -- create a IPv4-UDP-datagram socket
---   > sock <- socket :: IO (Socket Inet DGRAM UDP)
+--   > sock <- socket :: IO (Socket SockAddrIn DGRAM UDP)
 --   > -- create a IPv6-TCP-streaming socket
---   > sock6 <- socket :: IO (Socket Inet6 STREAM TCP)
+--   > sock6 <- socket :: IO (Socket SockAddrIn6 STREAM TCP)
 --
 --     - This operation sets up a finalizer that automatically closes the socket
 --       when the garbage collection decides to collect it. This is just a
@@ -181,7 +186,7 @@ socket = socket'
 --
 --   - Calling `bind` on a `close`d socket throws @EBADF@ even if the former file descriptor has been reassigned.
 --   - This operation automatically retries on @EINPROGRESS@ and @EALREADY@ and these exceptions won't be thrown.
---   - The following `SocketException`s are relevant and might be thrown (see @man bind@ for more exceptions regarding Unix sockets):
+--   - The following `SocketException`s are relevant and might be thrown (see @man bind@ for more exceptions regarding SockAddrUn sockets):
 --
 --     [@EADDRINUSE@]     The address is in use.
 --     [@EADDRNOTAVAIL@]  The address is not available.

@@ -22,9 +22,9 @@ bug-reports:         https://github.com/lpeterse/haskell-socket/issues
 library
   exposed-modules:     System.Socket
                      , System.Socket.Address
-                     , System.Socket.Address.Unix
-                     , System.Socket.Address.Inet
-                     , System.Socket.Address.Inet6
+                     , System.Socket.Address.SockAddrUn
+                     , System.Socket.Address.SockAddrIn
+                     , System.Socket.Address.SockAddrIn6
                      , System.Socket.Type
                      , System.Socket.Type.DGRAM
                      , System.Socket.Type.STREAM

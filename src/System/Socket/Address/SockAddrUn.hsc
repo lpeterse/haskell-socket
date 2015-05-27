@@ -1,5 +1,5 @@
-module System.Socket.Address.Unix
-  ( Unix (..)
+module System.Socket.Address.SockAddrUn
+  ( SockAddrUn (..)
   ) where
 
 import Data.Word
@@ -17,15 +17,15 @@ import System.Socket.Address
 #include "netinet/in.h"
 #let alignment t = "%lu", (unsigned long)offsetof(struct {char x__; t (y__); }, y__)
 
-instance Address Unix where
+instance Address SockAddrUn where
   addressFamilyNumber _ = (#const AF_UNIX)
 
-data Unix
+data SockAddrUn
    = SockAddrUn
      { sunPath :: BS.ByteString
      } deriving (Eq, Ord, Show)
 
-instance Storable Unix where
+instance Storable SockAddrUn where
   sizeOf    _ = (#size struct sockaddr_un)
   alignment _ = (#alignment struct sockaddr_un)
   peek ptr    = do
@@ -39,6 +39,6 @@ instance Storable Unix where
       copyBytes (sun_path ptr) cs (BS.length truncatedPath + 1)-- copyBytes dest from count
     where
       sun_path      = (#ptr struct sockaddr_un, sun_path)
-      truncatedPath = BS.take ( sizeOf (undefined :: Unix)
+      truncatedPath = BS.take ( sizeOf (undefined :: SockAddrUn)
                               - sizeOf (undefined :: Word16)
                               - 1 ) path
