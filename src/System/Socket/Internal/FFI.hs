@@ -37,3 +37,6 @@ foreign import ccall unsafe "sys/socket.h recvfrom"
 
 foreign import ccall unsafe "sys/socket.h getsockopt"
   c_getsockopt  :: Fd -> CInt -> CInt -> Ptr a -> Ptr Int -> IO CInt
+
+foreign import ccall unsafe "misc.h setnonblocking"
+  c_setnonblocking :: Fd -> IO CInt

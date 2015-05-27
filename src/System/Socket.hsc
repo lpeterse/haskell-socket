@@ -112,7 +112,6 @@ import Foreign.Marshal.Alloc
 import Foreign.Marshal.Utils
 
 import System.Posix.Types
-import System.Posix.Internals (setNonBlockingFD)
 
 import System.Socket.Internal
 
@@ -226,11 +225,14 @@ socket = socket'
                 getErrno >>= throwIO . SocketException
               else do
                 -- setNonBlockingFD calls c_fcntl_write which is an unsafe FFI call.
-                let Fd s = fd in setNonBlockingFD s True
-                mfd <- newMVar fd
-                let s = Socket mfd
-                _ <- mkWeakMVar mfd (close s)
-                return s
+                i <- c_setnonblocking fd
+                if i < 0 then do
+                  getErrno >>= throwIO . SocketException
+                else do
+                  mfd <- newMVar fd
+                  let s = Socket mfd
+                  _ <- mkWeakMVar mfd (close s)
+                  return s
        )
 
 -- | Bind a socket to an address.
@@ -342,15 +344,17 @@ accept s@(Socket mfd) = acceptWait
                     else throwIO (SocketException e)
               -- This is the critical section: We got a valid descriptor we have not yet returned.
               else do 
-                -- setNonBlockingFD calls c_fcntl_write which is an unsafe FFI call.
-                let Fd t = ft in setNonBlockingFD t True -- FIXME: throws exception
-                -- This peek operation might be a little expensive, but I don't see an alternative.
-                addr <- peek addrPtr :: IO (SockAddr f)
-                -- newMVar is guaranteed to be not interruptible.
-                mft <- newMVar ft
-                -- Register a finalizer on the new socket.
-                _ <- mkWeakMVar mft (close (Socket mft `asTypeOf` s))
-                return (Just (Socket mft, addr))
+                i <- c_setnonblocking ft
+                if i < 0 then do
+                  getErrno >>= throwIO . SocketException
+                else do
+                  -- This peek operation might be a little expensive, but I don't see an alternative.
+                  addr <- peek addrPtr :: IO (SockAddr f)
+                  -- newMVar is guaranteed to be not interruptible.
+                  mft <- newMVar ft
+                  -- Register a finalizer on the new socket.
+                  _ <- mkWeakMVar mft (close (Socket mft `asTypeOf` s))
+                  return (Just (Socket mft, addr))
       -- If msa is Nothing we got EAGAIN or EWOULDBLOCK and retry after the next event.
       case msa of
         Just sa -> return sa

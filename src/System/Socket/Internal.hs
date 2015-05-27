@@ -15,12 +15,10 @@ module System.Socket.Internal (
   , c_recvfrom
   , c_close
   , c_getsockopt
+  , c_setnonblocking
   ) where
 
 import Control.Concurrent.MVar
-
-import Foreign.Ptr
-import Foreign.C.Types
 
 import System.Posix.Types ( Fd(..) )
 
