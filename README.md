@@ -12,6 +12,7 @@ socket
 ### Dependencies
 
    - base
+   - bytestring
 
 ### Tests
 
