@@ -10,6 +10,7 @@ module System.Socket.Unsafe (
   ) where
 
 import Data.Function
+import Data.Monoid
 
 import Control.Monad
 import Control.Exception
