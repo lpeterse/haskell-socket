@@ -1,13 +1,13 @@
 name:                socket
-version:             0.1.0.0
+version:             0.1.0.1
 synopsis:            A binding to the POSIX sockets interface
 description:
   This package provides access to the system's socket interface with POSIX semantics.
   .
   The library is designed to be threadsafe and establishes a thin layer on
   top of the underlying ccalls to help with the development of concurrent applications.
-  It integrates with GHC's event management mechanism (which itself uses epoll
-  or libev or similar) and makes all functions have blocking semantics
+  It integrates with GHC's event management mechanism (which itself uses epoll,
+  libev or similar) and makes all functions have blocking semantics
   without actually blocking the runtime system.
 license:             MIT
 license-file:        LICENSE
