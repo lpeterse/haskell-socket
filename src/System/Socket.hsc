@@ -8,6 +8,9 @@
 -- Maintainer  :  info@lars-petersen.net
 -- Stability   :  experimental
 --
+-- This starts a TCP server on localhost, sends @"Hello world!"@ to
+-- connecting peers and closes the connection immediately.
+--
 -- > {-# LANGUAGE OverloadedStrings #-}
 -- > module Main where
 -- >
@@ -15,6 +18,7 @@
 -- > import Data.ByteString
 -- > import Control.Monad
 -- > import Control.Concurrent
+-- > import Control.Exception
 -- >
 -- > main :: IO ()
 -- > main = do
@@ -24,8 +28,58 @@
 -- >   forever $ do
 -- >     (peer,addr) <- accept s
 -- >     forkIO $ do
--- >       send peer "Hello world!"
--- >       close peer
+-- >       sendAll peer "Hello world!" mempty `finally` close peer mempty
+--
+-- This downloads the [Haskell website](http://www.haskell.org) and shows how to
+-- handle exceptions. Note the use of IPv4-mapped IPv6 addresses: This will work
+-- even if you don't have IPv6 connectivity yet and is the preferred method
+-- when new applications.
+--
+-- > {-# LANGUAGE OverloadedStrings #-}
+-- > module Main where
+-- > 
+-- > import Control.Monad
+-- > import Control.Exception
+-- > 
+-- > import Data.Function (fix)
+-- > import qualified Data.ByteString as BS
+-- > 
+-- > import System.IO
+-- > import System.Exit
+-- > import System.Socket
+-- > 
+-- > main :: IO ()
+-- > main = fetch
+-- >   `catch` (\e-> do
+-- >     hPutStr   stderr "Something failed when resolving the name: "
+-- >     hPutStrLn stderr $ show (e :: AddrInfoException)
+-- >     exitFailure
+-- >   )
+-- >   `catch` (\e-> do
+-- >     hPutStr   stderr "Something went wrong with the socket: "
+-- >     hPutStrLn stderr $ show (e :: SocketException)
+-- >     exitFailure
+-- >   )
+-- > 
+-- > fetch :: IO ()
+-- > fetch = do
+-- >   addrs <- getAddrInfo (Just "www.haskell.org") (Just "80") aiV4MAPPED :: IO [AddrInfo SockAddrIn6 STREAM TCP]
+-- >   case addrs of
+-- >     (addr:_) ->
+-- >       -- always use the `bracket` pattern to reliably release resources!
+-- >       bracket
+-- >         ( socket :: IO (Socket SockAddrIn6 STREAM TCP) )
+-- >         ( close )
+-- >         ( \s-> do connect s (addrAddress addr)
+-- >                   sendAll s "GET / HTTP/1.0\r\nHost: www.haskell.org\r\n\r\n" mempty
+-- >                   fix $ \recvMore-> do
+-- >                     bs <- recv s 4096 mempty
+-- >                     BS.putStr bs
+-- >                     if BS.length bs == 0 -- an empty string means the peer terminated the connection
+-- >                       then exitSuccess
+-- >                       else recvMore
+-- >          )
+-- >     _ -> error "Illegal state: getAddrInfo yields non-empty list or exception."
 -----------------------------------------------------------------------------
 module System.Socket (
   -- * Name Resolution
