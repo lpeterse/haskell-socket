@@ -29,9 +29,11 @@
 -----------------------------------------------------------------------------
 module System.Socket (
   -- * Name Resolution
-  -- ** getAddrInfo
     AddrInfo (..)
+  -- ** getAddrInfo
   , getAddrInfo
+  -- ** getNameInfo
+  , getNameInfo
   -- * Operations
   -- ** socket
   , socket
@@ -106,6 +108,13 @@ module System.Socket (
   , aiNUMERICSERV
   , aiPASSIVE
   , aiV4MAPPED
+  -- ** NameInfoFlags
+  , NameInfoFlags (..)
+  , niNAMEREQD
+  , niDGRAM
+  , niNOFQDN
+  , niNUMERICHOST
+  , niNUMERICSERV
   ) where
 
 import Control.Exception

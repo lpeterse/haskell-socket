@@ -30,7 +30,7 @@ data SockAddrIn
 
 instance Show SockAddrIn where
   show (SockAddrIn p a) =
-    (concat $ intersperse "." $ map show $ BS.unpack a) ++ ":" ++ show p
+    "\"" ++ (concat $ intersperse "." $ map show $ BS.unpack a) ++ ":" ++ show p ++ "\""
 
 instance Storable SockAddrIn where
   sizeOf    _ = (#size struct sockaddr_in)

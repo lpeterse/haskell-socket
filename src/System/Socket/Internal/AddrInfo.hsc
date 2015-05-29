@@ -3,6 +3,7 @@ module System.Socket.Internal.AddrInfo (
     AddrInfo (..)
   , AddrInfoException (..)
   , getAddrInfo
+  , getNameInfo
   , AddrInfoFlags (..)
   , aiADDRCONFIG
   , aiALL
@@ -11,6 +12,12 @@ module System.Socket.Internal.AddrInfo (
   , aiNUMERICSERV
   , aiPASSIVE
   , aiV4MAPPED
+  , NameInfoFlags (..)
+  , niNAMEREQD
+  , niDGRAM
+  , niNOFQDN
+  , niNUMERICHOST
+  , niNUMERICSERV
   ) where
 
 import Control.Exception
@@ -51,12 +58,13 @@ data AddrInfo a t p
 -- AddrInfoException
 -------------------------------------------------------------------------------
 
+-- | Contains the error code that can be matched against and a readable
+--   description taken from @eia_strerr@.
 data AddrInfoException
    = AddrInfoException CInt String
    deriving (Eq, Show, Typeable)
 
 instance Exception AddrInfoException
-
 
 -- | Use the `Data.Monoid.Monoid` instance to combine several flags:
 --
@@ -92,7 +100,42 @@ aiPASSIVE      = AddrInfoFlags (#const AI_PASSIVE)
 aiV4MAPPED    :: AddrInfoFlags
 aiV4MAPPED     = AddrInfoFlags (#const AI_V4MAPPED)
 
--- | Maps names to addresses (i.e. by DNS lookup)
+-- | Use the `Data.Monoid.Monoid` instance to combine several flags:
+--
+--   > mconcat [aiADDRCONFIG, aiV4MAPPED]
+newtype NameInfoFlags
+      = NameInfoFlags CInt
+      deriving (Eq, Show)
+
+instance Monoid NameInfoFlags where
+  mempty
+    = NameInfoFlags 0
+  mappend (NameInfoFlags a) (NameInfoFlags b)
+    = NameInfoFlags (a .|. b)
+
+-- | Throw an exception if the hostname cannot be determined.
+niNAMEREQD     :: NameInfoFlags
+niNAMEREQD      = NameInfoFlags (#const NI_NAMEREQD)
+
+-- | Service is datagram based (UDP) rather than stream based (TCP).
+niDGRAM        :: NameInfoFlags
+niDGRAM         = NameInfoFlags (#const NI_DGRAM)
+
+-- | Return only the hostname part of the fully qualified domain name for local hosts.
+niNOFQDN       :: NameInfoFlags
+niNOFQDN        = NameInfoFlags (#const NI_NOFQDN)
+
+-- | Return the numeric form of the host address.
+niNUMERICHOST  :: NameInfoFlags
+niNUMERICHOST   = NameInfoFlags (#const NI_NUMERICHOST)
+
+-- | Return the numeric form of the service address.
+niNUMERICSERV  :: NameInfoFlags
+niNUMERICSERV   = NameInfoFlags (#const NI_NUMERICSERV)
+
+-- | Maps names to addresses (i.e. by DNS lookup).
+--
+--   The operation throws `AddrInfoException`s.
 --
 --   Contrary to the underlying @getaddrinfo@ operation this wrapper is
 --   typesafe and thus only returns records that match the address, type
@@ -104,9 +147,9 @@ aiV4MAPPED     = AddrInfoFlags (#const AI_V4MAPPED)
 --   `aiV4MAPPED` and use IPv6-sockets.
 --
 --   > > getAddrInfo (Just "www.haskell.org") (Just "80") aiV4MAPPED :: IO [AddrInfo SockAddrIn6 STREAM TCP]
---   > [AddrInfo {addrInfoFlags = AddrInfoFlags 8, addrAddress = [2400:cb00:2048:0001:0000:0000:6ca2:cc3c]:80, addrCanonName = Nothing}]
+--   > [AddrInfo {addrInfoFlags = AddrInfoFlags 8, addrAddress = "[2400:cb00:2048:0001:0000:0000:6ca2:cc3c]:80", addrCanonName = Nothing}]
 --   > > getAddrInfo (Just "darcs.haskell.org") Nothing aiV4MAPPED :: IO [AddrInfo SockAddrIn6 STREAM TCP]
---   > [AddrInfo {addrInfoFlags = AddrInfoFlags 8, addrAddress = [0000:0000:0000:0000:0000:ffff:17fd:e1ad]:0, addrCanonName = Nothing}]
+--   > [AddrInfo {addrInfoFlags = AddrInfoFlags 8, addrAddress = "[0000:0000:0000:0000:0000:ffff:17fd:e1ad]:0", addrCanonName = Nothing}]
 --   > > getAddrInfo (Just "darcs.haskell.org") Nothing mempty :: IO [AddrInfo SockAddrIn6 STREAM TCP]
 --   > *** Exception: AddrInfoException (-2) "Name or service not known"
 getAddrInfo :: (Address a, Type t, Protocol p) => Maybe BS.ByteString -> Maybe BS.ByteString -> AddrInfoFlags -> IO [AddrInfo a t p]
@@ -165,6 +208,31 @@ getAddrInfo = getAddrInfo'
               as    <- peek (ai_next ptr) >>= peekAddrInfos
               return ((AddrInfo (AddrInfoFlags flag) addr cname):as)
 
+-- | Maps addresss to readable host- and service names.
+--
+--   The operation throws `AddrInfoException`s.
+--
+--   > > getNameInfo (SockAddrIn 80 $ pack [23,253,242,70]) mempty
+--   > ("haskell.org","http")
+getNameInfo :: (Address a) => a -> NameInfoFlags -> IO (BS.ByteString, BS.ByteString)
+getNameInfo addr (NameInfoFlags flags) =
+  alloca $ \addrPtr->
+    allocaBytes (#const NI_MAXHOST) $ \hostPtr->
+      allocaBytes (#const NI_MAXSERV) $ \servPtr-> do
+        poke addrPtr addr
+        e <- c_getnameinfo addrPtr (fromIntegral $ sizeOf addr)
+                           hostPtr (#const NI_MAXHOST)
+                           servPtr (#const NI_MAXSERV)
+                           flags
+        if e == 0 then do
+          host <- BS.packCString hostPtr
+          serv <- BS.packCString servPtr
+          return (host,serv)
+        else do
+          msgPtr <- c_gaistrerror e
+          msg <- peekCString msgPtr
+          throwIO (AddrInfoException e msg)
+
 -------------------------------------------------------------------------------
 -- FFI
 -------------------------------------------------------------------------------
@@ -174,6 +242,9 @@ foreign import ccall safe "netdb.h getaddrinfo"
 
 foreign import ccall unsafe "netdb.h freeaddrinfo"
   c_freeaddrinfo :: Ptr (AddrInfo a t p) -> IO ()
+
+foreign import ccall safe "netdb.h getnameinfo"
+  c_getnameinfo  :: Ptr a -> CInt -> CString -> CInt -> CString -> CInt -> CInt -> IO CInt
 
 foreign import ccall unsafe "netdb.h gai_strerror"
   c_gaistrerror  :: CInt -> IO CString
