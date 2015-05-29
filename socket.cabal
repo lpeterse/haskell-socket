@@ -1,5 +1,5 @@
 name:                socket
-version:             0.1.0.1
+version:             0.2.0.0
 synopsis:            A binding to the POSIX sockets interface
 description:
   This package provides access to the system's socket interface with POSIX semantics.
@@ -9,6 +9,9 @@ description:
   It integrates with GHC's event management mechanism (which itself uses epoll,
   libev or similar) and makes all functions have blocking semantics
   without actually blocking the runtime system.
+  .
+  This is a community project :-) Don't hesitate to request features on the
+  issue tracker or even implement some and send a pull request.
 license:             MIT
 license-file:        LICENSE
 author:              Lars Petersen
