@@ -27,7 +27,34 @@ data SockAddrIn6
      , sin6Flowinfo  :: Word32
      , sin6Addr      :: BS.ByteString
      , sin6ScopeId   :: Word32
-     } deriving (Eq, Ord, Show)
+     } deriving (Eq, Ord)
+
+instance Show SockAddrIn6 where
+  show (SockAddrIn6 p f a s) = '[':(tail $ t $ BS.unpack a)
+    where
+      t []       = ']':':':(show p)
+      t [x]      = g x 0 (']':':':(show p))
+      t (x:y:xs) = g x y (t xs)
+      g x y s    = let (a,b) = quotRem x 16
+                       (c,d) = quotRem y 16
+                   in  ':':(h a):(h b):(h c):(h d):s
+      h 0  = '0'
+      h 1  = '1'
+      h 2  = '2'
+      h 3  = '3'
+      h 4  = '4'
+      h 5  = '5'
+      h 6  = '6'
+      h 7  = '7'
+      h 8  = '8'
+      h 9  = '9'
+      h 10 = 'a'
+      h 11 = 'b'
+      h 12 = 'c'
+      h 13 = 'd'
+      h 14 = 'e'
+      h 15 = 'f'
+      h  _ = '_'
 
 instance Storable SockAddrIn6 where
   sizeOf    _ = (#size struct sockaddr_in6)

@@ -3,6 +3,7 @@ module System.Socket.Address.SockAddrIn
   ) where
 
 import Data.Word
+import Data.List
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Unsafe as BS
 
@@ -25,7 +26,11 @@ data SockAddrIn
    = SockAddrIn
      { sinPort      :: Word16
      , sinAddr      :: BS.ByteString
-     } deriving (Eq, Ord, Show)
+     } deriving (Eq, Ord)
+
+instance Show SockAddrIn where
+  show (SockAddrIn p a) =
+    (concat $ intersperse "." $ map show $ BS.unpack a) ++ ":" ++ show p
 
 instance Storable SockAddrIn where
   sizeOf    _ = (#size struct sockaddr_in)
