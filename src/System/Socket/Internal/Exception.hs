@@ -3,15 +3,11 @@ module System.Socket.Internal.Exception (
     SocketException (..)
   ) where
 
-import Control.Concurrent.MVar
 import Control.Exception
 
 import Data.Typeable
 
-import Foreign.Ptr
-import Foreign.Storable
 import Foreign.C.Error
-import Foreign.Marshal.Alloc
 
 newtype SocketException
       = SocketException Errno

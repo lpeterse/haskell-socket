@@ -5,7 +5,6 @@ module Network.Database (
   , getAddrInfo
   ) where
 
-import Control.Concurrent.MVar
 import Control.Exception
 import Control.Monad
 

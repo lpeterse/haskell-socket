@@ -2,16 +2,9 @@ module System.Socket.Internal.Event
   ( threadWaitWrite', threadWaitRead'
   ) where
 
-import Control.Concurrent.MVar
-import Control.Monad
-
-import Foreign.C.Error
-
 import GHC.Conc (threadWaitReadSTM, threadWaitWriteSTM, atomically)
 
 import System.Posix.Types ( Fd(..) )
-
-import System.Socket.Internal.Socket
 
 -------------------------------------------------------------------------------
 -- Helpers for threadsafe event registration on file descriptors

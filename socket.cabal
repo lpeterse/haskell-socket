@@ -41,6 +41,7 @@ library
                      , System.Socket.Internal.Event
                      , System.Socket.Internal.Socket
                      , System.Socket.Internal.Exception
+                     , System.Socket.Internal.MsgFlags
   build-depends:       base < 5
                      , bytestring < 0.11
   hs-source-dirs:      src

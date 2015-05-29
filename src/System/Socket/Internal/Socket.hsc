@@ -1,9 +1,5 @@
 module System.Socket.Internal.Socket (
     Socket (..)
-  , MsgFlags (..)
-  , msgEOR
-  , msgOOB
-  , msgNOSIGNAL
   , GetSockOpt (..)
   , SetSockOpt (..)
   , SO_ACCEPTCONN (..)
@@ -47,15 +43,6 @@ import System.Socket.Internal.Exception
 --     thread and read the library code to see how the problem is currently circumvented.
 newtype Socket d t p
       = Socket (MVar Fd)
-
-msgOOB      :: MsgFlags
-msgOOB       = MsgFlags (#const MSG_NOSIGNAL)
-
-msgEOR      :: MsgFlags
-msgEOR       = MsgFlags (#const MSG_NOSIGNAL)
-
-msgNOSIGNAL :: MsgFlags
-msgNOSIGNAL  = MsgFlags (#const MSG_NOSIGNAL)
 
 class GetSockOpt o where
   getSockOpt :: Socket f t p -> IO o

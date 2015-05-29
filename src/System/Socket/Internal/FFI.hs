@@ -1,21 +1,12 @@
 module System.Socket.Internal.FFI where
 
-import Data.Bits
-import Data.Monoid
-
 import Foreign.Ptr
 import Foreign.C.Types
 
 import System.Posix.Types ( Fd(..) )
 
-newtype MsgFlags
-      = MsgFlags CInt
+import System.Socket.Internal.MsgFlags
 
-instance Monoid MsgFlags where
-  mempty
-    = MsgFlags 0
-  mappend (MsgFlags a) (MsgFlags b)
-    = MsgFlags (a .|. b)
 
 foreign import ccall unsafe "sys/socket.h socket"
   c_socket  :: CInt -> CInt -> CInt -> IO Fd
