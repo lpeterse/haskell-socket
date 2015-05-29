@@ -10,6 +10,7 @@ import Control.Exception
 import Control.Monad
 
 import Data.Bits
+import Data.Monoid
 import qualified Data.ByteString as BS
 
 import Foreign.Ptr

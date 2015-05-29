@@ -37,9 +37,10 @@ library
                      , System.Socket.Protocol.TCP
                      , System.Socket.Protocol.SCTP
                      , System.Socket.Unsafe
-                     , System.Socket.Internal.FFI
+  other-modules:       System.Socket.Internal.FFI
                      , System.Socket.Internal.Event
                      , System.Socket.Internal.Socket
+                     , System.Socket.Internal.Exception
   build-depends:       base < 5
                      , bytestring < 0.11
   hs-source-dirs:      src

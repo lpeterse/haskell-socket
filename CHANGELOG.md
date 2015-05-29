@@ -1,3 +1,8 @@
+x.x.x.x Lars Petersen <info@lars-petersen.net>
+
+ * Hiding internal modules
+ * Added `Network.Database` module with `getAddrInfo`
+
 0.1.0.1 Lars Petersen <info@lars-petersen.net> 2015-05-28
 
  * Added CHANGELOG.md

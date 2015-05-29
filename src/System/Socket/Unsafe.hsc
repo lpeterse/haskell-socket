@@ -23,6 +23,7 @@ import Foreign.Ptr
 import System.Socket.Internal.Socket
 import System.Socket.Internal.Event
 import System.Socket.Internal.FFI
+import System.Socket.Internal.Exception
 import System.Socket.Address
 import System.Socket.Type
 import System.Socket.Protocol
