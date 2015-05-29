@@ -28,9 +28,13 @@
 -- >       close peer
 -----------------------------------------------------------------------------
 module System.Socket (
+  -- * Name Resolution
+  -- ** getAddrInfo
+    AddrInfo (..)
+  , getAddrInfo
   -- * Operations
   -- ** socket
-    socket
+  , socket
   -- ** bind
   , bind
   -- ** listen
@@ -77,22 +81,31 @@ module System.Socket (
   -- *** SCTP
   , SCTP
   -- * Exceptions
+  -- ** SocketException
   , SocketException (..)
+  -- ** AddrInfoException
+  , AddrInfoException (..)
   -- * Options
   , GetSockOpt (..)
   , SetSockOpt (..)
   -- ** SO_ACCEPTCONN
   , SO_ACCEPTCONN (..)
-    -- * MsgFlags
-  , MsgFlags
-  -- ** msgEOR
+  -- * Flags
+  -- ** MsgFlags
+  , MsgFlags (..)
   , msgEOR
-    -- ** msgNOSIGNAL
   , msgNOSIGNAL
-    -- ** msgOOB
   , msgOOB
-    -- ** msgWAITALL
   , msgWAITALL
+  -- ** AddrInfoFlags
+  , AddrInfoFlags (..)
+  , aiADDRCONFIG
+  , aiALL
+  , aiCANONNAME
+  , aiNUMERICHOST
+  , aiNUMERICSERV
+  , aiPASSIVE
+  , aiV4MAPPED
   ) where
 
 import Control.Exception
@@ -116,6 +129,7 @@ import System.Socket.Internal.Event
 import System.Socket.Internal.FFI
 import System.Socket.Internal.Exception
 import System.Socket.Internal.MsgFlags
+import System.Socket.Internal.AddrInfo
 
 import System.Socket.Address
 import System.Socket.Address.SockAddrUn

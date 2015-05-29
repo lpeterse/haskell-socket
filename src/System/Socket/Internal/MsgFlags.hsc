@@ -13,8 +13,12 @@ import Foreign.C.Types
 
 #include "sys/socket.h"
 
+-- | Use the `Data.Monoid.Monoid` instance to combine several flags:
+--
+--   > mconcat [msgNOSIGNAL, msgWAITALL]
 newtype MsgFlags
       = MsgFlags CInt
+      deriving (Eq, Show)
 
 instance Monoid MsgFlags where
   mempty

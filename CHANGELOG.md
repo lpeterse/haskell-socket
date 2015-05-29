@@ -3,7 +3,7 @@ x.x.x.x Lars Petersen <info@lars-petersen.net>
  * Added msgWAITALL and fixed serious error regarding all other MsgFlags
  * Nicer Show instances for SockAddrIn and SockAddrIn6
  * Hiding internal modules
- * Added `Network.Database` module with `getAddrInfo`
+ * Added `getAddrInfo` operation
 
 0.1.0.1 Lars Petersen <info@lars-petersen.net> 2015-05-28
 

@@ -22,8 +22,7 @@ tested-with:         GHC==7.10.1, GHC==7.8.3
 extra-source-files:  README.md CHANGELOG.md
 
 library
-  exposed-modules:     Network.Database
-                     , System.Socket
+  exposed-modules:     System.Socket
                      , System.Socket.Address
                      , System.Socket.Address.SockAddrUn
                      , System.Socket.Address.SockAddrIn
@@ -42,6 +41,7 @@ library
                      , System.Socket.Internal.Socket
                      , System.Socket.Internal.Exception
                      , System.Socket.Internal.MsgFlags
+                     , System.Socket.Internal.AddrInfo
   build-depends:       base >= 4.7 && < 5
                      , bytestring < 0.11
   hs-source-dirs:      src
