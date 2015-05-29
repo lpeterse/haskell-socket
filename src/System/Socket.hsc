@@ -47,6 +47,8 @@ module System.Socket (
   , connect
   -- ** send
   , send
+  -- ** sendAll
+  , sendAll
   -- ** sendTo
   , sendTo
   -- ** recv
@@ -416,6 +418,16 @@ send s bs flags = do
   bytesSent <- BS.unsafeUseAsCStringLen bs $ \(bufPtr,bufSize)->
     unsafeSend s bufPtr (fromIntegral bufSize) flags
   return (fromIntegral bytesSent)
+
+-- | Like `send`, but continues until all data has been sent.
+--
+--   > sendAll sock data flags = do
+--   >   sent <- send sock data flags
+--   >   when (sent < length data) $ sendAll sock (drop sent data) flags
+sendAll ::(Address a, Type t, Protocol  p) => Socket a t p -> BS.ByteString -> MsgFlags -> IO ()
+sendAll s bs flags = do
+  sent <- send s bs flags
+  when (sent < BS.length bs) $ sendAll s (BS.drop sent bs) flags
 
 -- | Send a message on a socket with a specific destination address.
 --
