@@ -28,7 +28,7 @@
 -- >   forever $ do
 -- >     (peer,addr) <- accept s
 -- >     forkIO $ do
--- >       sendAll peer "Hello world!" mempty `finally` close peer mempty
+-- >       sendAll peer "Hello world!" mempty `finally` close peer
 --
 -- This downloads the [Haskell website](http://www.haskell.org) and shows how to
 -- handle exceptions. Note the use of IPv4-mapped IPv6 addresses: This will work
