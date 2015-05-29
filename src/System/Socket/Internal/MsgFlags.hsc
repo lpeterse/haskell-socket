@@ -1,8 +1,9 @@
 module System.Socket.Internal.MsgFlags (
     MsgFlags (..)
   , msgEOR
-  , msgOOB
   , msgNOSIGNAL
+  , msgOOB
+  , msgWAITALL
   ) where
 
 import Data.Bits
@@ -21,12 +22,15 @@ instance Monoid MsgFlags where
   mappend (MsgFlags a) (MsgFlags b)
     = MsgFlags (a .|. b)
 
-msgOOB      :: MsgFlags
-msgOOB       = MsgFlags (#const MSG_NOSIGNAL)
-
 msgEOR      :: MsgFlags
-msgEOR       = MsgFlags (#const MSG_NOSIGNAL)
+msgEOR       = MsgFlags (#const MSG_EOR)
 
 msgNOSIGNAL :: MsgFlags
 msgNOSIGNAL  = MsgFlags (#const MSG_NOSIGNAL)
+
+msgOOB      :: MsgFlags
+msgOOB       = MsgFlags (#const MSG_OOB)
+
+msgWAITALL  :: MsgFlags
+msgWAITALL   = MsgFlags (#const MSG_WAITALL)
 

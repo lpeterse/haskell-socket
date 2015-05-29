@@ -54,18 +54,18 @@ module System.Socket (
   , Socket ()
   -- ** Addresses
   , Address (..)
-  -- *** SockAddrUn
-  , SockAddrUn (..)
   -- *** SockAddrIn
   , SockAddrIn (..)
   -- *** SockAddrIn6
   , SockAddrIn6 (..)
+  -- *** SockAddrUn
+  , SockAddrUn (..)
   -- ** Types
   , Type (..)
-  -- *** STREAM
-  , STREAM
   -- *** DGRAM
   , DGRAM
+  -- *** STREAM
+  , STREAM
   -- *** SEQPACKET
   , SEQPACKET
   -- ** Protocols
@@ -76,22 +76,23 @@ module System.Socket (
   , TCP
   -- *** SCTP
   , SCTP
-  -- * MsgFlags
+  -- * Exceptions
+  , SocketException (..)
+  -- * Options
+  , GetSockOpt (..)
+  , SetSockOpt (..)
+  -- ** SO_ACCEPTCONN
+  , SO_ACCEPTCONN (..)
+    -- * MsgFlags
   , MsgFlags
   -- ** msgEOR
   , msgEOR
-    -- ** msgOOB
-  , msgOOB
     -- ** msgNOSIGNAL
   , msgNOSIGNAL
-  -- * getSockOpt / setSockOpt
-  , GetSockOpt (..)
-  , SetSockOpt (..)
-  -- * Generic socket options
-  -- ** SO_ACCEPTCONN
-  , SO_ACCEPTCONN (..)
-  -- * SocketException
-  , SocketException (..)
+    -- ** msgOOB
+  , msgOOB
+    -- ** msgWAITALL
+  , msgWAITALL
   ) where
 
 import Control.Exception
