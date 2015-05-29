@@ -22,7 +22,8 @@ tested-with:         GHC==7.10.1, GHC==7.8.3
 extra-source-files:  README.md CHANGELOG.md
 
 library
-  exposed-modules:     System.Socket
+  exposed-modules:     Network.Database
+                     , System.Socket
                      , System.Socket.Address
                      , System.Socket.Address.SockAddrUn
                      , System.Socket.Address.SockAddrIn
