@@ -57,7 +57,7 @@ module System.Socket (
   , close
 
   -- * Sockets
-  , Socket ()
+  , Socket (..)
   -- ** Addresses
   , Address (..)
   -- *** SockAddrIn

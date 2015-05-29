@@ -1,5 +1,6 @@
 0.2.0.0 Lars Petersen <info@lars-petersen.net> 2015-05-29
 
+ * Exposed the Socket constructor
  * Added `getNameInfo` operation
  * Added msgWAITALL and fixed serious bug regarding all other MsgFlags
  * Nicer Show instances for SockAddrIn and SockAddrIn6
