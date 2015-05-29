@@ -44,3 +44,6 @@ foreign import ccall unsafe "sys/socket.h getsockopt"
 
 foreign import ccall unsafe "misc.h setnonblocking"
   c_setnonblocking :: Fd -> IO CInt
+
+foreign import ccall unsafe "string.h memset"
+  c_memset       :: Ptr a -> CInt -> CSize -> IO ()

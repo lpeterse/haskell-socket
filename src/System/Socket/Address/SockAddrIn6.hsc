@@ -11,6 +11,7 @@ import Foreign.Storable
 import Foreign.Marshal.Utils
 
 import System.Socket.Address
+import System.Socket.Internal.FFI
 
 #include "sys/types.h"
 #include "sys/socket.h"
@@ -72,6 +73,7 @@ instance Storable SockAddrIn6 where
       sin6_port     = (#ptr struct sockaddr_in6, sin6_port)
       sin6_addr     = (#ptr struct in6_addr, s6_addr) . (#ptr struct sockaddr_in6, sin6_addr)
   poke ptr (SockAddrIn6 p f a s) = do
+    c_memset ptr 0 (#const sizeof(struct sockaddr_in6))
     poke        (sin6_family   ptr) ((#const AF_INET6) :: Word16)
     poke        (sin6_flowinfo ptr) f
     poke        (sin6_scope_id ptr) s

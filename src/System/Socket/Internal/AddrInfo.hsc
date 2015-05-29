@@ -37,6 +37,7 @@ import Foreign.Marshal.Alloc
 import System.Socket.Address
 import System.Socket.Type
 import System.Socket.Protocol
+import System.Socket.Internal.FFI
 
 #include "sys/types.h"
 #include "sys/socket.h"
@@ -248,7 +249,4 @@ foreign import ccall safe "netdb.h getnameinfo"
 
 foreign import ccall unsafe "netdb.h gai_strerror"
   c_gaistrerror  :: CInt -> IO CString
-
-foreign import ccall unsafe "string.h memset"
-  c_memset       :: Ptr a -> CInt -> CSize -> IO ()
 

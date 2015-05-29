@@ -10,6 +10,7 @@ import Foreign.Storable
 import Foreign.Marshal.Utils
 
 import System.Socket.Address
+import System.Socket.Internal.FFI
 
 #include "sys/types.h"
 #include "sys/socket.h"
@@ -34,6 +35,7 @@ instance Storable SockAddrUn where
     where
       sun_path = (#ptr struct sockaddr_un, sun_path)
   poke ptr (SockAddrUn path) = do
+    c_memset ptr 0 (#const sizeof(struct sockaddr_un))
     -- useAsCString null-terminates the CString
     BS.useAsCString truncatedPath $ \cs-> do
       copyBytes (sun_path ptr) cs (BS.length truncatedPath + 1)-- copyBytes dest from count

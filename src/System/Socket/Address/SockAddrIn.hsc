@@ -12,6 +12,7 @@ import Foreign.Storable
 import Foreign.Marshal.Utils
 
 import System.Socket.Address
+import System.Socket.Internal.FFI
 
 #include "sys/types.h"
 #include "sys/socket.h"
@@ -44,6 +45,7 @@ instance Storable SockAddrIn where
       sin_port     = (#ptr struct sockaddr_in, sin_port)
       sin_addr     = (#ptr struct in_addr, s_addr) . (#ptr struct sockaddr_in, sin_addr)
   poke ptr (SockAddrIn p a) = do
+    c_memset ptr 0 (#const sizeof(struct sockaddr_in))
     poke        (sin_family   ptr) ((#const AF_INET) :: Word16)
     pokeByteOff (sin_port     ptr)  0 (fromIntegral $ rem (quot p 256) 256 :: Word8)
     pokeByteOff (sin_port     ptr)  1 (fromIntegral $ rem       p      256 :: Word8)
