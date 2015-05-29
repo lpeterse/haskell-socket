@@ -31,7 +31,7 @@ data SockAddrIn6
      } deriving (Eq, Ord)
 
 instance Show SockAddrIn6 where
-  show (SockAddrIn6 p _ a _) = '"':'[':(tail $ t $ BS.unpack a)
+  show (SockAddrIn6 p _ addr _) = '"':'[':(tail $ t $ BS.unpack addr)
     where
       t []       = ']':':':(show p ++ "\"")
       t [x]      = g x 0 (']':':':(show p) ++ "\"")
@@ -39,6 +39,7 @@ instance Show SockAddrIn6 where
       g x y s    = let (a,b) = quotRem x 16
                        (c,d) = quotRem y 16
                    in  ':':(h a):(h b):(h c):(h d):s
+      h :: Word8 -> Char
       h 0  = '0'
       h 1  = '1'
       h 2  = '2'
