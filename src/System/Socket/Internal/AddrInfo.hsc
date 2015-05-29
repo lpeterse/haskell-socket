@@ -102,7 +102,7 @@ aiV4MAPPED     = AddrInfoFlags (#const AI_V4MAPPED)
 
 -- | Use the `Data.Monoid.Monoid` instance to combine several flags:
 --
---   > mconcat [aiADDRCONFIG, aiV4MAPPED]
+--   > mconcat [niNAMEREQD, niNOFQDN]
 newtype NameInfoFlags
       = NameInfoFlags CInt
       deriving (Eq, Show)
