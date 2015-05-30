@@ -1,3 +1,5 @@
+ * Fixed unsafeSend, unsafeSendTo and unsafeSendMsg (they were waiting for
+   a read event instead of waiting for writing)
  * Use `aiStrError` values in Show instance
  * Added `aiStrError` function
  * Added constants for AddrInfoException

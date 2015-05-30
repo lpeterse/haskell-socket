@@ -54,7 +54,7 @@ unsafeSend (Socket mfd) bufPtr bufSize flags = do
         if (i < 0) then do
           e <- getErrno
           if e == eWOULDBLOCK || e == eAGAIN
-            then threadWaitRead' fd >>= return . Left
+            then threadWaitWrite' fd >>= return . Left
           else if e == eINTR
             then retry
             else throwIO (SocketException e)
@@ -75,7 +75,7 @@ unsafeSendTo (Socket mfd) bufPtr bufSize flags addrPtr addrSize = do
         if (i < 0) then do
           e <- getErrno
           if e == eWOULDBLOCK || e == eAGAIN
-            then threadWaitRead' fd >>= return . Left
+            then threadWaitWrite' fd >>= return . Left
           else if e == eINTR
             then retry
             else throwIO (SocketException e)
@@ -96,7 +96,7 @@ unsafeSendMsg (Socket mfd) msghdrPtr flags = do
         if (i < 0) then do
           e <- getErrno
           if e == eWOULDBLOCK || e == eAGAIN
-            then threadWaitRead' fd >>= return . Left
+            then threadWaitWrite' fd >>= return . Left
           else if e == eINTR
             then retry
             else throwIO (SocketException e)
