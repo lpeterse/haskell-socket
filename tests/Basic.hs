@@ -28,89 +28,98 @@ main = do
 -- Test send and receive on connection oriented sockets (i.e. TCP).
 test0001 :: (Address a, Type t, Protocol p) => Socket a t p -> a -> IO (Either String String)
 test0001 dummy addr =
-  bracket
-    ( do  server <- socket `asTypeOf` return dummy
-          client <- socket `asTypeOf` return dummy
-          return (server, client)
-    )
-    (\(server,client)-> do
-          close server
-          close client
-    )
-    (\(server,client)-> do
-          setSockOpt server (SO_REUSEADDR True)
-          bind server addr
-          listen server 5
-          serverRecv <- async $ do
-            (peerSock, peerAddr) <- accept server
-            recv peerSock 4096 mempty
-          client <- socket `asTypeOf` return server
-          connect client addr
-          send client helloWorld mempty
-          msg <- wait serverRecv
-          close server
-          close client
-          if (msg /= helloWorld)
-            then return (Left  "Received message was bogus.")
-            else return (Right "")
-    )
+  handleJust
+    (\(SocketException e)-> if e == ePROTONOSUPPORT then Just () else Nothing)
+    (const $ return (Right "Protocol is not supported, but that may happen."))
+    $ bracket
+      ( do  server <- socket `asTypeOf` return dummy
+            client <- socket `asTypeOf` return dummy
+            return (server, client)
+      )
+      (\(server,client)-> do
+            close server
+            close client
+      )
+      (\(server,client)-> do
+            setSockOpt server (SO_REUSEADDR True)
+            bind server addr
+            listen server 5
+            serverRecv <- async $ do
+              (peerSock, peerAddr) <- accept server
+              recv peerSock 4096 mempty
+            client <- socket `asTypeOf` return server
+            connect client addr
+            send client helloWorld mempty
+            msg <- wait serverRecv
+            close server
+            close client
+            if (msg /= helloWorld)
+              then return (Left  "Received message was bogus.")
+              else return (Right "")
+      )
   where
     helloWorld = "Hello world!"
 
 -- Test stateless sockets (i.e. UDP).
 test0002 :: (Address a, Type t, Protocol p) => Socket a t p -> a -> IO (Either String String)
 test0002 dummy addr =
-  bracket
-    ( do  server <- socket `asTypeOf` return dummy
-          client <- socket `asTypeOf` return dummy
-          return (server, client)
-    )
-    (\(server,client)-> do
-          close server
-          close client
-    )
-    (\(server,client)-> do
-          setSockOpt server (SO_REUSEADDR True)
-          bind server addr
-          serverRecv <- async $ do
-            recvFrom server 4096 mempty
-          client <- socket `asTypeOf` return server
-          sendTo client helloWorld mempty addr
-          (msg,peerAddr) <- wait serverRecv
-          if (msg /= helloWorld)
-            then return (Left  "Received message was bogus.")
-            else return (Right "")
-    )
+  handleJust
+    (\(SocketException e)-> if e == ePROTONOSUPPORT then Just () else Nothing)
+    (const $ return (Right "Protocol is not supported, but that may happen."))
+    $ bracket
+      ( do  server <- socket `asTypeOf` return dummy
+            client <- socket `asTypeOf` return dummy
+            return (server, client)
+      )
+      (\(server,client)-> do
+            close server
+            close client
+      )
+      (\(server,client)-> do
+            setSockOpt server (SO_REUSEADDR True)
+            bind server addr
+            serverRecv <- async $ do
+              recvFrom server 4096 mempty
+            client <- socket `asTypeOf` return server
+            sendTo client helloWorld mempty addr
+            (msg,peerAddr) <- wait serverRecv
+            if (msg /= helloWorld)
+              then return (Left  "Received message was bogus.")
+              else return (Right "")
+      )
   where
     helloWorld = "Hello world!"
 
 -- Test sendMsg and recvMsg (TODO!) on connection oriented sockets (i.e. TCP).
 test0003 :: (Address a, Type t, Protocol p) => Socket a t p -> a -> IO (Either String String)
 test0003 dummy addr =
-  bracket
-    ( do  server <- socket `asTypeOf` return dummy
-          client <- socket `asTypeOf` return dummy
-          return (server, client)
-    )
-    (\(server,client)-> do
-          close server
-          close client
-    )
-    (\(server,client)-> do
-          setSockOpt server (SO_REUSEADDR True)
-          bind server addr
-          listen server 5
-          serverRecv <- async $ do
-            (peerSock, peerAddr) <- accept server
-            recv peerSock 4096 mempty
-          client <- socket `asTypeOf` return server
-          connect client addr
-          sendMsg client (Msg helloWorld Nothing [] mempty)
-          msg <- wait serverRecv
-          if (LBS.fromChunks [msg] /= helloWorld)
-            then return (Left  "Received message was bogus.")
-            else return (Right "")
-    )
+  handleJust
+    (\(SocketException e)-> if e == ePROTONOSUPPORT then Just () else Nothing)
+    (const $ return (Right "Protocol is not supported, but that may happen."))
+    $ bracket
+        ( do  server <- socket `asTypeOf` return dummy
+              client <- socket `asTypeOf` return dummy
+              return (server, client)
+        )
+        (\(server,client)-> do
+              close server
+              close client
+        )
+        (\(server,client)-> do
+              setSockOpt server (SO_REUSEADDR True)
+              bind server addr
+              listen server 5
+              serverRecv <- async $ do
+                (peerSock, peerAddr) <- accept server
+                recv peerSock 4096 mempty
+              client <- socket `asTypeOf` return server
+              connect client addr
+              sendMsg client (Msg helloWorld Nothing [] mempty)
+              msg <- wait serverRecv
+              if (LBS.fromChunks [msg] /= helloWorld)
+                then return (Left  "Received message was bogus.")
+                else return (Right "")
+        )
   where
     helloWorld = LBS.fromChunks ["Hello world!", "All your base are belong to us!"]
 
