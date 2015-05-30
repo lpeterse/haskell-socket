@@ -7,6 +7,8 @@ module System.Socket.Unsafe (
   , unsafeSendTo
   -- * unsafeRecv
   , unsafeRecv
+  -- * unsafeRecvMsg
+  , unsafeRecvMsg
   -- * unsafeRecvFrom
   , unsafeRecvFrom
   -- * unsafeUseAsMsgPtr
@@ -114,6 +116,26 @@ unsafeRecv (Socket mfd) bufPtr bufSize flags =
           throwIO (SocketException eBADF)
         fix $ \retry-> do
           i <- c_recv fd bufPtr bufSize flags
+          if (i < 0) then do
+            e <- getErrno
+            if e == eWOULDBLOCK || e == eAGAIN then do
+              threadWaitRead' fd >>= return . Left
+            else if e == eINTR
+              then retry
+              else throwIO (SocketException e)
+          else return (Right i)
+    case ewb of
+      Left  wait          -> wait >> again
+      Right bytesReceived -> return bytesReceived
+
+unsafeRecvMsg :: Socket a t p -> Ptr (Msg a t p) -> MsgFlags -> IO CInt
+unsafeRecvMsg (Socket mfd) msgPtr flags =
+  fix $ \again-> do
+    ewb <- withMVar mfd $ \fd-> do
+        when (fd < 0) $ do
+          throwIO (SocketException eBADF)
+        fix $ \retry-> do
+          i <- c_recvmsg fd msgPtr flags
           if (i < 0) then do
             e <- getErrno
             if e == eWOULDBLOCK || e == eAGAIN then do

@@ -13,6 +13,7 @@ data Msg a t p
      , msgControl :: [MsgControl a t p]
      , msgFlags   :: MsgFlags
      }
+     deriving (Eq, Show)
 
 -- | Ancillary data.
 --
@@ -23,4 +24,7 @@ data Msg a t p
 --   this in a generic way. Till then the empty type is a placeholder and should
 --   not be a problem.
 data MsgControl a t p
+
+instance Eq (MsgControl a t p)
+instance Show (MsgControl a t p)
 

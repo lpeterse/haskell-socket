@@ -110,6 +110,8 @@ module System.Socket (
   , recv
   -- ** recvFrom
   , recvFrom
+  -- ** recvMsg
+  , recvMsg
   -- ** close
   , close
   -- * Convenience Operations
@@ -203,6 +205,9 @@ import qualified Data.ByteString.Lazy as LBS
 import GHC.Conc (closeFdWith)
 
 import Foreign.C.Error
+import Foreign.C.Types
+import Foreign.C.String
+import Foreign.Ptr
 import Foreign.Storable
 import Foreign.Marshal.Alloc
 
@@ -619,6 +624,48 @@ recvFrom s bufSize flags =
             bs   <- BS.unsafePackMallocCStringLen (bufPtr, fromIntegral bytesReceived)
             return (bs, addr)
         )
+
+recvMsg :: forall a t p. (Address a)
+  => Socket a t p
+  -> Int            -- ^ Buffer size in bytes (should be a power of 2, e.g. 4096)
+  -> Bool           -- ^ Shall the peer address be returned?
+  -> MsgFlags
+  -> IO (Msg a t p)
+recvMsg s bufSize reqAddr flags = do
+  allocaBytes (#const sizeof(struct msghdr)) $ \msgPtr-> do
+    allocaBytes (#const sizeof(struct iovec)) $ \iovPtr-> do
+      alloca $ \addrPtr-> do -- as this is stackspace the allocation is nearly for free
+        c_memset msgPtr 0 (#const sizeof(struct msghdr))
+        poke (msg_iov    msgPtr) iovPtr
+        poke (msg_iovlen msgPtr) 1
+        -- the address will only be returned if the field is not a nullPtr
+        when reqAddr $ do
+          poke (msg_name msgPtr) addrPtr
+          poke (msg_namelen msgPtr) (fromIntegral $ sizeOf (undefined :: a))
+        -- this is to protect the malloced space before it becomes a ByteString
+        bracketOnError
+          ( mallocBytes bufSize )
+          (\bufPtr-> free bufPtr )
+          (\bufPtr-> do
+              poke (iov_base iovPtr) bufPtr
+              poke (iov_len  iovPtr) (fromIntegral bufSize)
+              bytesReceived <- unsafeRecvMsg s msgPtr flags
+              Msg <$> ( LBS.fromStrict <$> BS.unsafePackMallocCStringLen (bufPtr, fromIntegral bytesReceived) )
+                  <*> ( if reqAddr
+                          then peek addrPtr >>= return . Just
+                          else return Nothing
+                      )
+                  <*> ( return [] )
+                  <*> ( MsgFlags <$> peek (msg_flags msgPtr) )
+          )
+  where
+    iov_base       = (#ptr struct iovec, iov_base)    :: Ptr IoVec -> Ptr CString
+    iov_len        = (#ptr struct iovec, iov_len)     :: Ptr IoVec -> Ptr CSize
+    msg_name       = (#ptr struct msghdr, msg_name)   :: Ptr (Msg a t p) -> Ptr (Ptr a)
+    msg_namelen    = (#ptr struct msghdr, msg_namelen):: Ptr (Msg a t p) -> Ptr CInt
+    msg_iov        = (#ptr struct msghdr, msg_iov)    :: Ptr (Msg a t p) -> Ptr (Ptr IoVec)
+    msg_iovlen     = (#ptr struct msghdr, msg_iovlen) :: Ptr (Msg a t p) -> Ptr CSize
+    msg_flags      = (#ptr struct msghdr, msg_flags)  :: Ptr (Msg a t p) -> Ptr CInt
 
 -- | Closes a socket.
 --
