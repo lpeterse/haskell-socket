@@ -23,6 +23,7 @@
 -- > main :: IO ()
 -- > main = do
 -- >   s <- socket :: IO (Socket SockAddrIn STREAM TCP)
+-- >   setSockOpt s (SO_REUSEADDR)
 -- >   bind s (SockAddrIn 8080 (pack [127,0,0,1]))
 -- >   listen s 5
 -- >   forever $ do
@@ -163,6 +164,8 @@ module System.Socket (
   , SetSockOpt (..)
   -- ** SO_ACCEPTCONN
   , SO_ACCEPTCONN (..)
+    -- ** SO_REUSEADDR
+  , SO_REUSEADDR (..)
   -- * Flags
   -- ** MsgFlags
   , MsgFlags (..)

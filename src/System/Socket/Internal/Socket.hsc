@@ -3,14 +3,18 @@ module System.Socket.Internal.Socket (
   , GetSockOpt (..)
   , SetSockOpt (..)
   , SO_ACCEPTCONN (..)
+  , SO_REUSEADDR (..)
   ) where
 
 import Control.Concurrent.MVar
 import Control.Exception
+import Control.Monad
+import Control.Applicative
 
 import Foreign.Ptr
 import Foreign.Storable
 import Foreign.C.Error
+import Foreign.C.Types
 import Foreign.Marshal.Alloc
 import System.Posix.Types
 
@@ -54,13 +58,47 @@ data SO_ACCEPTCONN
    = SO_ACCEPTCONN Bool
 
 instance GetSockOpt SO_ACCEPTCONN where
-  getSockOpt (Socket mfd) = do
-    withMVar mfd $ \fd->
-      alloca $ \vPtr-> do
-        alloca $ \lPtr-> do
-          i <- c_getsockopt fd (#const SOL_SOCKET) (#const SO_ACCEPTCONN) (vPtr :: Ptr Int) (lPtr :: Ptr Int)
-          if i < 0 then do
-            throwIO . SocketException =<< getErrno
-          else do
-            v <- peek vPtr
-            return $ SO_ACCEPTCONN (v == 1)
+  getSockOpt s =
+    SO_ACCEPTCONN <$> getSockOptBool s (#const SOL_SOCKET) (#const SO_ACCEPTCONN)
+
+data SO_REUSEADDR
+   = SO_REUSEADDR Bool
+
+instance GetSockOpt SO_REUSEADDR where
+  getSockOpt s =
+    SO_REUSEADDR <$> getSockOptBool s (#const SOL_SOCKET) (#const SO_REUSEADDR)
+
+instance SetSockOpt SO_REUSEADDR where
+  setSockOpt s (SO_REUSEADDR o) =
+    setSockOptBool s (#const SOL_SOCKET) (#const SO_REUSEADDR) o
+
+-------------------------------------------------------------------------------
+-- Unsafe helpers
+-------------------------------------------------------------------------------
+
+setSockOptBool :: Socket f t p -> CInt -> CInt -> Bool -> IO ()
+setSockOptBool (Socket mfd) level name value = do
+  withMVar mfd $ \fd->
+    alloca $ \vPtr-> do
+        if value
+          then poke vPtr 1
+          else poke vPtr 0
+        i <- c_setsockopt fd level name 
+                          (vPtr :: Ptr CInt)
+                          (fromIntegral $ sizeOf (undefined :: CInt))
+        when (i < 0) $ do
+          throwIO . SocketException =<< getErrno
+
+getSockOptBool :: Socket f t p -> CInt -> CInt -> IO Bool
+getSockOptBool (Socket mfd) level name = do
+  withMVar mfd $ \fd->
+    alloca $ \vPtr-> do
+      alloca $ \lPtr-> do
+        i <- c_getsockopt fd level name 
+                          (vPtr :: Ptr CInt)
+                          (lPtr :: Ptr CInt)
+        if i < 0 then do
+          throwIO . SocketException =<< getErrno
+        else do
+          v <- peek vPtr
+          return (v == 1)
