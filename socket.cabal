@@ -43,6 +43,7 @@ library
                      , System.Socket.Internal.Event
                      , System.Socket.Internal.Socket
                      , System.Socket.Internal.Exception
+                     , System.Socket.Internal.Msg
                      , System.Socket.Internal.MsgFlags
                      , System.Socket.Internal.AddrInfo
   build-depends:       base >= 4.7 && < 5

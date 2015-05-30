@@ -5,8 +5,11 @@ import Foreign.C.Types
 
 import System.Posix.Types ( Fd(..) )
 
+import System.Socket.Internal.Msg
 import System.Socket.Internal.MsgFlags
 
+type CSSize
+   = CInt
 
 foreign import ccall unsafe "sys/socket.h socket"
   c_socket  :: CInt -> CInt -> CInt -> IO Fd
@@ -27,17 +30,20 @@ foreign import ccall unsafe "sys/socket.h listen"
   c_listen  :: Fd -> CInt -> IO CInt
 
 foreign import ccall unsafe "sys/socket.h send"
-  c_send    :: Fd -> Ptr a -> CSize -> MsgFlags -> IO CInt
+  c_send    :: Fd -> Ptr a -> CSize -> MsgFlags -> IO CSSize
 
 foreign import ccall unsafe "sys/socket.h sendto"
-  c_sendto  :: Fd -> Ptr a -> CSize -> MsgFlags -> Ptr b -> CInt -> IO CInt
+  c_sendto  :: Fd -> Ptr a -> CSize -> MsgFlags -> Ptr b -> CInt -> IO CSSize
+
+foreign import ccall unsafe "sys/socket.h sendmsg"
+  c_sendmsg :: Fd -> Ptr (Msg a t p) -> MsgFlags -> IO CSSize
 
 foreign import ccall unsafe "sys/socket.h recv"
-  c_recv    :: Fd -> Ptr a -> CSize -> MsgFlags -> IO CInt
+  c_recv    :: Fd -> Ptr a -> CSize -> MsgFlags -> IO CSSize
 
 -- socklen_t is an int not a size_t!
 foreign import ccall unsafe "sys/socket.h recvfrom"
-  c_recvfrom :: Fd -> Ptr a -> CSize -> MsgFlags -> Ptr b -> Ptr CInt -> IO CInt
+  c_recvfrom :: Fd -> Ptr a -> CSize -> MsgFlags -> Ptr b -> Ptr CInt -> IO CSSize
 
 foreign import ccall unsafe "sys/socket.h getsockopt"
   c_getsockopt  :: Fd -> CInt -> CInt -> Ptr a -> Ptr Int -> IO CInt

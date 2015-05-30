@@ -1,3 +1,6 @@
+ * Added `sendAllMsg` operation
+ * Added `sendMsg` operation (+ some types and internals)
+
 0.2.0.0 Lars Petersen <info@lars-petersen.net> 2015-05-29
 
  * Added a sendAll operation

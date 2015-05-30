@@ -101,19 +101,25 @@ module System.Socket (
   , connect
   -- ** send
   , send
-  -- ** sendAll
-  , sendAll
   -- ** sendTo
   , sendTo
+  -- ** sendMsg
+  , sendMsg
   -- ** recv
   , recv
   -- ** recvFrom
   , recvFrom
   -- ** close
   , close
-
+  -- * Convenience Operations
+  -- ** sendAll
+  , sendAll
+  -- ** sendAllMsg
+  , sendAllMsg
   -- * Sockets
   , Socket (..)
+  , Msg (..)
+  , MsgControl (..)
   -- ** Addresses
   , Address (..)
   -- *** SockAddrIn
@@ -180,6 +186,7 @@ import Control.Concurrent.MVar
 import Data.Function
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Unsafe as BS
+import qualified Data.ByteString.Lazy as LBS
 
 import GHC.Conc (closeFdWith)
 
@@ -193,6 +200,7 @@ import System.Socket.Internal.Socket
 import System.Socket.Internal.Event
 import System.Socket.Internal.FFI
 import System.Socket.Internal.Exception
+import System.Socket.Internal.Msg
 import System.Socket.Internal.MsgFlags
 import System.Socket.Internal.AddrInfo
 
@@ -475,13 +483,25 @@ send s bs flags = do
 
 -- | Like `send`, but continues until all data has been sent.
 --
---   > sendAll sock data flags = do
---   >   sent <- send sock data flags
---   >   when (sent < length data) $ sendAll sock (drop sent data) flags
+--   > sendAll sock buf flags = do
+--   >   sent <- send sock buf flags
+--   >   when (sent < length buf) $ sendAll sock (drop sent buf) flags
 sendAll ::(Address a, Type t, Protocol  p) => Socket a t p -> BS.ByteString -> MsgFlags -> IO ()
 sendAll s bs flags = do
   sent <- send s bs flags
   when (sent < BS.length bs) $ sendAll s (BS.drop sent bs) flags
+
+sendMsg :: Address a => Socket a t p -> Msg a t p -> IO Int
+sendMsg s msg = do
+  bytesSent <- unsafeUseAsMsgPtr msg $ \msgPtr-> do
+    unsafeSendMsg s msgPtr (msgFlags msg)
+  return (fromIntegral bytesSent)
+
+sendAllMsg :: Address a => Socket a t p -> Msg a t p -> IO ()
+sendAllMsg s msg = do
+  sent <- sendMsg s msg
+  when (fromIntegral sent < LBS.length (msgIov msg)) $ do
+    sendAllMsg s (msg { msgIov = LBS.drop (fromIntegral sent) (msgIov msg) })
 
 -- | Send a message on a socket with a specific destination address.
 --
