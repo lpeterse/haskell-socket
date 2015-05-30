@@ -149,6 +149,15 @@ module System.Socket (
   , SocketException (..)
   -- ** AddrInfoException
   , AddrInfoException (..)
+  , aiStrError
+  , eaiAGAIN
+  , eaiBADFLAGS
+  , eaiFAIL
+  , eaiFAMILY
+  , eaiMEMORY
+  , eaiSOCKTYPE
+  , eaiSERVICE
+  , eaiSYSTEM
   -- * Options
   , GetSockOpt (..)
   , SetSockOpt (..)

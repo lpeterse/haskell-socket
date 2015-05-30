@@ -1,9 +1,18 @@
 {-# LANGUAGE DeriveDataTypeable, ScopedTypeVariables #-}
 module System.Socket.Internal.AddrInfo (
     AddrInfo (..)
-  , AddrInfoException (..)
   , getAddrInfo
   , getNameInfo
+  , AddrInfoException (..)
+  , aiStrError
+  , eaiAGAIN
+  , eaiBADFLAGS
+  , eaiFAIL
+  , eaiFAMILY
+  , eaiMEMORY
+  , eaiSOCKTYPE
+  , eaiSERVICE
+  , eaiSYSTEM
   , AddrInfoFlags (..)
   , aiADDRCONFIG
   , aiALL
@@ -34,6 +43,8 @@ import Foreign.C.Types
 import Foreign.C.String
 import Foreign.Marshal.Alloc
 
+import System.IO.Unsafe
+
 import System.Socket.Address
 import System.Socket.Type
 import System.Socket.Protocol
@@ -59,13 +70,56 @@ data AddrInfo a t p
 -- AddrInfoException
 -------------------------------------------------------------------------------
 
--- | Contains the error code that can be matched against and a readable
---   description taken from @eia_strerr@.
-data AddrInfoException
-   = AddrInfoException CInt String
-   deriving (Eq, Show, Typeable)
+-- | Contains the error code that can be matched against. Use `aiStrError`
+--   to get a human readable explanation of the error.
+newtype AddrInfoException
+      = AddrInfoException CInt
+   deriving (Eq, Typeable)
+
+instance Show AddrInfoException where
+  show e = "AddrInfoException \"" ++ aiStrError e ++ "\""
 
 instance Exception AddrInfoException
+
+-- | A wrapper around @gai_strerror@.
+aiStrError :: AddrInfoException -> String
+aiStrError (AddrInfoException e) =
+  unsafePerformIO $ do
+    msgPtr <- c_gaistrerror e
+    peekCString msgPtr
+
+-- | > AddrInfoException "Temporary failure in name resolution"
+eaiAGAIN    :: AddrInfoException
+eaiAGAIN     = AddrInfoException (#const EAI_AGAIN)
+
+-- | > AddrInfoException "Bad value for ai_flags"
+eaiBADFLAGS :: AddrInfoException
+eaiBADFLAGS  = AddrInfoException (#const EAI_BADFLAGS)
+
+-- | > AddrInfoException "Non-recoverable failure in name resolution"
+eaiFAIL     :: AddrInfoException
+eaiFAIL      = AddrInfoException (#const EAI_FAIL)
+
+-- | > AddrInfoException "ai_family not supported"
+eaiFAMILY   :: AddrInfoException
+eaiFAMILY    = AddrInfoException (#const EAI_FAMILY)
+
+-- | > AddrInfoException "Memory allocation failure"
+eaiMEMORY   :: AddrInfoException
+eaiMEMORY    = AddrInfoException (#const EAI_MEMORY)
+
+-- | > AddrInfoException "Servname not supported for ai_socktype"
+eaiSERVICE  :: AddrInfoException
+eaiSERVICE   = AddrInfoException (#const EAI_SERVICE)
+
+-- | > AddrInfoException "ai_socktype not supported"
+eaiSOCKTYPE :: AddrInfoException
+eaiSOCKTYPE  = AddrInfoException (#const EAI_SOCKTYPE)
+
+-- | > AddrInfoException "System error"
+eaiSYSTEM   :: AddrInfoException
+eaiSYSTEM    = AddrInfoException (#const EAI_SYSTEM)
+
 
 -- | Use the `Data.Monoid.Monoid` instance to combine several flags:
 --
@@ -152,7 +206,7 @@ niNUMERICSERV   = NameInfoFlags (#const NI_NUMERICSERV)
 --   > > getAddrInfo (Just "darcs.haskell.org") Nothing aiV4MAPPED :: IO [AddrInfo SockAddrIn6 STREAM TCP]
 --   > [AddrInfo {addrInfoFlags = AddrInfoFlags 8, addrAddress = "[0000:0000:0000:0000:0000:ffff:17fd:e1ad]:0", addrCanonName = Nothing}]
 --   > > getAddrInfo (Just "darcs.haskell.org") Nothing mempty :: IO [AddrInfo SockAddrIn6 STREAM TCP]
---   > *** Exception: AddrInfoException (-2) "Name or service not known"
+--   > *** Exception: AddrInfoException "Name or service not known"
 getAddrInfo :: (Address a, Type t, Protocol p) => Maybe BS.ByteString -> Maybe BS.ByteString -> AddrInfoFlags -> IO [AddrInfo a t p]
 getAddrInfo = getAddrInfo'
   where
@@ -178,9 +232,7 @@ getAddrInfo = getAddrInfo'
                         resultPtr <- peek resultPtrPtr
                         peekAddrInfos resultPtr
                       else do
-                        msgPtr <- c_gaistrerror e
-                        msg <- peekCString msgPtr
-                        throwIO (AddrInfoException e msg)
+                        throwIO (AddrInfoException e)
                 )
       where
         ai_flags     = (#ptr struct addrinfo, ai_flags)     :: Ptr (AddrInfo a t p) -> Ptr CInt
@@ -230,9 +282,7 @@ getNameInfo addr (NameInfoFlags flags) =
           serv <- BS.packCString servPtr
           return (host,serv)
         else do
-          msgPtr <- c_gaistrerror e
-          msg <- peekCString msgPtr
-          throwIO (AddrInfoException e msg)
+          throwIO (AddrInfoException e)
 
 -------------------------------------------------------------------------------
 -- FFI

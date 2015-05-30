@@ -1,3 +1,7 @@
+ * Use `aiStrError` values in Show instance
+ * Added `aiStrError` function
+ * Added constants for AddrInfoException
+ * Changed definitin of AddrInfoException
  * Added `sendAllMsg` operation
  * Added `sendMsg` operation (+ some types and internals)
 
