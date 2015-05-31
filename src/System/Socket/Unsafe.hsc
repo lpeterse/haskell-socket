@@ -45,7 +45,7 @@ import System.Socket.Protocol
 
 #include "sys/socket.h"
 
-unsafeSend :: (Address a, Type t, Protocol  p) => Socket a t p -> Ptr b -> CSize -> MsgFlags -> IO CInt
+unsafeSend :: Socket a t p -> Ptr a -> CSize -> MsgFlags -> IO CInt
 unsafeSend (Socket mfd) bufPtr bufSize flags = do
   fix $ \again-> do
     ewb <- withMVar mfd $ \fd-> do
@@ -66,7 +66,7 @@ unsafeSend (Socket mfd) bufPtr bufSize flags = do
       Left  wait          -> wait >> again
       Right bytesSent     -> return bytesSent
 
-unsafeSendTo :: Address a => Socket a t p -> Ptr b -> CSize -> MsgFlags -> Ptr a -> CInt -> IO CInt
+unsafeSendTo :: Socket a t p -> Ptr b -> CSize -> MsgFlags -> Ptr a -> CInt -> IO CInt
 unsafeSendTo (Socket mfd) bufPtr bufSize flags addrPtr addrSize = do
   fix $ \again-> do
     ewb <- withMVar mfd $ \fd-> do
@@ -87,7 +87,7 @@ unsafeSendTo (Socket mfd) bufPtr bufSize flags addrPtr addrSize = do
       Left  wait          -> wait >> again
       Right bytesSent     -> return (fromIntegral bytesSent)
 
-unsafeSendMsg :: Address a => Socket a t p -> Ptr (Msg a t p) -> MsgFlags -> IO CInt
+unsafeSendMsg :: Socket a t p -> Ptr (Msg a t p) -> MsgFlags -> IO CInt
 unsafeSendMsg (Socket mfd) msghdrPtr flags = do
   fix $ \again-> do
     ewb <- withMVar mfd $ \fd-> do
@@ -108,7 +108,7 @@ unsafeSendMsg (Socket mfd) msghdrPtr flags = do
       Left  wait          -> wait >> again
       Right bytesSent     -> return bytesSent
 
-unsafeRecv :: (Address a, Type t, Protocol  p) => Socket a t p -> Ptr b -> CSize -> MsgFlags -> IO CInt
+unsafeRecv :: Socket a t p -> Ptr b -> CSize -> MsgFlags -> IO CInt
 unsafeRecv (Socket mfd) bufPtr bufSize flags =
   fix $ \again-> do
     ewb <- withMVar mfd $ \fd-> do
@@ -148,7 +148,7 @@ unsafeRecvMsg (Socket mfd) msgPtr flags =
       Left  wait          -> wait >> again
       Right bytesReceived -> return bytesReceived
 
-unsafeRecvFrom :: (Address a, Type t, Protocol  p) => Socket a t p -> Ptr b -> CSize -> MsgFlags -> Ptr a -> Ptr CInt -> IO CInt
+unsafeRecvFrom :: Socket a t p -> Ptr b -> CSize -> MsgFlags -> Ptr a -> Ptr CInt -> IO CInt
 unsafeRecvFrom (Socket mfd) bufPtr bufSize flags addrPtr addrSizePtr = do
   fix $ \again-> do
     ewb <- withMVar mfd $ \fd-> do

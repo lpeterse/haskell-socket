@@ -197,6 +197,7 @@ module System.Socket (
 
 import Control.Exception
 import Control.Monad
+import Control.Applicative
 import Control.Concurrent.MVar
 
 import Data.Function
@@ -494,13 +495,13 @@ connect (Socket mfd) addr = do
 --
 --     [@EOPNOTSUPP@]    The specified flags are not supported.
 --     [@ENOTSOCK@]      The descriptor does not refer to a socket.
-send :: (Address a, Type t, Protocol  p) => Socket a t p -> BS.ByteString -> MsgFlags -> IO Int
+send :: Socket a t p -> BS.ByteString -> MsgFlags -> IO Int
 send s bs flags = do
   bytesSent <- BS.unsafeUseAsCStringLen bs $ \(bufPtr,bufSize)->
-    unsafeSend s bufPtr (fromIntegral bufSize) flags
+    unsafeSend s (castPtr bufPtr) (fromIntegral bufSize) flags
   return (fromIntegral bytesSent)
 
-sendMsg :: Address a => Socket a t p -> Msg a t p -> IO Int
+sendMsg :: (Address a, Type t, Protocol p) => Socket a t p -> Msg a t p -> IO Int
 sendMsg s msg = do
   bytesSent <- unsafeUseAsMsgPtr msg $ \msgPtr-> do
     unsafeSendMsg s msgPtr (msgFlags msg)
@@ -538,7 +539,7 @@ sendMsg s msg = do
 --     [@EOPNOTSUPP@]    The specified flags are not supported.
 --     [@ENOTSOCK@]      The descriptor does not refer to a socket.
 --     [@EINVAL@]        The address len does not match.
-sendTo :: Address a => Socket a t p -> BS.ByteString -> MsgFlags -> a -> IO Int
+sendTo ::(Address a) => Socket a t p -> BS.ByteString -> MsgFlags -> a -> IO Int
 sendTo s bs flags addr = do
   bytesSent <- alloca $ \addrPtr-> do
     poke addrPtr addr
@@ -611,7 +612,7 @@ recvFrom s bufSize flags =
             return (bs, addr)
         )
 
-recvMsg :: forall a t p. (Address a)
+recvMsg :: forall a t p. (Address a, Type t, Protocol p)
   => Socket a t p
   -> Int            -- ^ Buffer size in bytes (should be a power of 2, e.g. 4096)
   -> Bool           -- ^ Shall the peer address be returned?
@@ -622,6 +623,7 @@ recvMsg s bufSize reqAddr flags = do
     allocaBytes (#const sizeof(struct iovec)) $ \iovPtr-> do
       alloca $ \addrPtr-> do -- as this is stackspace the allocation is nearly for free
         c_memset msgPtr 0 (#const sizeof(struct msghdr))
+        c_memset iovPtr 0 (#const sizeof(struct iovec))
         poke (msg_iov    msgPtr) iovPtr
         poke (msg_iovlen msgPtr) 1
         -- the address will only be returned if the field is not a nullPtr
@@ -707,7 +709,7 @@ close (Socket mfd) = do
 --   > sendAll sock buf flags = do
 --   >   sent <- send sock buf flags
 --   >   when (sent < length buf) $ sendAll sock (drop sent buf) flags
-sendAll ::(Address a, Type t, Protocol  p) => Socket a t p -> BS.ByteString -> MsgFlags -> IO ()
+sendAll ::Socket a t p -> BS.ByteString -> MsgFlags -> IO ()
 sendAll s bs flags = do
   sent <- send s bs flags
   when (sent < BS.length bs) $ sendAll s (BS.drop sent bs) flags
@@ -727,7 +729,7 @@ sendAllTo s bs flags addr = do
 --   > sendAllMsg sock msg = do
 --   >   sent <- sendMsg sock msg
 --   >   when (sent < length (msgIov msg)) $ sendAllMsg sock (msg { msgIov = drop sent (msgIov msg)})
-sendAllMsg :: Address a => Socket a t p -> Msg a t p -> IO ()
+sendAllMsg :: (Address a, Type t, Protocol p) => Socket a t p -> Msg a t p -> IO ()
 sendAllMsg s msg = do
   sent <- sendMsg s msg
   when (fromIntegral sent < LBS.length (msgIov msg)) $ do
