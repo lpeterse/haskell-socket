@@ -66,7 +66,7 @@ unsafeSend (Socket mfd) bufPtr bufSize flags = do
       Left  wait          -> wait >> again
       Right bytesSent     -> return bytesSent
 
-unsafeSendTo :: (Address a, Type t, Protocol  p) => Socket a t p -> Ptr b -> CSize -> MsgFlags -> Ptr a -> CInt -> IO CInt
+unsafeSendTo :: Address a => Socket a t p -> Ptr b -> CSize -> MsgFlags -> Ptr a -> CInt -> IO CInt
 unsafeSendTo (Socket mfd) bufPtr bufSize flags addrPtr addrSize = do
   fix $ \again-> do
     ewb <- withMVar mfd $ \fd-> do

@@ -117,6 +117,8 @@ module System.Socket (
   -- * Convenience Operations
   -- ** sendAll
   , sendAll
+  -- ** sendAllTo
+  , sendAllTo
   -- ** sendAllMsg
   , sendAllMsg
   -- * Sockets
@@ -498,27 +500,11 @@ send s bs flags = do
     unsafeSend s bufPtr (fromIntegral bufSize) flags
   return (fromIntegral bytesSent)
 
--- | Like `send`, but continues until all data has been sent.
---
---   > sendAll sock buf flags = do
---   >   sent <- send sock buf flags
---   >   when (sent < length buf) $ sendAll sock (drop sent buf) flags
-sendAll ::(Address a, Type t, Protocol  p) => Socket a t p -> BS.ByteString -> MsgFlags -> IO ()
-sendAll s bs flags = do
-  sent <- send s bs flags
-  when (sent < BS.length bs) $ sendAll s (BS.drop sent bs) flags
-
 sendMsg :: Address a => Socket a t p -> Msg a t p -> IO Int
 sendMsg s msg = do
   bytesSent <- unsafeUseAsMsgPtr msg $ \msgPtr-> do
     unsafeSendMsg s msgPtr (msgFlags msg)
   return (fromIntegral bytesSent)
-
-sendAllMsg :: Address a => Socket a t p -> Msg a t p -> IO ()
-sendAllMsg s msg = do
-  sent <- sendMsg s msg
-  when (fromIntegral sent < LBS.length (msgIov msg)) $ do
-    sendAllMsg s (msg { msgIov = LBS.drop (fromIntegral sent) (msgIov msg) })
 
 -- | Send a message on a socket with a specific destination address.
 --
@@ -552,7 +538,7 @@ sendAllMsg s msg = do
 --     [@EOPNOTSUPP@]    The specified flags are not supported.
 --     [@ENOTSOCK@]      The descriptor does not refer to a socket.
 --     [@EINVAL@]        The address len does not match.
-sendTo :: (Address a, Type t, Protocol  p) => Socket a t p -> BS.ByteString -> MsgFlags -> a -> IO Int
+sendTo :: Address a => Socket a t p -> BS.ByteString -> MsgFlags -> a -> IO Int
 sendTo s bs flags addr = do
   bytesSent <- alloca $ \addrPtr-> do
     poke addrPtr addr
@@ -712,3 +698,37 @@ close (Socket mfd) = do
       -- We put an invalid file descriptor into the MVar.
       return (-1)
 
+-------------------------------------------------------------------------------
+-- Convenience Operations
+-------------------------------------------------------------------------------
+
+-- | Like `send`, but continues until all data has been sent.
+--
+--   > sendAll sock buf flags = do
+--   >   sent <- send sock buf flags
+--   >   when (sent < length buf) $ sendAll sock (drop sent buf) flags
+sendAll ::(Address a, Type t, Protocol  p) => Socket a t p -> BS.ByteString -> MsgFlags -> IO ()
+sendAll s bs flags = do
+  sent <- send s bs flags
+  when (sent < BS.length bs) $ sendAll s (BS.drop sent bs) flags
+
+-- | Like `sendTo`, but continues until all data has been sent.
+--
+--   > sendAllTo sock buf flags addr = do
+--   >   sent <- sendTo sock buf flags addr
+--   >   when (sent < length buf) $ sendAllTo sock (drop sent buf) flags addr
+sendAllTo ::Address a => Socket a t p -> BS.ByteString -> MsgFlags -> a -> IO ()
+sendAllTo s bs flags addr = do
+  sent <- sendTo s bs flags addr
+  when (sent < BS.length bs) $ sendAllTo s (BS.drop sent bs) flags addr
+
+-- | Like `sendMsg`, but continues until all data has been sent.
+--
+--   > sendAllMsg sock msg = do
+--   >   sent <- sendMsg sock msg
+--   >   when (sent < length (msgIov msg)) $ sendAllMsg sock (msg { msgIov = drop sent (msgIov msg)})
+sendAllMsg :: Address a => Socket a t p -> Msg a t p -> IO ()
+sendAllMsg s msg = do
+  sent <- sendMsg s msg
+  when (fromIntegral sent < LBS.length (msgIov msg)) $ do
+    sendAllMsg s (msg { msgIov = LBS.drop (fromIntegral sent) (msgIov msg) })
