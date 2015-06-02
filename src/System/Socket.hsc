@@ -15,6 +15,7 @@
 -- > module Main where
 -- >
 -- > import System.Socket
+-- > import System.Socket.Address.SockAddrIn
 -- > import Data.ByteString
 -- > import Control.Monad
 -- > import Control.Concurrent
@@ -24,7 +25,7 @@
 -- > main = do
 -- >   s <- socket :: IO (Socket SockAddrIn STREAM TCP)
 -- >   setSockOpt s (SO_REUSEADDR)
--- >   bind s (SockAddrIn 8080 (pack [127,0,0,1]))
+-- >   bind s (SockAddrIn 8080 inaddrLOOPBACK)
 -- >   listen s 5
 -- >   forever $ do
 -- >     (peer,addr) <- accept s

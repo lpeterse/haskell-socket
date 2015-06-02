@@ -10,6 +10,7 @@ import Control.Concurrent
 import Control.Concurrent.Async
 import Foreign.C.Error
 import System.Socket
+import System.Socket.Address.SockAddrIn
 import System.Exit
 
 main :: IO ()
@@ -179,7 +180,7 @@ localhost :: SockAddrIn
 localhost =
   SockAddrIn
   { sinPort      = 7777
-  , sinAddr      = pack [127,0,0,1]
+  , sinAddr      = inaddrLOOPBACK
   }
 
 localhost6 :: SockAddrIn6

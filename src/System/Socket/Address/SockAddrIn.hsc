@@ -1,6 +1,14 @@
 module System.Socket.Address.SockAddrIn
   ( SockAddrIn (..)
   , IPv4Address ()
+  , inaddrANY
+  , inaddrBROADCAST
+  , inaddrNONE
+  , inaddrLOOPBACK
+  , inaddrUNSPEC_GROUP
+  , inaddrALLHOSTS_GROUP
+  , inaddrALLRTS_GROUP
+  , inaddrMAXLOCAL_GROUP
   ) where
 
 import Data.Word
@@ -44,6 +52,38 @@ data SockAddrIn
 newtype IPv4Address
       = IPv4Address BS.ByteString
       deriving (Eq)
+
+-- | @0.0.0.0@
+inaddrANY             :: IPv4Address
+inaddrANY              = IPv4Address $ BS.pack [  0,  0,  0,  0]
+
+-- | @255.255.255.0@
+inaddrBROADCAST       :: IPv4Address
+inaddrBROADCAST        = IPv4Address $ BS.pack [255,255,255,255]
+
+-- | @255.255.255.0@
+inaddrNONE            :: IPv4Address
+inaddrNONE             = IPv4Address $ BS.pack [255,255,255,255]
+
+-- | @127.0.0.1@
+inaddrLOOPBACK        :: IPv4Address
+inaddrLOOPBACK         = IPv4Address $ BS.pack [127,  0,  0,  1]
+
+-- | @224.0.0.0@
+inaddrUNSPEC_GROUP    :: IPv4Address
+inaddrUNSPEC_GROUP     = IPv4Address $ BS.pack [224,  0,  0,  0]
+
+-- | @224.0.0.1@
+inaddrALLHOSTS_GROUP  :: IPv4Address
+inaddrALLHOSTS_GROUP   = IPv4Address $ BS.pack [224,  0,  0,  1]
+
+-- | @224.0.0.2@
+inaddrALLRTS_GROUP    :: IPv4Address
+inaddrALLRTS_GROUP     = IPv4Address $ BS.pack [224,  0,  0,  2]
+
+-- | @224.0.0.255@
+inaddrMAXLOCAL_GROUP  :: IPv4Address
+inaddrMAXLOCAL_GROUP   = IPv4Address $ BS.pack [224,  0,  0,255]
 
 instance Show SockAddrIn where
   show (SockAddrIn p (IPv4Address a)) =
