@@ -1,5 +1,6 @@
 module System.Socket.Address.SockAddrIn
   ( SockAddrIn (..)
+  , IPv4Address ()
   ) where
 
 import Data.Word
@@ -26,20 +27,44 @@ instance Address SockAddrIn where
 data SockAddrIn
    = SockAddrIn
      { sinPort      :: Word16
-     , sinAddr      :: BS.ByteString
-     } deriving (Eq, Ord)
+     , sinAddr      :: IPv4Address
+     } deriving (Eq)
+
+-- | To avoid errors with endianess it was decided to keep this type abstract.
+--
+--   Hint: Use the `Foreign.Storable.Storable` instance if you really need to access. It exposes it
+--   exactly as found within an IP packet (big endian if you insist
+--   on interpreting it as a number).
+--
+--   Another hint: Use `System.Socket.getAddrInfo` for parsing and suppress
+--   nameserver lookups:
+--
+--   > > getAddrInfo (Just "127.0.0.1") Nothing aiNUMERICHOST :: IO [AddrInfo SockAddrIn STREAM TCP]
+--   > [AddrInfo {addrInfoFlags = AddrInfoFlags 4, addrAddress = "127.0.0.1:0", addrCanonName = Nothing}]
+newtype IPv4Address
+      = IPv4Address BS.ByteString
+      deriving (Eq)
 
 instance Show SockAddrIn where
-  show (SockAddrIn p a) =
+  show (SockAddrIn p (IPv4Address a)) =
     "\"" ++ (concat $ intersperse "." $ map show $ BS.unpack a) ++ ":" ++ show p ++ "\""
+
+instance Storable IPv4Address where
+  sizeOf   _  = (#size      uint32_t)
+  alignment _ = (#alignment uint32_t)
+  peek ptr    =
+    IPv4Address <$> BS.packCStringLen (castPtr ptr, 4)
+  poke ptr (IPv4Address a) =
+    BS.unsafeUseAsCString a $ \aPtr-> do
+      copyBytes ptr (castPtr aPtr) (min 4 $ BS.length a)
 
 instance Storable SockAddrIn where
   sizeOf    _ = (#size struct sockaddr_in)
   alignment _ = (#alignment struct sockaddr_in)
   peek ptr    = do
-    ph  <- peekByteOff       (sin_port ptr)  0  :: IO Word8
-    pl  <- peekByteOff       (sin_port ptr)  1  :: IO Word8
-    a   <- BS.packCStringLen (sin_addr ptr,  4) :: IO BS.ByteString
+    ph  <- peekByteOff (sin_port ptr)  0 :: IO Word8
+    pl  <- peekByteOff (sin_port ptr)  1 :: IO Word8
+    a   <- peek        (sin_addr ptr)    :: IO IPv4Address
     return (SockAddrIn (fromIntegral ph * 256 + fromIntegral pl) a)
     where
       sin_port     = (#ptr struct sockaddr_in, sin_port)
@@ -49,8 +74,7 @@ instance Storable SockAddrIn where
     poke        (sin_family   ptr) ((#const AF_INET) :: Word16)
     pokeByteOff (sin_port     ptr)  0 (fromIntegral $ rem (quot p 256) 256 :: Word8)
     pokeByteOff (sin_port     ptr)  1 (fromIntegral $ rem       p      256 :: Word8)
-    BS.unsafeUseAsCString a $ \a'-> do
-      copyBytes (sin_addr ptr) a' (min 4 $ BS.length a)-- copyBytes dest from count
+    poke        (sin_addr     ptr) a
     where
       sin_family   = (#ptr struct sockaddr_in, sin_family)
       sin_port     = (#ptr struct sockaddr_in, sin_port)
