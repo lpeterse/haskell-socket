@@ -178,6 +178,7 @@ unsafePokeByteStringToIoVec iovecPtr bs = do
     iov_base = (#ptr struct iovec, iov_base) :: Ptr IoVec -> Ptr CString
     iov_len  = (#ptr struct iovec, iov_len)  :: Ptr IoVec -> Ptr CSize
 
+-- | FIXME: empty ByteString causes EINVAL
 unsafeUseAsMsgPtr :: LBS.ByteString -> (Ptr (Msg a t p) -> IO o) -> IO o
 unsafeUseAsMsgPtr bytestring performWith = do
   allocaBytes (#const sizeof(struct msghdr)) $ \msgHdrPtr-> do
