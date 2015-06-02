@@ -117,14 +117,8 @@ module System.Socket (
   -- * Convenience Operations
   -- ** sendAll
   , sendAll
-  -- ** sendAllTo
-  , sendAllTo
-  -- ** sendAllMsg
-  , sendAllMsg
   -- * Sockets
   , Socket (..)
-  , Msg (..)
-  , MsgControl (..)
   -- ** Addresses
   , Address (..)
   -- *** SockAddrIn
@@ -501,10 +495,10 @@ send s bs flags = do
     unsafeSend s (castPtr bufPtr) (fromIntegral bufSize) flags
   return (fromIntegral bytesSent)
 
-sendMsg :: (Address a, Type t, Protocol p) => Socket a t p -> Msg a t p -> IO Int
-sendMsg s msg = do
-  bytesSent <- unsafeUseAsMsgPtr msg $ \msgPtr-> do
-    unsafeSendMsg s msgPtr (msgFlags msg)
+sendMsg :: Socket a t p -> LBS.ByteString -> MsgFlags -> IO Int
+sendMsg s lbs flags = do
+  bytesSent <- unsafeUseAsMsgPtr lbs $ \msgPtr-> do
+    unsafeSendMsg s msgPtr flags
   return (fromIntegral bytesSent)
 
 -- | Send a message on a socket with a specific destination address.
@@ -612,40 +606,31 @@ recvFrom s bufSize flags =
             return (bs, addr)
         )
 
-recvMsg :: forall a t p. (Address a, Type t, Protocol p)
-  => Socket a t p
-  -> Int            -- ^ Buffer size in bytes (should be a power of 2, e.g. 4096)
-  -> Bool           -- ^ Shall the peer address be returned?
-  -> MsgFlags
-  -> IO (Msg a t p)
-recvMsg s bufSize reqAddr flags = do
+-- recvMsg            :: IO (LBS.ByteString)
+-- recvMsgFrom        :: IO (LBS.ByteString, a)
+-- recvMsgControl     :: IO (LBS.ByteString, c)
+-- recvMsgControlFrom :: IO (LBS.ByteString, c, a)
+
+recvMsg :: Socket a t p -> Int -> MsgFlags -> IO (LBS.ByteString, MsgFlags)
+recvMsg s bufSize flags = do
   allocaBytes (#const sizeof(struct msghdr)) $ \msgPtr-> do
     allocaBytes (#const sizeof(struct iovec)) $ \iovPtr-> do
-      alloca $ \addrPtr-> do -- as this is stackspace the allocation is nearly for free
-        c_memset msgPtr 0 (#const sizeof(struct msghdr))
-        c_memset iovPtr 0 (#const sizeof(struct iovec))
-        poke (msg_iov    msgPtr) iovPtr
-        poke (msg_iovlen msgPtr) 1
-        -- the address will only be returned if the field is not a nullPtr
-        when reqAddr $ do
-          poke (msg_name msgPtr) addrPtr
-          poke (msg_namelen msgPtr) (fromIntegral $ sizeOf (undefined :: a))
-        -- this is to protect the malloced space before it becomes a ByteString
-        bracketOnError
-          ( mallocBytes bufSize )
-          (\bufPtr-> free bufPtr )
-          (\bufPtr-> do
-              poke (iov_base iovPtr) bufPtr
-              poke (iov_len  iovPtr) (fromIntegral bufSize)
-              bytesReceived <- unsafeRecvMsg s msgPtr flags
-              Msg <$> ( LBS.fromStrict <$> BS.unsafePackMallocCStringLen (bufPtr, fromIntegral bytesReceived) )
-                  <*> ( if reqAddr
-                          then peek addrPtr >>= return . Just
-                          else return Nothing
-                      )
-                  <*> ( return [] )
-                  <*> ( MsgFlags <$> peek (msg_flags msgPtr) )
-          )
+      c_memset msgPtr 0 (#const sizeof(struct msghdr))
+      c_memset iovPtr 0 (#const sizeof(struct iovec))
+      poke (msg_iov    msgPtr) iovPtr
+      poke (msg_iovlen msgPtr) 1
+      -- this is to protect the malloced space before it becomes a ByteString
+      bracketOnError
+        ( mallocBytes bufSize )
+        (\bufPtr-> free bufPtr )
+        (\bufPtr-> do
+            poke (iov_base iovPtr) bufPtr
+            poke (iov_len  iovPtr) (fromIntegral bufSize)
+            bytesReceived <- unsafeRecvMsg s msgPtr flags
+            lbs <- LBS.fromStrict <$> BS.unsafePackMallocCStringLen (bufPtr, fromIntegral bytesReceived)
+            rflags <- MsgFlags <$> peek (msg_flags msgPtr)
+            return (lbs, rflags)
+        )
   where
     iov_base       = (#ptr struct iovec, iov_base)    :: Ptr IoVec -> Ptr CString
     iov_len        = (#ptr struct iovec, iov_len)     :: Ptr IoVec -> Ptr CSize
@@ -668,12 +653,8 @@ recvMsg s bufSize reqAddr flags = do
 --     to reliably avoid use-after-free situations).
 --   - The following `SocketException`s are relevant and might be thrown:
 --
---     [@EIO@]           An I/O error occured while writing to the filesystem.
---
---   - The following `SocketException`s are theoretically possible, but should not occur if the library is correct:
---
---     [@EBADF@]         The file descriptor is invalid.
-close :: (Address a, Type t, Protocol  p) => Socket a t p -> IO ()
+--     [@EIO@]           An I/O error occured.
+close :: Socket a t p -> IO ()
 close (Socket mfd) = do
   modifyMVarMasked_ mfd $ \fd-> do
     if fd < 0 then do
@@ -709,28 +690,7 @@ close (Socket mfd) = do
 --   > sendAll sock buf flags = do
 --   >   sent <- send sock buf flags
 --   >   when (sent < length buf) $ sendAll sock (drop sent buf) flags
-sendAll ::Socket a t p -> BS.ByteString -> MsgFlags -> IO ()
+sendAll ::Socket a STREAM p -> BS.ByteString -> MsgFlags -> IO ()
 sendAll s bs flags = do
   sent <- send s bs flags
   when (sent < BS.length bs) $ sendAll s (BS.drop sent bs) flags
-
--- | Like `sendTo`, but continues until all data has been sent.
---
---   > sendAllTo sock buf flags addr = do
---   >   sent <- sendTo sock buf flags addr
---   >   when (sent < length buf) $ sendAllTo sock (drop sent buf) flags addr
-sendAllTo ::Address a => Socket a t p -> BS.ByteString -> MsgFlags -> a -> IO ()
-sendAllTo s bs flags addr = do
-  sent <- sendTo s bs flags addr
-  when (sent < BS.length bs) $ sendAllTo s (BS.drop sent bs) flags addr
-
--- | Like `sendMsg`, but continues until all data has been sent.
---
---   > sendAllMsg sock msg = do
---   >   sent <- sendMsg sock msg
---   >   when (sent < length (msgIov msg)) $ sendAllMsg sock (msg { msgIov = drop sent (msgIov msg)})
-sendAllMsg :: (Address a, Type t, Protocol p) => Socket a t p -> Msg a t p -> IO ()
-sendAllMsg s msg = do
-  sent <- sendMsg s msg
-  when (fromIntegral sent < LBS.length (msgIov msg)) $ do
-    sendAllMsg s (msg { msgIov = LBS.drop (fromIntegral sent) (msgIov msg) })

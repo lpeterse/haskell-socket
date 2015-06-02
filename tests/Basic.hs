@@ -111,12 +111,12 @@ test0003 dummy addr =
               listen server 5
               serverRecv <- async $ do
                 (peerSock, peerAddr) <- accept server
-                recvMsg peerSock 4096 False mempty
+                recvMsg peerSock 4096 mempty
               client <- socket `asTypeOf` return server
               connect client addr
-              sendMsg client (Msg helloWorld Nothing [] mempty)
-              msg <- wait serverRecv
-              if (msgIov msg /= helloWorld)
+              sendMsg client helloWorld mempty
+              (msg, flags) <- wait serverRecv
+              if (msg /= helloWorld)
                 then return (Left  "Received message was bogus.")
                 else return (Right "")
         )

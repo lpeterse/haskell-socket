@@ -178,31 +178,23 @@ unsafePokeByteStringToIoVec iovecPtr bs = do
     iov_base = (#ptr struct iovec, iov_base) :: Ptr IoVec -> Ptr CString
     iov_len  = (#ptr struct iovec, iov_len)  :: Ptr IoVec -> Ptr CSize
 
-unsafeUseAsMsgPtr :: Address a => Msg a t p -> (Ptr (Msg a t p) -> IO o) -> IO o
-unsafeUseAsMsgPtr msg f = do
+unsafeUseAsMsgPtr :: LBS.ByteString -> (Ptr (Msg a t p) -> IO o) -> IO o
+unsafeUseAsMsgPtr bytestring performWith = do
   allocaBytes (#const sizeof(struct msghdr)) $ \msgHdrPtr-> do
     allocaBytes (chunkCount * (#const sizeof(struct iovec))) $ \iovArrPtr-> do
       c_memset msgHdrPtr 0 (#const sizeof(struct msghdr))
       poke (msg_iov    msgHdrPtr) iovArrPtr
       poke (msg_iovlen msgHdrPtr) (fromIntegral chunkCount)
-      poke (msg_flags  msgHdrPtr) flags
       LBS.foldrChunks 
         (\bs action-> \pos-> do
           unsafePokeByteStringToIoVec (iovArrPtr `plusPtr` (pos * (#const sizeof(struct iovec)))) bs
           action (pos + 1)
-        ) (const $ return ()) (msgIov msg) 0
-      case msgName msg of
-        Nothing   -> f msgHdrPtr
-        Just addr -> alloca $ \addrPtr-> do
-          poke addrPtr addr
-          poke (msg_name    msgHdrPtr) addrPtr
-          poke (msg_namelen msgHdrPtr) (fromIntegral $ sizeOf addr)
-          f msgHdrPtr
+        ) (const $ return ()) bytestring 0
+      performWith msgHdrPtr
   where
-    MsgFlags flags = msgFlags msg
-    chunkCount     = length (LBS.toChunks (msgIov msg))
-    msg_name       = (#ptr struct msghdr, msg_name)   :: Ptr (Msg a t p) -> Ptr (Ptr a)
-    msg_namelen    = (#ptr struct msghdr, msg_namelen):: Ptr (Msg a t p) -> Ptr CInt
+    chunkCount     = length (LBS.toChunks bytestring)
+--    msg_name       = (#ptr struct msghdr, msg_name)   :: Ptr (Msg a t p) -> Ptr (Ptr a)
+--    msg_namelen    = (#ptr struct msghdr, msg_namelen):: Ptr (Msg a t p) -> Ptr CInt
     msg_iov        = (#ptr struct msghdr, msg_iov)    :: Ptr (Msg a t p) -> Ptr (Ptr IoVec)
     msg_iovlen     = (#ptr struct msghdr, msg_iovlen) :: Ptr (Msg a t p) -> Ptr CSize
     msg_flags      = (#ptr struct msghdr, msg_flags)  :: Ptr (Msg a t p) -> Ptr CInt
