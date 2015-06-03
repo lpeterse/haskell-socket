@@ -57,7 +57,7 @@ instance SockAddr SockAddrIn
 --   nameserver lookups:
 --
 --   > > getAddrInfo (Just "127.0.0.1") Nothing aiNUMERICHOST :: IO [AddrInfo SockAddrIn STREAM TCP]
---   > [AddrInfo {addrInfoFlags = AddrInfoFlags 4, addrFamily = "127.0.0.1:0", addrCanonName = Nothing}]
+--   > [AddrInfo {addrInfoFlags = AddrInfoFlags 4, addrAddress = "127.0.0.1:0", addrCanonName = Nothing}]
 newtype AddrIn
       = AddrIn BS.ByteString
       deriving (Eq)
