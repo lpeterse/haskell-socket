@@ -204,11 +204,11 @@ niNUMERICSERV   = NameInfoFlags (#const NI_NUMERICSERV)
 --   queries. If you want to connect to both IPv4 and IPV6 addresses use
 --   `aiV4MAPPED` and use IPv6-sockets.
 --
---   > > getAddrInfo (Just "www.haskell.org") (Just "80") aiV4MAPPED :: IO [AddrInfo SockAddrIn6 STREAM TCP]
+--   > > getAddrInfo (Just "www.haskell.org") (Just "80") aiV4MAPPED :: IO [AddrInfo INET6 STREAM TCP]
 --   > [AddrInfo {addrInfoFlags = AddrInfoFlags 8, addrAddress = "[2400:cb00:2048:0001:0000:0000:6ca2:cc3c]:80", addrCanonName = Nothing}]
---   > > getAddrInfo (Just "darcs.haskell.org") Nothing aiV4MAPPED :: IO [AddrInfo SockAddrIn6 STREAM TCP]
+--   > > getAddrInfo (Just "darcs.haskell.org") Nothing aiV4MAPPED :: IO [AddrInfo INET6 STREAM TCP]
 --   > [AddrInfo {addrInfoFlags = AddrInfoFlags 8, addrAddress = "[0000:0000:0000:0000:0000:ffff:17fd:e1ad]:0", addrCanonName = Nothing}]
---   > > getAddrInfo (Just "darcs.haskell.org") Nothing mempty :: IO [AddrInfo SockAddrIn6 STREAM TCP]
+--   > > getAddrInfo (Just "darcs.haskell.org") Nothing mempty :: IO [AddrInfo INET6 STREAM TCP]
 --   > *** Exception: AddrInfoException "Name or service not known"
 getAddrInfo :: (Family f, Type t, Protocol p) => Maybe BS.ByteString -> Maybe BS.ByteString -> AddrInfoFlags -> IO [AddrInfo f t p]
 getAddrInfo = getAddrInfo'
