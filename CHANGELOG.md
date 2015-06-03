@@ -1,3 +1,4 @@
+ * Hide SockAddrIn address constructor
  * Added `recvMsg` operation
  * Fixed unsafeSend, unsafeSendTo and unsafeSendMsg (they were waiting for
    a read event instead of waiting for writing)

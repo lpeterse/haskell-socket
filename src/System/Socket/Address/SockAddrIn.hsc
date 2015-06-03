@@ -89,6 +89,10 @@ instance Show SockAddrIn where
   show (SockAddrIn p (IPv4Address a)) =
     "\"" ++ (concat $ intersperse "." $ map show $ BS.unpack a) ++ ":" ++ show p ++ "\""
 
+instance Show IPv4Address where
+  show (IPv4Address a) =
+    "\"" ++ (concat $ intersperse "." $ map show $ BS.unpack a) ++ "\""
+
 instance Storable IPv4Address where
   sizeOf   _  = (#size      uint32_t)
   alignment _ = (#alignment uint32_t)
