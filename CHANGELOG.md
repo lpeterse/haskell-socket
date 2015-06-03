@@ -1,3 +1,4 @@
+ * Hide SockAddrIn6 address constructor
  * Hide SockAddrIn address constructor
  * Added `recvMsg` operation
  * Fixed unsafeSend, unsafeSendTo and unsafeSendMsg (they were waiting for

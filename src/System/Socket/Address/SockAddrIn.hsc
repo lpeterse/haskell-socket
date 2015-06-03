@@ -1,6 +1,6 @@
 module System.Socket.Address.SockAddrIn
   ( SockAddrIn (..)
-  , IPv4Address ()
+  , AddrIn ()
   , inaddrANY
   , inaddrBROADCAST
   , inaddrNONE
@@ -15,6 +15,8 @@ import Data.Word
 import Data.List
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Unsafe as BS
+
+import Control.Applicative
 
 import Foreign.Ptr
 import Foreign.Storable
@@ -35,7 +37,7 @@ instance Address SockAddrIn where
 data SockAddrIn
    = SockAddrIn
      { sinPort      :: Word16
-     , sinAddr      :: IPv4Address
+     , sinAddr      :: AddrIn
      } deriving (Eq)
 
 -- | To avoid errors with endianess it was decided to keep this type abstract.
@@ -49,56 +51,56 @@ data SockAddrIn
 --
 --   > > getAddrInfo (Just "127.0.0.1") Nothing aiNUMERICHOST :: IO [AddrInfo SockAddrIn STREAM TCP]
 --   > [AddrInfo {addrInfoFlags = AddrInfoFlags 4, addrAddress = "127.0.0.1:0", addrCanonName = Nothing}]
-newtype IPv4Address
-      = IPv4Address BS.ByteString
+newtype AddrIn
+      = AddrIn BS.ByteString
       deriving (Eq)
 
 -- | @0.0.0.0@
-inaddrANY             :: IPv4Address
-inaddrANY              = IPv4Address $ BS.pack [  0,  0,  0,  0]
+inaddrANY             :: AddrIn
+inaddrANY              = AddrIn $ BS.pack [  0,  0,  0,  0]
 
 -- | @255.255.255.0@
-inaddrBROADCAST       :: IPv4Address
-inaddrBROADCAST        = IPv4Address $ BS.pack [255,255,255,255]
+inaddrBROADCAST       :: AddrIn
+inaddrBROADCAST        = AddrIn $ BS.pack [255,255,255,255]
 
 -- | @255.255.255.0@
-inaddrNONE            :: IPv4Address
-inaddrNONE             = IPv4Address $ BS.pack [255,255,255,255]
+inaddrNONE            :: AddrIn
+inaddrNONE             = AddrIn $ BS.pack [255,255,255,255]
 
 -- | @127.0.0.1@
-inaddrLOOPBACK        :: IPv4Address
-inaddrLOOPBACK         = IPv4Address $ BS.pack [127,  0,  0,  1]
+inaddrLOOPBACK        :: AddrIn
+inaddrLOOPBACK         = AddrIn $ BS.pack [127,  0,  0,  1]
 
 -- | @224.0.0.0@
-inaddrUNSPEC_GROUP    :: IPv4Address
-inaddrUNSPEC_GROUP     = IPv4Address $ BS.pack [224,  0,  0,  0]
+inaddrUNSPEC_GROUP    :: AddrIn
+inaddrUNSPEC_GROUP     = AddrIn $ BS.pack [224,  0,  0,  0]
 
 -- | @224.0.0.1@
-inaddrALLHOSTS_GROUP  :: IPv4Address
-inaddrALLHOSTS_GROUP   = IPv4Address $ BS.pack [224,  0,  0,  1]
+inaddrALLHOSTS_GROUP  :: AddrIn
+inaddrALLHOSTS_GROUP   = AddrIn $ BS.pack [224,  0,  0,  1]
 
 -- | @224.0.0.2@
-inaddrALLRTS_GROUP    :: IPv4Address
-inaddrALLRTS_GROUP     = IPv4Address $ BS.pack [224,  0,  0,  2]
+inaddrALLRTS_GROUP    :: AddrIn
+inaddrALLRTS_GROUP     = AddrIn $ BS.pack [224,  0,  0,  2]
 
 -- | @224.0.0.255@
-inaddrMAXLOCAL_GROUP  :: IPv4Address
-inaddrMAXLOCAL_GROUP   = IPv4Address $ BS.pack [224,  0,  0,255]
+inaddrMAXLOCAL_GROUP  :: AddrIn
+inaddrMAXLOCAL_GROUP   = AddrIn $ BS.pack [224,  0,  0,255]
 
 instance Show SockAddrIn where
-  show (SockAddrIn p (IPv4Address a)) =
-    "\"" ++ (concat $ intersperse "." $ map show $ BS.unpack a) ++ ":" ++ show p ++ "\""
+  show (SockAddrIn p a) =
+    show a ++ ":" ++ show p
 
-instance Show IPv4Address where
-  show (IPv4Address a) =
-    "\"" ++ (concat $ intersperse "." $ map show $ BS.unpack a) ++ "\""
+instance Show AddrIn where
+  show (AddrIn a) =
+    concat $ intersperse "." $ map show $ BS.unpack a
 
-instance Storable IPv4Address where
+instance Storable AddrIn where
   sizeOf   _  = (#size      uint32_t)
   alignment _ = (#alignment uint32_t)
   peek ptr    =
-    IPv4Address <$> BS.packCStringLen (castPtr ptr, 4)
-  poke ptr (IPv4Address a) =
+    AddrIn <$> BS.packCStringLen (castPtr ptr, 4)
+  poke ptr (AddrIn a) =
     BS.unsafeUseAsCString a $ \aPtr-> do
       copyBytes ptr (castPtr aPtr) (min 4 $ BS.length a)
 
@@ -108,7 +110,7 @@ instance Storable SockAddrIn where
   peek ptr    = do
     ph  <- peekByteOff (sin_port ptr)  0 :: IO Word8
     pl  <- peekByteOff (sin_port ptr)  1 :: IO Word8
-    a   <- peek        (sin_addr ptr)    :: IO IPv4Address
+    a   <- peek        (sin_addr ptr)    :: IO AddrIn
     return (SockAddrIn (fromIntegral ph * 256 + fromIntegral pl) a)
     where
       sin_port     = (#ptr struct sockaddr_in, sin_port)

@@ -11,6 +11,7 @@ import Control.Concurrent.Async
 import Foreign.C.Error
 import System.Socket
 import System.Socket.Address.SockAddrIn
+import System.Socket.Address.SockAddrIn6
 import System.Exit
 
 main :: IO ()
@@ -187,7 +188,7 @@ localhost6 :: SockAddrIn6
 localhost6 =
   SockAddrIn6
   { sin6Port     = 7777
-  , sin6Addr     = pack [0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,1]
+  , sin6Addr     = in6addrLOOPBACK
   , sin6Flowinfo = 0
   , sin6ScopeId  = 0
   }

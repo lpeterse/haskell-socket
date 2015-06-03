@@ -1,10 +1,15 @@
 module System.Socket.Address.SockAddrIn6
   ( SockAddrIn6 (..)
+  , AddrIn6 ()
+  , in6addrANY
+  , in6addrLOOPBACK
   ) where
 
 import Data.Word
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Unsafe as BS
+
+import Control.Applicative
 
 import Foreign.Ptr
 import Foreign.Storable
@@ -26,15 +31,42 @@ data SockAddrIn6
    = SockAddrIn6
      { sin6Port      :: Word16
      , sin6Flowinfo  :: Word32
-     , sin6Addr      :: BS.ByteString
+     , sin6Addr      :: AddrIn6
      , sin6ScopeId   :: Word32
-     } deriving (Eq, Ord)
+     } deriving (Eq)
+
+-- | To avoid errors with endianess it was decided to keep this type abstract.
+--
+--   Hint: Use the `Foreign.Storable.Storable` instance if you really need to access. It exposes it
+--   exactly as found within an IP packet (big endian if you insist
+--   on interpreting it as a number).
+--
+--   Another hint: Use `System.Socket.getAddrInfo` for parsing and suppress
+--   nameserver lookups:
+--
+--   > > getAddrInfo (Just "::1") Nothing aiNUMERICHOST :: IO [AddrInfo SockAddrIn6 STREAM TCP]
+--   > [AddrInfo {addrInfoFlags = AddrInfoFlags 4, addrAddress = [0000:0000:0000:0000:0000:0000:0000:0001]:0, addrCanonName = Nothing}]
+newtype AddrIn6
+      = AddrIn6 BS.ByteString
+      deriving (Eq)
+
+-- | @::@
+in6addrANY      :: AddrIn6
+in6addrANY       = AddrIn6 (BS.pack [0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0])
+
+-- | @::1@
+in6addrLOOPBACK :: AddrIn6
+in6addrLOOPBACK  = AddrIn6 (BS.pack [0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,1])
 
 instance Show SockAddrIn6 where
-  show (SockAddrIn6 p _ addr _) = '"':'[':(tail $ t $ BS.unpack addr)
+  show (SockAddrIn6 p _ addr _) =
+    "[" ++ show addr ++ "]:" ++ show p
+
+instance Show AddrIn6 where
+  show (AddrIn6 addr) = tail $ t $ BS.unpack addr
     where
-      t []       = ']':':':(show p ++ "\"")
-      t [x]      = g x 0 (']':':':(show p) ++ "\"")
+      t []       = []
+      t [x]      = g x 0 []
       t (x:y:xs) = g x y (t xs)
       g x y s    = let (a,b) = quotRem x 16
                        (c,d) = quotRem y 16
@@ -58,15 +90,24 @@ instance Show SockAddrIn6 where
       h 15 = 'f'
       h  _ = '_'
 
+instance Storable AddrIn6 where
+  sizeOf   _  = 16
+  alignment _ = 16
+  peek ptr    =
+    AddrIn6 <$> BS.packCStringLen (castPtr ptr, 16)
+  poke ptr (AddrIn6 a) =
+    BS.unsafeUseAsCString a $ \aPtr-> do
+      copyBytes ptr (castPtr aPtr) (min 16 $ BS.length a)
+
 instance Storable SockAddrIn6 where
   sizeOf    _ = (#size struct sockaddr_in6)
   alignment _ = (#alignment struct sockaddr_in6)
   peek ptr    = do
-    f   <- peek              (sin6_flowinfo ptr) :: IO Word32
-    ph  <- peekByteOff       (sin6_port ptr)  0  :: IO Word8
-    pl  <- peekByteOff       (sin6_port ptr)  1  :: IO Word8
-    a   <- BS.packCStringLen (sin6_addr ptr, 16) :: IO BS.ByteString
-    s   <- peek              (sin6_scope_id ptr) :: IO Word32
+    f   <- peek              (sin6_flowinfo ptr)     :: IO Word32
+    ph  <- peekByteOff       (sin6_port     ptr)  0  :: IO Word8
+    pl  <- peekByteOff       (sin6_port     ptr)  1  :: IO Word8
+    a   <- peek              (sin6_addr     ptr)     :: IO AddrIn6
+    s   <- peek              (sin6_scope_id ptr)     :: IO Word32
     return (SockAddrIn6 (fromIntegral ph * 256 + fromIntegral pl) f a s)
     where
       sin6_flowinfo = (#ptr struct sockaddr_in6, sin6_flowinfo)
@@ -80,8 +121,7 @@ instance Storable SockAddrIn6 where
     poke        (sin6_scope_id ptr) s
     pokeByteOff (sin6_port     ptr)  0 (fromIntegral $ rem (quot p 256) 256 :: Word8)
     pokeByteOff (sin6_port     ptr)  1 (fromIntegral $ rem       p      256 :: Word8)
-    BS.unsafeUseAsCString a $ \a'-> do
-      copyBytes (sin6_addr ptr) a' (min 16 $ BS.length a)-- copyBytes dest from count
+    poke        (sin6_addr     ptr) a
     where
       sin6_family   = (#ptr struct sockaddr_in6, sin6_family)
       sin6_flowinfo = (#ptr struct sockaddr_in6, sin6_flowinfo)
