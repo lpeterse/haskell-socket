@@ -1,6 +1,8 @@
-module System.Socket.Address.SockAddrIn6
-  ( SockAddrIn6 (..)
+{-# LANGUAGE TypeFamilies #-}
+module System.Socket.Family.INET6
+  ( INET6
   , AddrIn6 ()
+  , SockAddrIn6 (..)
   , in6addrANY
   , in6addrLOOPBACK
   ) where
@@ -15,7 +17,7 @@ import Foreign.Ptr
 import Foreign.Storable
 import Foreign.Marshal.Utils
 
-import System.Socket.Address
+import System.Socket.Family
 import System.Socket.Internal.FFI
 
 #include "sys/types.h"
@@ -24,8 +26,11 @@ import System.Socket.Internal.FFI
 #include "netinet/in.h"
 #let alignment t = "%lu", (unsigned long)offsetof(struct {char x__; t (y__); }, y__)
 
-instance Address SockAddrIn6 where
-  addressFamilyNumber _ = (#const AF_INET6)
+data INET6
+
+instance Family INET6 where
+  type Address INET6 = SockAddrIn6
+  familyNumber _ = (#const AF_INET6)
 
 data SockAddrIn6
    = SockAddrIn6
@@ -34,6 +39,8 @@ data SockAddrIn6
      , sin6Addr      :: AddrIn6
      , sin6ScopeId   :: Word32
      } deriving (Eq)
+
+instance SockAddr SockAddrIn6
 
 -- | To avoid errors with endianess it was decided to keep this type abstract.
 --
@@ -45,7 +52,7 @@ data SockAddrIn6
 --   nameserver lookups:
 --
 --   > > getAddrInfo (Just "::1") Nothing aiNUMERICHOST :: IO [AddrInfo SockAddrIn6 STREAM TCP]
---   > [AddrInfo {addrInfoFlags = AddrInfoFlags 4, addrAddress = [0000:0000:0000:0000:0000:0000:0000:0001]:0, addrCanonName = Nothing}]
+--   > [AddrInfo {addrInfoFlags = AddrInfoFlags 4, addrFamily = [0000:0000:0000:0000:0000:0000:0000:0001]:0, addrCanonName = Nothing}]
 newtype AddrIn6
       = AddrIn6 BS.ByteString
       deriving (Eq)

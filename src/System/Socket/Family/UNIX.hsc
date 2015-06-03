@@ -1,5 +1,7 @@
-module System.Socket.Address.SockAddrUn
-  ( SockAddrUn (..)
+{-# LANGUAGE TypeFamilies #-}
+module System.Socket.Family.UNIX
+  ( UNIX
+  , SockAddrUn (..)
   ) where
 
 import Data.Word
@@ -9,7 +11,7 @@ import Foreign.Ptr
 import Foreign.Storable
 import Foreign.Marshal.Utils
 
-import System.Socket.Address
+import System.Socket.Family
 import System.Socket.Internal.FFI
 
 #include "sys/types.h"
@@ -18,13 +20,18 @@ import System.Socket.Internal.FFI
 #include "netinet/in.h"
 #let alignment t = "%lu", (unsigned long)offsetof(struct {char x__; t (y__); }, y__)
 
-instance Address SockAddrUn where
-  addressFamilyNumber _ = (#const AF_UNIX)
+data UNIX
+
+instance Family UNIX where
+  type Address UNIX = SockAddrUn
+  familyNumber _ = (#const AF_UNIX)
 
 data SockAddrUn
    = SockAddrUn
      { sunPath :: BS.ByteString
      } deriving (Eq, Ord, Show)
+
+instance SockAddr SockAddrUn
 
 instance Storable SockAddrUn where
   sizeOf    _ = (#size struct sockaddr_un)

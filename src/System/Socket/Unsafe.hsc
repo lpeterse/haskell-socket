@@ -39,7 +39,7 @@ import System.Socket.Internal.FFI
 import System.Socket.Internal.Exception
 import System.Socket.Internal.Msg
 import System.Socket.Internal.MsgFlags
-import System.Socket.Address
+import System.Socket.Family
 import System.Socket.Type
 import System.Socket.Protocol
 
@@ -66,7 +66,7 @@ unsafeSend (Socket mfd) bufPtr bufSize flags = do
       Left  wait          -> wait >> again
       Right bytesSent     -> return bytesSent
 
-unsafeSendTo :: Socket a t p -> Ptr b -> CSize -> MsgFlags -> Ptr a -> CInt -> IO CInt
+unsafeSendTo :: Socket f t p -> Ptr b -> CSize -> MsgFlags -> Ptr (Address f) -> CInt -> IO CInt
 unsafeSendTo (Socket mfd) bufPtr bufSize flags addrPtr addrSize = do
   fix $ \again-> do
     ewb <- withMVar mfd $ \fd-> do
@@ -148,7 +148,7 @@ unsafeRecvMsg (Socket mfd) msgPtr flags =
       Left  wait          -> wait >> again
       Right bytesReceived -> return bytesReceived
 
-unsafeRecvFrom :: Socket a t p -> Ptr b -> CSize -> MsgFlags -> Ptr a -> Ptr CInt -> IO CInt
+unsafeRecvFrom :: Socket f t p -> Ptr b -> CSize -> MsgFlags -> Ptr (Address f) -> Ptr CInt -> IO CInt
 unsafeRecvFrom (Socket mfd) bufPtr bufSize flags addrPtr addrSizePtr = do
   fix $ \again-> do
     ewb <- withMVar mfd $ \fd-> do

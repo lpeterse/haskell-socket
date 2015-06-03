@@ -10,27 +10,27 @@ import Control.Concurrent
 import Control.Concurrent.Async
 import Foreign.C.Error
 import System.Socket
-import System.Socket.Address.SockAddrIn
-import System.Socket.Address.SockAddrIn6
+import System.Socket.Family.INET
+import System.Socket.Family.INET6
 import System.Exit
 
 main :: IO ()
 main = do 
-  test "test0001.01" $ test0001 (undefined :: Socket SockAddrIn  STREAM TCP)  localhost
-  test "test0001.02" $ test0001 (undefined :: Socket SockAddrIn6 STREAM TCP)  localhost6
-  test "test0001.03" $ test0001 (undefined :: Socket SockAddrIn  STREAM SCTP) localhost
-  test "test0001.04" $ test0001 (undefined :: Socket SockAddrIn6 STREAM SCTP) localhost6
-  test "test0002.01" $ test0002 (undefined :: Socket SockAddrIn  DGRAM  UDP)  localhost
-  test "test0002.02" $ test0002 (undefined :: Socket SockAddrIn6 DGRAM  UDP)  localhost6
-  test "test0003.01" $ test0003 (undefined :: Socket SockAddrIn  STREAM TCP)  localhost
-  test "test0003.02" $ test0003 (undefined :: Socket SockAddrIn6 STREAM TCP)  localhost6
-  test "test0003.03" $ test0003 (undefined :: Socket SockAddrIn  STREAM SCTP) localhost
-  test "test0003.04" $ test0003 (undefined :: Socket SockAddrIn6 STREAM SCTP) localhost6
-  test "test0004.01" $ test0004 (undefined :: Socket SockAddrIn  STREAM SCTP) localhost
-  test "test0004.02" $ test0004 (undefined :: Socket SockAddrIn6 STREAM SCTP) localhost6
+  test "test0001.01" $ test0001 (undefined :: Socket INET  STREAM TCP)  localhost
+  test "test0001.02" $ test0001 (undefined :: Socket INET6 STREAM TCP)  localhost6
+  test "test0001.03" $ test0001 (undefined :: Socket INET  STREAM SCTP) localhost
+  test "test0001.04" $ test0001 (undefined :: Socket INET6 STREAM SCTP) localhost6
+  test "test0002.01" $ test0002 (undefined :: Socket INET  DGRAM  UDP)  localhost
+  test "test0002.02" $ test0002 (undefined :: Socket INET6 DGRAM  UDP)  localhost6
+  test "test0003.01" $ test0003 (undefined :: Socket INET  STREAM TCP)  localhost
+  test "test0003.02" $ test0003 (undefined :: Socket INET6 STREAM TCP)  localhost6
+  test "test0003.03" $ test0003 (undefined :: Socket INET  STREAM SCTP) localhost
+  test "test0003.04" $ test0003 (undefined :: Socket INET6 STREAM SCTP) localhost6
+  test "test0004.01" $ test0004 (undefined :: Socket INET  STREAM SCTP) localhost
+  test "test0004.02" $ test0004 (undefined :: Socket INET6 STREAM SCTP) localhost6
 
 -- Test send and receive on connection oriented sockets (i.e. TCP).
-test0001 :: (Address a, Type t, Protocol p) => Socket a t p -> a -> IO (Either String String)
+test0001 :: (Family f, Type t, Protocol p) => Socket f t p -> Address f -> IO (Either String String)
 test0001 dummy addr =
   handleJust
     (\(SocketException e)-> if e == ePROTONOSUPPORT then Just () else Nothing)
@@ -65,7 +65,7 @@ test0001 dummy addr =
     helloWorld = "Hello world!"
 
 -- Test stateless sockets (i.e. UDP).
-test0002 :: (Address a, Type t, Protocol p) => Socket a t p -> a -> IO (Either String String)
+test0002 :: (Family f, Type t, Protocol p) => Socket f t p -> Address f -> IO (Either String String)
 test0002 dummy addr =
   handleJust
     (\(SocketException e)-> if e == ePROTONOSUPPORT then Just () else Nothing)
@@ -95,7 +95,7 @@ test0002 dummy addr =
     helloWorld = "Hello world!"
 
 -- Test sendMsg and recvMsg (TODO!) on connection oriented sockets (i.e. TCP).
-test0003 :: (Address a, Type t, Protocol p) => Socket a t p -> a -> IO (Either String String)
+test0003 :: (Family f, Type t, Protocol p) => Socket f t p -> Address f -> IO (Either String String)
 test0003 dummy addr =
   handleJust
     (\(SocketException e)-> if e == ePROTONOSUPPORT then Just () else Nothing)
@@ -127,9 +127,8 @@ test0003 dummy addr =
   where
     helloWorld = LBS.fromChunks ["Hello world!", "All your base are belong to us!"]
 
-
 -- Test sendMsg and recvMsg wrt. fragmentation and message boundaries (only supported by SCTP)
-test0004 :: Address a => Socket a STREAM SCTP -> a -> IO (Either String String)
+test0004 :: Family f => Socket f STREAM SCTP -> Address f -> IO (Either String String)
 test0004 dummy addr =
   handleJust
     (\(SocketException e)-> if e == ePROTONOSUPPORT then Just () else Nothing)

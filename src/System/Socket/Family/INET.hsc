@@ -1,6 +1,8 @@
-module System.Socket.Address.SockAddrIn
-  ( SockAddrIn (..)
+{-# LANGUAGE TypeFamilies #-}
+module System.Socket.Family.INET
+  ( INET
   , AddrIn ()
+  , SockAddrIn (..)
   , inaddrANY
   , inaddrBROADCAST
   , inaddrNONE
@@ -22,7 +24,7 @@ import Foreign.Ptr
 import Foreign.Storable
 import Foreign.Marshal.Utils
 
-import System.Socket.Address
+import System.Socket.Family
 import System.Socket.Internal.FFI
 
 #include "sys/types.h"
@@ -31,14 +33,19 @@ import System.Socket.Internal.FFI
 #include "netinet/in.h"
 #let alignment t = "%lu", (unsigned long)offsetof(struct {char x__; t (y__); }, y__)
 
-instance Address SockAddrIn where
-  addressFamilyNumber _ = (#const AF_INET)
+data INET
+
+instance Family INET where
+  type Address INET = SockAddrIn
+  familyNumber _ = (#const AF_INET)
 
 data SockAddrIn
    = SockAddrIn
      { sinPort      :: Word16
      , sinAddr      :: AddrIn
      } deriving (Eq)
+
+instance SockAddr SockAddrIn
 
 -- | To avoid errors with endianess it was decided to keep this type abstract.
 --
@@ -50,7 +57,7 @@ data SockAddrIn
 --   nameserver lookups:
 --
 --   > > getAddrInfo (Just "127.0.0.1") Nothing aiNUMERICHOST :: IO [AddrInfo SockAddrIn STREAM TCP]
---   > [AddrInfo {addrInfoFlags = AddrInfoFlags 4, addrAddress = "127.0.0.1:0", addrCanonName = Nothing}]
+--   > [AddrInfo {addrInfoFlags = AddrInfoFlags 4, addrFamily = "127.0.0.1:0", addrCanonName = Nothing}]
 newtype AddrIn
       = AddrIn BS.ByteString
       deriving (Eq)

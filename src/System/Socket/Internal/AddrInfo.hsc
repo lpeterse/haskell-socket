@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveDataTypeable, ScopedTypeVariables #-}
+{-# LANGUAGE DeriveDataTypeable, ScopedTypeVariables, StandaloneDeriving, FlexibleContexts, TypeFamilies #-}
 module System.Socket.Internal.AddrInfo (
     AddrInfo (..)
   , getAddrInfo
@@ -45,7 +45,7 @@ import Foreign.Marshal.Alloc
 
 import System.IO.Unsafe
 
-import System.Socket.Address
+import System.Socket.Family
 import System.Socket.Type
 import System.Socket.Protocol
 import System.Socket.Internal.FFI
@@ -59,12 +59,15 @@ import System.Socket.Internal.FFI
 -- AddrInfo
 -------------------------------------------------------------------------------
 
-data AddrInfo a t p
+data AddrInfo f t p
    = AddrInfo
      { addrInfoFlags :: AddrInfoFlags
-     , addrAddress   :: a
+     , addrAddress   :: Address f
      , addrCanonName :: Maybe BS.ByteString
-     } deriving (Eq, Show)
+     }
+
+deriving instance (Eq   (Address f)) => Eq   (AddrInfo f t p)
+deriving instance (Show (Address f)) => Show (AddrInfo f t p)
 
 -------------------------------------------------------------------------------
 -- AddrInfoException
@@ -207,10 +210,10 @@ niNUMERICSERV   = NameInfoFlags (#const NI_NUMERICSERV)
 --   > [AddrInfo {addrInfoFlags = AddrInfoFlags 8, addrAddress = "[0000:0000:0000:0000:0000:ffff:17fd:e1ad]:0", addrCanonName = Nothing}]
 --   > > getAddrInfo (Just "darcs.haskell.org") Nothing mempty :: IO [AddrInfo SockAddrIn6 STREAM TCP]
 --   > *** Exception: AddrInfoException "Name or service not known"
-getAddrInfo :: (Address a, Type t, Protocol p) => Maybe BS.ByteString -> Maybe BS.ByteString -> AddrInfoFlags -> IO [AddrInfo a t p]
+getAddrInfo :: (Family f, Type t, Protocol p) => Maybe BS.ByteString -> Maybe BS.ByteString -> AddrInfoFlags -> IO [AddrInfo f t p]
 getAddrInfo = getAddrInfo'
   where
-    getAddrInfo' :: forall a t p. (Address a, Type t, Protocol p) => Maybe BS.ByteString -> Maybe BS.ByteString -> AddrInfoFlags -> IO [AddrInfo a t p]
+    getAddrInfo' :: forall f t p. (Family f, Type t, Protocol p) => Maybe BS.ByteString -> Maybe BS.ByteString -> AddrInfoFlags -> IO [AddrInfo f t p]
     getAddrInfo' mnode mservice (AddrInfoFlags flags) = do
       alloca $ \resultPtrPtr-> do
         poke resultPtrPtr nullPtr
@@ -218,7 +221,7 @@ getAddrInfo = getAddrInfo'
           -- properly initialize the struct
           c_memset addrInfoPtr 0 (#const sizeof(struct addrinfo))
           poke (ai_flags addrInfoPtr) flags
-          poke (ai_family addrInfoPtr) (addressFamilyNumber (undefined :: a))
+          poke (ai_family addrInfoPtr) (familyNumber (undefined :: f))
           poke (ai_socktype addrInfoPtr) (typeNumber (undefined :: t))
           poke (ai_protocol addrInfoPtr) (protocolNumber (undefined :: p))
           fnode $ \nodePtr-> do
@@ -265,9 +268,9 @@ getAddrInfo = getAddrInfo'
 --
 --   The operation throws `AddrInfoException`s.
 --
---   > > getNameInfo (SockAddrIn 80 $ pack [23,253,242,70]) mempty
---   > ("haskell.org","http")
-getNameInfo :: (Address a) => a -> NameInfoFlags -> IO (BS.ByteString, BS.ByteString)
+--   > > getNameInfo (SockAddrIn 80 inaddrLOOPBACK) mempty
+--   > ("localhost.localdomain","http")
+getNameInfo :: (SockAddr a) => a -> NameInfoFlags -> IO (BS.ByteString, BS.ByteString)
 getNameInfo addr (NameInfoFlags flags) =
   alloca $ \addrPtr->
     allocaBytes (#const NI_MAXHOST) $ \hostPtr->

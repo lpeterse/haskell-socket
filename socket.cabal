@@ -26,10 +26,10 @@ extra-source-files:  README.md CHANGELOG.md
 
 library
   exposed-modules:     System.Socket
-                     , System.Socket.Address
-                     , System.Socket.Address.SockAddrUn
-                     , System.Socket.Address.SockAddrIn
-                     , System.Socket.Address.SockAddrIn6
+                     , System.Socket.Family
+                     , System.Socket.Family.UNIX
+                     , System.Socket.Family.INET
+                     , System.Socket.Family.INET6
                      , System.Socket.Type
                      , System.Socket.Type.DGRAM
                      , System.Socket.Type.STREAM

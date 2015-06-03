@@ -15,7 +15,7 @@
 -- > module Main where
 -- >
 -- > import System.Socket
--- > import System.Socket.Address.SockAddrIn
+-- > import System.Socket.Family.INET (inaddrLOOPBACK)
 -- > import Data.ByteString
 -- > import Control.Monad
 -- > import Control.Concurrent
@@ -23,7 +23,7 @@
 -- >
 -- > main :: IO ()
 -- > main = do
--- >   s <- socket :: IO (Socket SockAddrIn STREAM TCP)
+-- >   s <- socket :: IO (Socket INET STREAM TCP)
 -- >   setSockOpt s (SO_REUSEADDR)
 -- >   bind s (SockAddrIn 8080 inaddrLOOPBACK)
 -- >   listen s 5
@@ -65,12 +65,12 @@
 -- > 
 -- > fetch :: IO ()
 -- > fetch = do
--- >   addrs <- getAddrInfo (Just "www.haskell.org") (Just "80") aiV4MAPPED :: IO [AddrInfo SockAddrIn6 STREAM TCP]
+-- >   addrs <- getAddrInfo (Just "www.haskell.org") (Just "80") aiV4MAPPED :: IO [AddrInfo INET6 STREAM TCP]
 -- >   case addrs of
 -- >     (addr:_) ->
 -- >       -- always use the `bracket` pattern to reliably release resources!
 -- >       bracket
--- >         ( socket :: IO (Socket SockAddrIn6 STREAM TCP) )
+-- >         ( socket :: IO (Socket INET6 STREAM TCP) )
 -- >         ( close )
 -- >         ( \s-> do connect s (addrAddress addr)
 -- >                   sendAll s "GET / HTTP/1.0\r\nHost: www.haskell.org\r\n\r\n" mempty
@@ -120,13 +120,17 @@ module System.Socket (
   , sendAll
   -- * Sockets
   , Socket (..)
-  -- ** Addresses
-  , Address (..)
-  -- *** SockAddrIn
+  -- ** Families
+  , Family (..)
+  , SockAddr
+  -- *** INET
+  , INET
   , SockAddrIn (..)
-  -- *** SockAddrIn6
+  -- *** INET6
+  , INET6
   , SockAddrIn6 (..)
-  -- *** SockAddrUn
+  -- *** UNIX
+  , UNIX
   , SockAddrUn (..)
   -- ** Types
   , Type (..)
@@ -219,10 +223,10 @@ import System.Socket.Internal.Msg
 import System.Socket.Internal.MsgFlags
 import System.Socket.Internal.AddrInfo
 
-import System.Socket.Address
-import System.Socket.Address.SockAddrUn
-import System.Socket.Address.SockAddrIn
-import System.Socket.Address.SockAddrIn6
+import System.Socket.Family
+import System.Socket.Family.UNIX
+import System.Socket.Family.INET
+import System.Socket.Family.INET6
 
 import System.Socket.Type
 import System.Socket.Type.STREAM
@@ -244,9 +248,9 @@ import System.Socket.Protocol.SCTP
 --   associated type families). Examples:
 --
 --   > -- create a IPv4-UDP-datagram socket
---   > sock <- socket :: IO (Socket SockAddrIn DGRAM UDP)
+--   > sock <- socket :: IO (Socket INET DGRAM UDP)
 --   > -- create a IPv6-TCP-streaming socket
---   > sock6 <- socket :: IO (Socket SockAddrIn6 STREAM TCP)
+--   > sock6 <- socket :: IO (Socket INET6 STREAM TCP)
 --
 --     - This operation sets up a finalizer that automatically closes the socket
 --       when the garbage collection decides to collect it. This is just a
@@ -266,14 +270,14 @@ import System.Socket.Protocol.SCTP
 --        [@EPROTOTYPE@]      The socket type is not supported by the protocol.
 --        [@EACCES@]          The process is lacking necessary privileges.
 --        [@ENOMEM@]          Insufficient memory.
-socket :: (Address a, Type t, Protocol  p) => IO (Socket a t p)
+socket :: (Family f, Type t, Protocol  p) => IO (Socket f t p)
 socket = socket'
  where
-   socket' :: forall a t p. (Address a, Type t, Protocol  p) => IO (Socket a t p)
+   socket' :: forall f t p. (Family f, Type t, Protocol  p) => IO (Socket f t p)
    socket'  = do
      bracketOnError
        -- Try to acquire the socket resource. This part has exceptions masked.
-       ( c_socket (addressFamilyNumber (undefined :: a)) (typeNumber (undefined :: t)) (protocolNumber (undefined :: p)) )
+       ( c_socket (familyNumber (undefined :: f)) (typeNumber (undefined :: t)) (protocolNumber (undefined :: p)) )
        -- On failure after the c_socket call we try to close the socket to not leak file descriptors.
        -- If closing fails we cannot really do something about it. We tried at least.
        -- This part has exceptions masked as well. c_close is an unsafe FFI call.
@@ -320,7 +324,7 @@ socket = socket'
 --     [@EAFNOSUPPORT@]   The address family is invalid.
 --     [@ENOTSOCK@]       The file descriptor is not a socket.
 --     [@EINVAL@]         Address length does not match address family.
-bind :: (Address a, Type t, Protocol  p) => Socket a t p -> a -> IO ()
+bind :: (Family f) => Socket f t p -> Address f -> IO ()
 bind (Socket mfd) addr = do
   alloca $ \addrPtr-> do
     poke addrPtr addr
@@ -345,7 +349,7 @@ bind (Socket mfd) addr = do
 --     [@EOPNOTSUPP@]     The protocol does not support listening.
 --     [@EACCES@]         The process is lacking privileges.
 --     [@ENOBUFS@]        Insufficient resources.
-listen :: (Address a, Type t, Protocol  p) => Socket a t p -> Int -> IO ()
+listen :: Socket f t p -> Int -> IO ()
 listen (Socket ms) backlog = do
   i <- withMVar ms $ \s-> do
     c_listen s (fromIntegral backlog)
@@ -376,15 +380,15 @@ listen (Socket ms) backlog = do
 --     [@ENOSOCK@]      Not a valid socket descriptor (should be impossible).
 --     [@EOPNOTSUPP@]   The socket type does not support accepting connections.
 --     [@EPROTO@]       Generic protocol error.
-accept :: (Address a, Type t, Protocol  p) => Socket a t p -> IO (Socket a t p, a)
+accept :: (Family f) => Socket f t p -> IO (Socket f t p, Address f)
 accept s@(Socket mfd) = accept'
   where
-    accept' :: forall a t p. (Address a, Type t, Protocol  p) => IO (Socket a t p, a)
+    accept' :: forall f t p. (Family f) => IO (Socket f t p, Address f)
     accept' = do
       -- Allocate local (!) memory for the address.
       alloca $ \addrPtr-> do
         alloca $ \addrPtrLen-> do
-          poke addrPtrLen (fromIntegral $ sizeOf (undefined :: a))
+          poke addrPtrLen (fromIntegral $ sizeOf (undefined :: Address f))
           fix $ \again-> do
             -- We mask asynchronous exceptions during this critical section.
             ews <- withMVarMasked mfd $ \fd-> do
@@ -405,7 +409,7 @@ accept s@(Socket mfd) = accept'
                     getErrno >>= throwIO . SocketException
                   else do
                     -- This peek operation might be a little expensive, but I don't see an alternative.
-                    addr <- peek addrPtr :: IO (a)
+                    addr <- peek addrPtr :: IO (Address f)
                     -- newMVar is guaranteed to be not interruptible.
                     mft <- newMVar ft
                     -- Register a finalizer on the new socket.
@@ -441,7 +445,7 @@ accept s@(Socket mfd) = accept'
 --     [@EAFNOTSUPPORT@] Address family does not match the socket.
 --     [@ENOTSOCK@]      The descriptor is not a socket.
 --     [@EPROTOTYPE@]    The address type does not match the socket.
-connect :: (Address a, Type t, Protocol  p) => Socket a t p -> a -> IO ()
+connect :: Family f => Socket f t p -> Address f -> IO ()
 connect (Socket mfd) addr = do
   mwait <- withMVar mfd $ \fd-> do
     when (fd < 0) $ do
@@ -490,13 +494,13 @@ connect (Socket mfd) addr = do
 --
 --     [@EOPNOTSUPP@]    The specified flags are not supported.
 --     [@ENOTSOCK@]      The descriptor does not refer to a socket.
-send :: Socket a t p -> BS.ByteString -> MsgFlags -> IO Int
+send :: Socket f t p -> BS.ByteString -> MsgFlags -> IO Int
 send s bs flags = do
   bytesSent <- BS.unsafeUseAsCStringLen bs $ \(bufPtr,bufSize)->
     unsafeSend s (castPtr bufPtr) (fromIntegral bufSize) flags
   return (fromIntegral bytesSent)
 
-sendMsg :: Socket a t p -> LBS.ByteString -> MsgFlags -> IO Int
+sendMsg :: Socket f t p -> LBS.ByteString -> MsgFlags -> IO Int
 sendMsg s lbs flags = do
   bytesSent <- unsafeUseAsMsgPtr lbs $ \msgPtr-> do
     unsafeSendMsg s msgPtr flags
@@ -534,7 +538,7 @@ sendMsg s lbs flags = do
 --     [@EOPNOTSUPP@]    The specified flags are not supported.
 --     [@ENOTSOCK@]      The descriptor does not refer to a socket.
 --     [@EINVAL@]        The address len does not match.
-sendTo ::(Address a) => Socket a t p -> BS.ByteString -> MsgFlags -> a -> IO Int
+sendTo ::(Family f) => Socket f t p -> BS.ByteString -> MsgFlags -> Address f -> IO Int
 sendTo s bs flags addr = do
   bytesSent <- alloca $ \addrPtr-> do
     poke addrPtr addr
@@ -562,7 +566,7 @@ sendTo s bs flags addr = do
 --
 --     [@EOPNOTSUPP@]    The specified flags are not supported.
 --     [@ENOTSOCK@]      The descriptor does not refer to a socket.
-recv :: (Address a, Type t, Protocol  p) => Socket a t p -> Int -> MsgFlags -> IO BS.ByteString
+recv :: Socket f t p -> Int -> MsgFlags -> IO BS.ByteString
 recv s bufSize flags =
   bracketOnError
     ( mallocBytes bufSize )
@@ -592,11 +596,11 @@ recv s bufSize flags =
 --
 --     [@EOPNOTSUPP@]    The specified flags are not supported.
 --     [@ENOTSOCK@]      The descriptor does not refer to a socket.
-recvFrom :: forall a t p. (Address a, Type t, Protocol  p) => Socket a t p -> Int -> MsgFlags -> IO (BS.ByteString, a)
-recvFrom s bufSize flags =
+recvFrom :: forall f t p. (Family f) => Socket f t p -> Int -> MsgFlags -> IO (BS.ByteString, Address f)
+recvFrom s bufSize flags = do
   alloca $ \addrPtr-> do
     alloca $ \addrSizePtr-> do
-      poke addrSizePtr (fromIntegral $ sizeOf (undefined :: a))
+      poke addrSizePtr (fromIntegral $ sizeOf (undefined :: Address f))
       bracketOnError
         ( mallocBytes bufSize )
         (\bufPtr-> free bufPtr )
@@ -612,7 +616,7 @@ recvFrom s bufSize flags =
 -- recvMsgControl     :: IO (LBS.ByteString, c)
 -- recvMsgControlFrom :: IO (LBS.ByteString, c, a)
 
-recvMsg :: Socket a t p -> Int -> MsgFlags -> IO (LBS.ByteString, MsgFlags)
+recvMsg :: Socket f t p -> Int -> MsgFlags -> IO (LBS.ByteString, MsgFlags)
 recvMsg s bufSize flags = do
   allocaBytes (#const sizeof(struct msghdr)) $ \msgPtr-> do
     allocaBytes (#const sizeof(struct iovec)) $ \iovPtr-> do
@@ -655,7 +659,7 @@ recvMsg s bufSize flags = do
 --   - The following `SocketException`s are relevant and might be thrown:
 --
 --     [@EIO@]           An I/O error occured.
-close :: Socket a t p -> IO ()
+close :: Socket f t p -> IO ()
 close (Socket mfd) = do
   modifyMVarMasked_ mfd $ \fd-> do
     if fd < 0 then do
@@ -691,7 +695,7 @@ close (Socket mfd) = do
 --   > sendAll sock buf flags = do
 --   >   sent <- send sock buf flags
 --   >   when (sent < length buf) $ sendAll sock (drop sent buf) flags
-sendAll ::Socket a STREAM p -> BS.ByteString -> MsgFlags -> IO ()
+sendAll ::Socket f STREAM p -> BS.ByteString -> MsgFlags -> IO ()
 sendAll s bs flags = do
   sent <- send s bs flags
   when (sent < BS.length bs) $ sendAll s (BS.drop sent bs) flags

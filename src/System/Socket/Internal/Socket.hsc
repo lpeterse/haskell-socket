@@ -45,7 +45,7 @@ import System.Socket.Internal.Exception
 --     __not__ hold the lock).
 --     Also see [this](https://mail.haskell.org/pipermail/haskell-cafe/2014-September/115823.html)
 --     thread and read the library code to see how the problem is currently circumvented.
-newtype Socket d t p
+newtype Socket f t p
       = Socket (MVar Fd)
 
 class GetSockOpt o where
