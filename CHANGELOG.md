@@ -1,6 +1,8 @@
+ * Restricted getAddrInfo and getNameInfo and added `getAddrInfo6` and
+   `getNameInfo6`
  * Added address family types INET, INET6 and UNIX (API breaking change)
- * Hide SockAddrIn6 address constructor
- * Hide SockAddrIn address constructor
+ * Hide `SockAddrIn6` address constructor
+ * Hide `SockAddrIn` address constructor
  * Added `recvMsg` operation
  * Fixed unsafeSend, unsafeSendTo and unsafeSendMsg (they were waiting for
    a read event instead of waiting for writing)
