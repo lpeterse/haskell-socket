@@ -35,7 +35,7 @@
 -- This downloads the [Haskell website](http://www.haskell.org) and shows how to
 -- handle exceptions. Note the use of IPv4-mapped IPv6 addresses: This will work
 -- even if you don't have IPv6 connectivity yet and is the preferred method
--- when new applications.
+-- when writing new applications.
 --
 -- > {-# LANGUAGE OverloadedStrings #-}
 -- > module Main where
