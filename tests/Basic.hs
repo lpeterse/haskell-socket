@@ -36,27 +36,27 @@ test0001 dummy addr =
     (\(SocketException e)-> if e == ePROTONOSUPPORT then Just () else Nothing)
     (const $ return (Right "Protocol is not supported, but that may happen."))
     $ bracket
-      ( do  server <- socket `asTypeOf` return dummy
-            client <- socket `asTypeOf` return dummy
+      ( do  server <- socket `asTypeOf` return dummy  `onException` print "E01"
+            client <- socket `asTypeOf` return dummy  `onException` print "E02"
             return (server, client)
       )
       (\(server,client)-> do
-            close server
-            close client
+            close server                              `onException` print "E03"
+            close client                              `onException` print "E04"
       )
       (\(server,client)-> do
-            setSockOpt server (SO_REUSEADDR True)
-            bind server addr
-            listen server 5
+            setSockOpt server (SO_REUSEADDR True)     `onException` print "E05"
+            bind server addr                          `onException` print "E06"
+            listen server 5                           `onException` print "E07"
             serverRecv <- async $ do
-              (peerSock, peerAddr) <- accept server
-              recv peerSock 4096 mempty
-            client <- socket `asTypeOf` return server
-            connect client addr
-            send client helloWorld mempty
-            msg <- wait serverRecv
-            close server
-            close client
+              (peerSock, peerAddr) <- accept server   `onException` print "E08"
+              recv peerSock 4096 mempty               `onException` print "E09"
+            client <- socket `asTypeOf` return server `onException` print "E10"
+            connect client addr                       `onException` print "E11"
+            send client helloWorld mempty             `onException` print "E12"
+            msg <- wait serverRecv                    `onException` print "E13"
+            close server                              `onException` print "E14"
+            close client                              `onException` print "E15"
             if (msg /= helloWorld)
               then return (Left  "Received message was bogus.")
               else return (Right "")
@@ -118,9 +118,9 @@ test0003 dummy addr =
                 recvMsg peerSock 4096 mempty
               client <- socket `asTypeOf` return server
               connect client addr
-              sendMsg client helloWorld mempty
+              sendV client helloWorld mempty
               (msg, flags) <- wait serverRecv
-              if (msg /= helloWorld)
+              if (LBS.fromStrict msg /= helloWorld)
                 then return (Left  "Received message was bogus.")
                 else return (Right "")
         )
@@ -156,18 +156,18 @@ test0004 dummy addr =
                 return (r1, r2, r3, r4)
               client <- socket `asTypeOf` return server
               connect client addr                     `onException` print "E11"
-              sendMsg client msg1 mempty              `onException` print "E12"
-              sendMsg client msg2 mempty              `onException` print "E13"
+              sendV client msg1 mempty                `onException` print "E12"
+              sendV client msg2 mempty                `onException` print "E13"
               close client                            `onException` print "E14"
               ((m1,f1), (m2,f2), (m3,f3), (m4,f4)) <- wait serverRecv
-              when (m1 /= LBS.take 4 msg1)  (error "First message should start with 'Hello'.")
-              when (f1 /= mempty)           (error "First message should not have flags set.")
-              when (m2 /= LBS.drop 4 msg1)  (error "Second message should contain the rest of msg1.")
-              when (f2 /= msgEOR)           (error "Second message should terminate the record.")
-              when (m3 /= LBS.take 32 msg2) (error "First message should start with 32 chars of msg2.")
-              when (f3 /= mempty)           (error "First message should not have flags set.")
-              when (m4 /= LBS.drop 32 msg2) (error "Second message should contain the rest of msg2.")
-              when (f4 /= msgEOR)           (error "Second message should terminate the record.")
+              when (LBS.fromStrict m1 /= LBS.take 4 msg1)  (error "First message should start with 'Hello'.")
+              when (f1                /= mempty)           (error "First message should not have flags set.")
+              when (LBS.fromStrict m2 /= LBS.drop 4 msg1)  (error "Second message should contain the rest of msg1.")
+              when (f2                /= msgEOR)           (error "Second message should terminate the record.")
+              when (LBS.fromStrict m3 /= LBS.take 32 msg2) (error "First message should start with 32 chars of msg2.")
+              when (f3                /= mempty)           (error "First message should not have flags set.")
+              when (LBS.fromStrict m4 /= LBS.drop 32 msg2) (error "Second message should contain the rest of msg2.")
+              when (f4                /= msgEOR)           (error "Second message should terminate the record.")
               return (Right "")
         )
   where

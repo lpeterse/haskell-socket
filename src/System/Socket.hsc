@@ -103,12 +103,10 @@ module System.Socket (
   , accept
   -- ** connect
   , connect
-  -- ** send
-  , send
-  -- ** sendTo
-  , sendTo
-  -- ** sendMsg
-  , sendMsg
+  -- ** send, sendV
+  , send, sendV
+    -- ** sendTo, sendToV
+  , sendTo, sendToV
   -- ** recv
   , recv
   -- ** recvFrom
@@ -118,8 +116,8 @@ module System.Socket (
   -- ** close
   , close
   -- * Convenience Operations
-  -- ** sendAll
-  , sendAll
+  -- ** sendAll, sendAllV
+  , sendAll, sendAllV
   -- * Sockets
   , Socket (..)
   -- ** Families
@@ -309,24 +307,8 @@ socket = socket'
 --     the Posix manpage doesn't mention the last one and even MacOS' implementation will never
 --     fail with any of these when the socket is configured non-blocking as
 --     [argued here](http://stackoverflow.com/a/14485305).
---   - The following `SocketException`s are relevant and might be thrown (see @man bind@ for more exceptions regarding SockAddrUn sockets):
---
---     [@EADDRINUSE@]     The address is in use.
---     [@EADDRNOTAVAIL@]  The address is not available.
---     [@EBADF@]          Not a valid file descriptor.
---     [@EINVAL@]         Socket is already bound and cannot be re-bound or the socket has been shut down.
---     [@ENOBUFS@]        Insufficient resources.
---     [@EOPNOTSUPP@]     The socket type does not support binding.
---     [@EACCES@]         The address is protected and the process is lacking permission.
---     [@EISCONN@]        The socket is already connected.
---     [@ELOOP@]          More than {SYMLOOP_MAX} symbolic links were encountered during resolution of the pathname in address.
---     [@ENAMETOOLONG@]   The length of a pathname exceeds {PATH_MAX}, or pathname resolution of a symbolic link produced an intermediate result  with  a  length  that  exceeds {PATH_MAX}.
---
---   - The following `SocketException`s are theoretically possible, but should not occur if the library is correct:
---
---     [@EAFNOSUPPORT@]   The address family is invalid.
---     [@ENOTSOCK@]       The file descriptor is not a socket.
---     [@EINVAL@]         Address length does not match address family.
+--   - This operation throws `SocketException`s. Consult your @man@ page for
+--     details and specific @errno@s.
 bind :: (Family f) => Socket f t p -> Address f -> IO ()
 bind (Socket mfd) addr = do
   alloca $ \addrPtr-> do
@@ -337,21 +319,16 @@ bind (Socket mfd) addr = do
         then getErrno >>= throwIO . SocketException
         else return ()
 
--- | Accept connections on a connection-mode socket.
+-- | Starts listening and queueing connection requests on a connection-mode
+--   socket.
 --
---   - Calling `listen` on a `close`d socket throws @EBADF@ even if the former file descriptor has been reassigned.
+--   - Calling `listen` on a `close`d socket throws @EBADF@ even if the former
+--     file descriptor has been reassigned.
 --   - The second parameter is called /backlog/ and sets a limit on how many
 --     unaccepted connections the socket implementation shall queue. A value
 --     of @0@ leaves the decision to the implementation.
---   - This operation throws `SocketException`s:
---
---     [@EBADF@]          Not a valid file descriptor (only after socket has been closed).
---     [@EDESTADDRREQ@]   The socket is not bound and the protocol does not support listening on an unbound socket.
---     [@EINVAL@]         The socket is already connected or has been shut down.
---     [@ENOTSOCK@]       The file descriptor is not a socket (should be impossible).
---     [@EOPNOTSUPP@]     The protocol does not support listening.
---     [@EACCES@]         The process is lacking privileges.
---     [@ENOBUFS@]        Insufficient resources.
+--   - This operation throws `SocketException`s. Consult your @man@ page for
+--     details and specific @errno@s.
 listen :: Socket f t p -> Int -> IO ()
 listen (Socket ms) backlog = do
   i <- withMVar ms $ \s-> do
@@ -363,26 +340,18 @@ listen (Socket ms) backlog = do
 
 -- | Accept a new connection.
 --
---   - Calling `accept` on a `close`d socket throws @EBADF@ even if the former file descriptor has been reassigned.
+--   - Calling `accept` on a `close`d socket throws @EBADF@ even if the former
+--     file descriptor has been reassigned.
 --   - This operation configures the new socket non-blocking (TODO: use `accept4` if available).
---   - This operation sets up a finalizer for the new socket that automatically closes the socket
---     when the garbage collection decides to collect it. This is just a
---     fail-safe. You might still run out of file descriptors as there's
---     no guarantee about when the finalizer is run. You're advised to
+--   - This operation sets up a finalizer for the new socket that automatically
+--     closes the new socket when the garbage collection decides to collect it.
+--     This is just a fail-safe. You might still run out of file descriptors as
+--     there's no guarantee about when the finalizer is run. You're advised to
 --     manually `close` the socket when it's no longer needed.
---   - This operation catches @EAGAIN@, @EWOULDBLOCK@ and @EINTR@ internally and retries automatically.
---   - This operation throws `SocketException`s:
---
---     [@EBADF@]        Not a valid file descriptor (only after the socket has been closed).
---     [@ECONNABORTED@] A connection has been aborted.
---     [@EINVAL@]       The socket is not accepting/listening.
---     [@EMFILE@]       The process is out file descriptors.
---     [@ENFILE@]       The system is out file descriptors.
---     [@ENOBUFS@]      No buffer space available.
---     [@ENOMEM@]       Out of memory.
---     [@ENOSOCK@]      Not a valid socket descriptor (should be impossible).
---     [@EOPNOTSUPP@]   The socket type does not support accepting connections.
---     [@EPROTO@]       Generic protocol error.
+--   - This operation throws `SocketException`s. Consult your @man@ page for
+--     details and specific @errno@s.
+--   - This operation catches @EAGAIN@, @EWOULDBLOCK@ and @EINTR@ internally
+--     and retries automatically.
 accept :: (Family f) => Socket f t p -> IO (Socket f t p, Address f)
 accept s@(Socket mfd) = accept'
   where
@@ -432,22 +401,11 @@ accept s@(Socket mfd) = accept'
 --     just unblocks and returns in this case. The approach is to
 --     just try to read or write the socket and eventually fail there instead.
 --     Also see [these considerations](http://cr.yp.to/docs/connect.html) for an explanation.
---     @EINTR@ and @EINPROGRESS@ are handled internally and won't be thrown.
---   - The following `SocketException`s are relevant and might be thrown if the
---     OS was able to decide the connection request synchronously:
---
---     [@EADDRNOTAVAIL@] The address is not available.
---     [@EBADF@]         The file descriptor is invalid.
---     [@ECONNREFUSED@]  The target was not listening or refused the connection.
---     [@EISCONN@]       The socket is already connected.
---     [@ENETUNREACH@]   The network is unreachable.
---     [@ETIMEDOUT@]     The connect timed out before a connection was established.
---
---   - The following `SocketException`s are theoretically possible, but should not occur if the library is correct:
---
---     [@EAFNOTSUPPORT@] Address family does not match the socket.
---     [@ENOTSOCK@]      The descriptor is not a socket.
---     [@EPROTOTYPE@]    The address type does not match the socket.
+--   - This operation throws `SocketException`s. Consult your @man@ page for
+--     details and specific @errno@s.
+--   - @EINTR@ and @EINPROGRESS@ get catched internally and won't be thrown as the
+--     connection might still be established asynchronously. Expect failure
+--     when trying to read or write the socket in this case.
 connect :: Family f => Socket f t p -> Address f -> IO ()
 connect (Socket mfd) addr = do
   mwait <- withMVar mfd $ \fd-> do
@@ -475,72 +433,34 @@ connect (Socket mfd) addr = do
 
 -- | Send a message on a connected socket.
 --
---   - Calling `send` on a `close`d socket throws @EBADF@ even if the former file descriptor has been reassigned.
---   - The operation returns the number of bytes sent.
---   - @EAGAIN@, @EWOULDBLOCK@ and @EINTR@ and handled internally and won't be thrown.
+--   - Calling `send` on a `close`d socket throws @EBADF@ even if the former
+--     file descriptor has been reassigned.
+--   - The operation returns the number of bytes sent. On @DGRAM@ and
+--     @SEQPACKET@ sockets certain assurances on atomicity exist and @EAGAIN@ or
+--     @EWOULDBLOCK@ are returned until the whole message would fit
+--     into the send buffer. 
 --   - The flag @MSG_NOSIGNAL@ is set to supress signals which are pointless.
---   - The following `SocketException`s are relevant and might be thrown:
---
---     [@EBADF@]         The file descriptor is invalid.
---     [@ECONNRESET@]    The peer forcibly closed the connection.
---     [@EDESTADDREQ@]   Remote address has not been set, but is required.
---     [@EMSGSIZE@]      The message is too large to be sent all at once, but the protocol requires this.
---     [@ENOTCONN@]      The socket is not connected.
---     [@EPIPE@]         The socket is shut down for writing or the socket is not connected anymore.
---     [@EACCESS@]       The process is lacking permissions.
---     [@EIO@]           An I/O error occured while writing to the filesystem.
---     [@ENETDOWN@]      The local network interface is down.
---     [@ENETUNREACH@]   No route to network.
---     [@ENOBUFS@]       Insufficient resources to fulfill the request.
---
---   - The following `SocketException`s are theoretically possible, but should not occur if the library is correct:
---
---     [@EOPNOTSUPP@]    The specified flags are not supported.
---     [@ENOTSOCK@]      The descriptor does not refer to a socket.
+--   - This operation throws `SocketException`s. Consult @man 3p send@ for
+--     details and specific @errno@s.
+--   - @EAGAIN@, @EWOULDBLOCK@ and @EINTR@ and handled internally and won't
+--     be thrown. For performance reasons the operation first tries a write
+--     on the socket and then waits when it got @EAGAIN@ or @EWOULDBLOCK@.
 send :: Socket f t p -> BS.ByteString -> MsgFlags -> IO Int
 send s bs flags = do
   bytesSent <- BS.unsafeUseAsCStringLen bs $ \(bufPtr,bufSize)->
     unsafeSend s (castPtr bufPtr) (fromIntegral bufSize) flags
   return (fromIntegral bytesSent)
 
-sendMsg :: Socket f t p -> LBS.ByteString -> MsgFlags -> IO Int
-sendMsg s lbs flags = do
+-- | Like `send`, but uses the @sendmsg@ operation to transmit all
+--   chunks of a lazy `Data.ByteString.Lazy.ByteString` with one system call
+--   by putting them into several @iovec@s.
+sendV :: Socket f t p -> LBS.ByteString -> MsgFlags -> IO Int
+sendV s lbs flags = do
   bytesSent <- unsafeUseAsMsgPtr lbs $ \msgPtr-> do
     unsafeSendMsg s msgPtr flags
   return (fromIntegral bytesSent)
 
--- | Send a message on a socket with a specific destination address.
---
---   - Calling `sendTo` on a `close`d socket throws @EBADF@ even if the former file descriptor has been reassigned.
---   - The operation returns the number of bytes sent.
---   - @EAGAIN@, @EWOULDBLOCK@ and @EINTR@ and handled internally and won't be thrown.
---   - The flag @MSG_NOSIGNAL@ is set to supress signals which are pointless.
---   - The following `SocketException`s are relevant and might be thrown:
---
---     [@EBADF@]         The file descriptor is invalid.
---     [@ECONNRESET@]    The peer forcibly closed the connection.
---     [@EDESTADDREQ@]   Remote address has not been set, but is required.
---     [@EMSGSIZE@]      The message is too large to be sent all at once, but the protocol requires this.
---     [@ENOTCONN@]      The socket is not connected.
---     [@EPIPE@]         The socket is shut down for writing or the socket is not connected anymore.
---     [@EACCESS@]       The process is lacking permissions.
---     [@EDESTADDRREQ@]  The destination address is required.
---     [@EHOSTUNREACH@]  The destination host cannot be reached.
---     [@EIO@]           An I/O error occured.
---     [@EISCONN@]       The socket is already connected.
---     [@ENETDOWN@]      The local network is down.
---     [@ENETUNREACH@]   No route to the network.
---     [@ENUBUFS@]       Insufficient resources to fulfill the request.
---     [@ENOMEM@]        Insufficient memory to fulfill the request.
---     [@ELOOP@]         @AF_UNIX@ only.
---     [@ENAMETOOLONG@]  @AF_UNIX@ only.
---
---   - The following `SocketException`s are theoretically possible, but should not occur if the library is correct:
---
---     [@EAFNOTSUPP@]    The address family does not match.
---     [@EOPNOTSUPP@]    The specified flags are not supported.
---     [@ENOTSOCK@]      The descriptor does not refer to a socket.
---     [@EINVAL@]        The address len does not match.
+-- | Like `send`, but allows for specifying a destination address.
 sendTo ::(Family f) => Socket f t p -> BS.ByteString -> MsgFlags -> Address f -> IO Int
 sendTo s bs flags addr = do
   bytesSent <- alloca $ \addrPtr-> do
@@ -549,26 +469,33 @@ sendTo s bs flags addr = do
       unsafeSendTo s bufPtr (fromIntegral bufSize) flags addrPtr (fromIntegral $ sizeOf addr)
   return (fromIntegral bytesSent)
 
+-- | Like `sendTo`, but uses the @sendmsg@ operation to transmit all
+--   chunks of a lazy `Data.ByteString.Lazy.ByteString` with one system call
+--   by putting them into several @iovec@s.
+sendToV ::(Family f) => Socket f t p -> LBS.ByteString -> MsgFlags -> Address f -> IO Int
+sendToV s lbs flags addr = do
+  bytesSent <- unsafeUseAsMsgPtr lbs $ \msgPtr-> do
+    alloca $ \addrPtr-> do
+      poke              addrPtr  addr
+      poke (msg_name    msgPtr)  addrPtr
+      poke (msg_namelen msgPtr) (fromIntegral $ sizeOf addr)
+      unsafeSendMsg s msgPtr flags
+  return (fromIntegral bytesSent)
+  where
+    msg_name       = (#ptr struct msghdr, msg_name)   :: Ptr (Msg f t p) -> Ptr (Ptr a)
+    msg_namelen    = (#ptr struct msghdr, msg_namelen):: Ptr (Msg f t p) -> Ptr CInt
+
+
 -- | Receive a message on a connected socket.
 --
 --   - Calling `recv` on a `close`d socket throws @EBADF@ even if the former file descriptor has been reassigned.
 --   - The operation takes a buffer size in bytes a first parameter which
 --     limits the maximum length of the returned `Data.ByteString.ByteString`.
+--   - This operation throws `SocketException`s. Consult @man 3p recv@ for
+--     details and specific @errno@s.
 --   - @EAGAIN@, @EWOULDBLOCK@ and @EINTR@ and handled internally and won't be thrown.
---   - The following `SocketException`s are relevant and might be thrown:
---
---     [@EBADF@]         The file descriptor is invalid.
---     [@ECONNRESET@]    The peer forcibly closed the connection.
---     [@ENOTCONN@]      The socket is not connected.
---     [@ETIMEDOUT@]     The connection timed out.
---     [@EIO@]           An I/O error occured while writing to the filesystem.
---     [@ENOBUFS@]       Insufficient resources to fulfill the request.
---     [@ENONMEM@]       Insufficient memory to fulfill the request.
---
---   - The following `SocketException`s are theoretically possible, but should not occur if the library is correct:
---
---     [@EOPNOTSUPP@]    The specified flags are not supported.
---     [@ENOTSOCK@]      The descriptor does not refer to a socket.
+--     For performance reasons the operation first tries a read
+--     on the socket and then waits when it got @EAGAIN@ or @EWOULDBLOCK@.
 recv :: Socket f t p -> Int -> MsgFlags -> IO BS.ByteString
 recv s bufSize flags =
   bracketOnError
@@ -579,47 +506,27 @@ recv s bufSize flags =
         BS.unsafePackMallocCStringLen (bufPtr, fromIntegral bytesReceived)
     )
 
--- | Receive a message on a socket and additionally yield the peer address.
---
---   - Calling `recvFrom` on a `close`d socket throws @EBADF@ even if the former file descriptor has been reassigned.
---   - The operation takes a buffer size in bytes a first parameter which
---     limits the maximum length of the returned `Data.ByteString.ByteString`.
---   - @EAGAIN@, @EWOULDBLOCK@ and @EINTR@ and handled internally and won't be thrown.
---   - The following `SocketException`s are relevant and might be thrown:
---
---     [@EBADF@]         The file descriptor is invalid.
---     [@ECONNRESET@]    The peer forcibly closed the connection.
---     [@ENOTCONN@]      The socket is not connected.
---     [@ETIMEDOUT@]     The connection timed out.
---     [@EIO@]           An I/O error occured while writing to the filesystem.
---     [@ENOBUFS@]       Insufficient resources to fulfill the request.
---     [@ENONMEM@]       Insufficient memory to fulfill the request.
---
---   - The following `SocketException`s are theoretically possible, but should not occur if the library is correct:
---
---     [@EOPNOTSUPP@]    The specified flags are not supported.
---     [@ENOTSOCK@]      The descriptor does not refer to a socket.
-recvFrom :: forall f t p. (Family f) => Socket f t p -> Int -> MsgFlags -> IO (BS.ByteString, Address f)
-recvFrom s bufSize flags = do
-  alloca $ \addrPtr-> do
-    alloca $ \addrSizePtr-> do
-      poke addrSizePtr (fromIntegral $ sizeOf (undefined :: Address f))
-      bracketOnError
-        ( mallocBytes bufSize )
-        (\bufPtr-> free bufPtr )
-        (\bufPtr-> do
-            bytesReceived <- unsafeRecvFrom s bufPtr (fromIntegral bufSize) flags addrPtr addrSizePtr
-            addr <- peek addrPtr
-            bs   <- BS.unsafePackMallocCStringLen (bufPtr, fromIntegral bytesReceived)
-            return (bs, addr)
-        )
+-- | Like `recv`, but additionally yields the peer address.
+recvFrom :: (Family f) => Socket f t p -> Int -> MsgFlags -> IO (BS.ByteString, Address f)
+recvFrom = recvFrom'
+  where
+    recvFrom' :: forall f t p. (Family f) => Socket f t p -> Int -> MsgFlags -> IO (BS.ByteString, Address f)
+    recvFrom' s bufSize flags = do
+      alloca $ \addrPtr-> do
+        alloca $ \addrSizePtr-> do
+          poke addrSizePtr (fromIntegral $ sizeOf (undefined :: Address f))
+          bracketOnError
+            ( mallocBytes bufSize )
+            (\bufPtr-> free bufPtr )
+            (\bufPtr-> do
+                bytesReceived <- unsafeRecvFrom s bufPtr (fromIntegral bufSize) flags addrPtr addrSizePtr
+                addr <- peek addrPtr
+                bs   <- BS.unsafePackMallocCStringLen (bufPtr, fromIntegral bytesReceived)
+                return (bs, addr)
+            )
 
--- recvMsg            :: IO (LBS.ByteString)
--- recvMsgFrom        :: IO (LBS.ByteString, a)
--- recvMsgControl     :: IO (LBS.ByteString, c)
--- recvMsgControlFrom :: IO (LBS.ByteString, c, a)
-
-recvMsg :: Socket f t p -> Int -> MsgFlags -> IO (LBS.ByteString, MsgFlags)
+-- | Like `recv`, but internally uses @sendmsg@ to retrieve associated `MsgFlags`.
+recvMsg :: Socket f t p -> Int -> MsgFlags -> IO (BS.ByteString, MsgFlags)
 recvMsg s bufSize flags = do
   allocaBytes (#const sizeof(struct msghdr)) $ \msgPtr-> do
     allocaBytes (#const sizeof(struct iovec)) $ \iovPtr-> do
@@ -635,15 +542,13 @@ recvMsg s bufSize flags = do
             poke (iov_base iovPtr) bufPtr
             poke (iov_len  iovPtr) (fromIntegral bufSize)
             bytesReceived <- unsafeRecvMsg s msgPtr flags
-            lbs <- LBS.fromStrict <$> BS.unsafePackMallocCStringLen (bufPtr, fromIntegral bytesReceived)
+            lbs    <- BS.unsafePackMallocCStringLen (bufPtr, fromIntegral bytesReceived)
             rflags <- MsgFlags <$> peek (msg_flags msgPtr)
             return (lbs, rflags)
         )
   where
     iov_base       = (#ptr struct iovec, iov_base)    :: Ptr IoVec -> Ptr CString
     iov_len        = (#ptr struct iovec, iov_len)     :: Ptr IoVec -> Ptr CSize
-    msg_name       = (#ptr struct msghdr, msg_name)   :: Ptr (Msg a t p) -> Ptr (Ptr a)
-    msg_namelen    = (#ptr struct msghdr, msg_namelen):: Ptr (Msg a t p) -> Ptr CInt
     msg_iov        = (#ptr struct msghdr, msg_iov)    :: Ptr (Msg a t p) -> Ptr (Ptr IoVec)
     msg_iovlen     = (#ptr struct msghdr, msg_iovlen) :: Ptr (Msg a t p) -> Ptr CSize
     msg_flags      = (#ptr struct msghdr, msg_flags)  :: Ptr (Msg a t p) -> Ptr CInt
@@ -659,9 +564,8 @@ recvMsg s bufSize flags = do
 --     after the socket has been closed (`close` replaces the 
 --     `System.Posix.Types.Fd` in the `Control.Concurrent.MVar.MVar` with @-1@
 --     to reliably avoid use-after-free situations).
---   - The following `SocketException`s are relevant and might be thrown:
---
---     [@EIO@]           An I/O error occured.
+--   - This operation potentially throws `SocketException`s (only @EIO@ is
+--     documented). @EINTR@ is catched internally and retried automatically, so won't be thrown.
 close :: Socket f t p -> IO ()
 close (Socket mfd) = do
   modifyMVarMasked_ mfd $ \fd-> do
@@ -700,5 +604,15 @@ close (Socket mfd) = do
 --   >   when (sent < length buf) $ sendAll sock (drop sent buf) flags
 sendAll ::Socket f STREAM p -> BS.ByteString -> MsgFlags -> IO ()
 sendAll s bs flags = do
+  sent <- send s bs flags
+  when (sent < BS.length bs) $ sendAll s (BS.drop sent bs) flags
+
+-- | Like `sendV`, but continues until all data has been sent.
+--
+--   > sendAllV sock buf flags = do
+--   >   sent <- sendV sock buf flags
+--   >   when (sent < length buf) $ sendAllV sock (drop sent buf) flags
+sendAllV ::Socket f STREAM p -> BS.ByteString -> MsgFlags -> IO ()
+sendAllV s bs flags = do
   sent <- send s bs flags
   when (sent < BS.length bs) $ sendAll s (BS.drop sent bs) flags
