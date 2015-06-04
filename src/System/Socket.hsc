@@ -243,7 +243,7 @@ import System.Socket.Protocol.SCTP
 
 -- | Creates a new socket.
 --
---   Whereas the underlying POSIX socket function takes 3 parameters, this library
+--   Whereas the underlying POSIX socket operation takes 3 parameters, this library
 --   encodes this information in the type variables. This rules out several
 --   kinds of errors and escpecially simplifies the handling of addresses (by using
 --   associated type families). Examples:
@@ -258,19 +258,21 @@ import System.Socket.Protocol.SCTP
 --       fail-safe. You might still run out of file descriptors as there's
 --       no guarantee about when the finalizer is run. You're advised to
 --       manually `close` the socket when it's no longer needed.
+--       If possible, use `Control.Exception.bracket` to reliably close the
+--       socket descriptor on exception or regular termination of your
+--       computation:
+--
+--       > result <- bracket (socket :: INET6 STREAM TCP) close $ \sock-> do
+--       >   somethingWith sock -- your computation here
+--       >   return somethingelse
+--
+--
 --     - This operation configures the socket non-blocking to work seamlessly
 --       with the runtime system's event notification mechanism.
 --     - This operation can safely deal with asynchronous exceptions without
 --       leaking file descriptors.
---     - This operation throws `SocketException`s:
---
---        [@EAFNOSUPPORT@]    The socket domain is not supported.
---        [@EMFILE@]          The process is out file descriptors.
---        [@ENFILE@]          The system is out file descriptors.
---        [@EPROTONOSUPPORT@] The socket protocol is not supported (for this socket domain).
---        [@EPROTOTYPE@]      The socket type is not supported by the protocol.
---        [@EACCES@]          The process is lacking necessary privileges.
---        [@ENOMEM@]          Insufficient memory.
+--     - This operation throws `SocketException`s. Consult your @man@ page for
+--       details and specific @errno@s..
 socket :: (Family f, Type t, Protocol  p) => IO (Socket f t p)
 socket = socket'
  where
