@@ -45,8 +45,6 @@ data SockAddrIn
      , sinAddr      :: AddrIn
      } deriving (Eq)
 
-instance SockAddr SockAddrIn
-
 -- | To avoid errors with endianess it was decided to keep this type abstract.
 --
 --   Hint: Use the `Foreign.Storable.Storable` instance if you really need to access. It exposes it

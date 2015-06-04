@@ -2,7 +2,9 @@
 module System.Socket.Internal.AddrInfo (
     AddrInfo (..)
   , getAddrInfo
+  , getAddrInfo6
   , getNameInfo
+  , getNameInfo6
   , AddrInfoException (..)
   , aiStrError
   , eaiAGAIN
@@ -46,6 +48,8 @@ import Foreign.Marshal.Alloc
 import System.IO.Unsafe
 
 import System.Socket.Family
+import System.Socket.Family.INET
+import System.Socket.Family.INET6
 import System.Socket.Type
 import System.Socket.Protocol
 import System.Socket.Internal.FFI
@@ -203,66 +207,71 @@ niNUMERICSERV   = NameInfoFlags (#const NI_NUMERICSERV)
 --   If you need different types of records, you need to start several
 --   queries. If you want to connect to both IPv4 and IPV6 addresses use
 --   `aiV4MAPPED` and use IPv6-sockets.
+
+getAddrInfo :: (Type t, Protocol p) => Maybe BS.ByteString -> Maybe BS.ByteString -> AddrInfoFlags -> IO [AddrInfo INET t p]
+getAddrInfo = getAddrInfo'
+
+-- | Like `getAddrInfo`, but for IPv6 addresses.
 --
 --   > > getAddrInfo (Just "www.haskell.org") (Just "80") aiV4MAPPED :: IO [AddrInfo INET6 STREAM TCP]
---   > [AddrInfo {addrInfoFlags = AddrInfoFlags 8, addrAddress = "[2400:cb00:2048:0001:0000:0000:6ca2:cc3c]:80", addrCanonName = Nothing}]
+--   > [AddrInfo {addrInfoFlags = AddrInfoFlags 8, addrAddress = [2400:cb00:2048:0001:0000:0000:6ca2:cc3c]:80, addrCanonName = Nothing}]
 --   > > getAddrInfo (Just "darcs.haskell.org") Nothing aiV4MAPPED :: IO [AddrInfo INET6 STREAM TCP]
---   > [AddrInfo {addrInfoFlags = AddrInfoFlags 8, addrAddress = "[0000:0000:0000:0000:0000:ffff:17fd:e1ad]:0", addrCanonName = Nothing}]
+--   > [AddrInfo {addrInfoFlags = AddrInfoFlags 8, addrAddress = [0000:0000:0000:0000:0000:ffff:17fd:e1ad]:0, addrCanonName = Nothing}]
 --   > > getAddrInfo (Just "darcs.haskell.org") Nothing mempty :: IO [AddrInfo INET6 STREAM TCP]
 --   > *** Exception: AddrInfoException "Name or service not known"
-getAddrInfo :: (Family f, Type t, Protocol p) => Maybe BS.ByteString -> Maybe BS.ByteString -> AddrInfoFlags -> IO [AddrInfo f t p]
-getAddrInfo = getAddrInfo'
+getAddrInfo6 :: (Type t, Protocol p) => Maybe BS.ByteString -> Maybe BS.ByteString -> AddrInfoFlags -> IO [AddrInfo INET6 t p]
+getAddrInfo6 = getAddrInfo'
+
+getAddrInfo' :: forall f t p. (Family f, Type t, Protocol p) => Maybe BS.ByteString -> Maybe BS.ByteString -> AddrInfoFlags -> IO [AddrInfo f t p]
+getAddrInfo' mnode mservice (AddrInfoFlags flags) = do
+  alloca $ \resultPtrPtr-> do
+    poke resultPtrPtr nullPtr
+    allocaBytes (#size struct addrinfo) $ \addrInfoPtr-> do
+      -- properly initialize the struct
+      c_memset addrInfoPtr 0 (#const sizeof(struct addrinfo))
+      poke (ai_flags addrInfoPtr) flags
+      poke (ai_family addrInfoPtr) (familyNumber (undefined :: f))
+      poke (ai_socktype addrInfoPtr) (typeNumber (undefined :: t))
+      poke (ai_protocol addrInfoPtr) (protocolNumber (undefined :: p))
+      fnode $ \nodePtr-> do
+        fservice $ \servicePtr->
+          bracket
+            (c_getaddrinfo nodePtr servicePtr addrInfoPtr resultPtrPtr)
+            (\_-> do resultPtr <- peek resultPtrPtr
+                     when (resultPtr /= nullPtr) (c_freeaddrinfo resultPtr)
+            )
+            (\e-> if e == 0 then do
+                    resultPtr <- peek resultPtrPtr
+                    peekAddrInfos resultPtr
+                  else do
+                    throwIO (AddrInfoException e)
+            )
   where
-    getAddrInfo' :: forall f t p. (Family f, Type t, Protocol p) => Maybe BS.ByteString -> Maybe BS.ByteString -> AddrInfoFlags -> IO [AddrInfo f t p]
-    getAddrInfo' mnode mservice (AddrInfoFlags flags) = do
-      alloca $ \resultPtrPtr-> do
-        poke resultPtrPtr nullPtr
-        allocaBytes (#size struct addrinfo) $ \addrInfoPtr-> do
-          -- properly initialize the struct
-          c_memset addrInfoPtr 0 (#const sizeof(struct addrinfo))
-          poke (ai_flags addrInfoPtr) flags
-          poke (ai_family addrInfoPtr) (familyNumber (undefined :: f))
-          poke (ai_socktype addrInfoPtr) (typeNumber (undefined :: t))
-          poke (ai_protocol addrInfoPtr) (protocolNumber (undefined :: p))
-          fnode $ \nodePtr-> do
-            fservice $ \servicePtr->
-              bracket
-                (c_getaddrinfo nodePtr servicePtr addrInfoPtr resultPtrPtr)
-                (\_-> do resultPtr <- peek resultPtrPtr
-                         when (resultPtr /= nullPtr) (c_freeaddrinfo resultPtr)
-                )
-                (\e-> if e == 0 then do
-                        resultPtr <- peek resultPtrPtr
-                        peekAddrInfos resultPtr
-                      else do
-                        throwIO (AddrInfoException e)
-                )
-      where
-        ai_flags     = (#ptr struct addrinfo, ai_flags)     :: Ptr (AddrInfo a t p) -> Ptr CInt
-        ai_family    = (#ptr struct addrinfo, ai_family)    :: Ptr (AddrInfo a t p) -> Ptr CInt
-        ai_socktype  = (#ptr struct addrinfo, ai_socktype)  :: Ptr (AddrInfo a t p) -> Ptr CInt
-        ai_protocol  = (#ptr struct addrinfo, ai_protocol)  :: Ptr (AddrInfo a t p) -> Ptr CInt
-        ai_addr      = (#ptr struct addrinfo, ai_addr)      :: Ptr (AddrInfo a t p) -> Ptr (Ptr a)
-        ai_canonname = (#ptr struct addrinfo, ai_canonname) :: Ptr (AddrInfo a t p) -> Ptr CString
-        ai_next      = (#ptr struct addrinfo, ai_next)      :: Ptr (AddrInfo a t p) -> Ptr (Ptr (AddrInfo a t p))
-        fnode = case mnode of
-          Just node    -> BS.useAsCString node
-          Nothing      -> \f-> f nullPtr
-        fservice = case mservice of
-          Just service -> BS.useAsCString service
-          Nothing      -> \f-> f nullPtr
-        peekAddrInfos ptr = 
-          if ptr == nullPtr
-            then return []
-            else do
-              flag  <- peek (ai_flags ptr)
-              addr  <- peek (ai_addr ptr) >>= peek
-              cname <- do cnPtr <- peek (ai_canonname ptr)
-                          if cnPtr == nullPtr
-                            then return Nothing
-                            else BS.packCString cnPtr >>= return . Just
-              as    <- peek (ai_next ptr) >>= peekAddrInfos
-              return ((AddrInfo (AddrInfoFlags flag) addr cname):as)
+    ai_flags     = (#ptr struct addrinfo, ai_flags)     :: Ptr (AddrInfo a t p) -> Ptr CInt
+    ai_family    = (#ptr struct addrinfo, ai_family)    :: Ptr (AddrInfo a t p) -> Ptr CInt
+    ai_socktype  = (#ptr struct addrinfo, ai_socktype)  :: Ptr (AddrInfo a t p) -> Ptr CInt
+    ai_protocol  = (#ptr struct addrinfo, ai_protocol)  :: Ptr (AddrInfo a t p) -> Ptr CInt
+    ai_addr      = (#ptr struct addrinfo, ai_addr)      :: Ptr (AddrInfo a t p) -> Ptr (Ptr a)
+    ai_canonname = (#ptr struct addrinfo, ai_canonname) :: Ptr (AddrInfo a t p) -> Ptr CString
+    ai_next      = (#ptr struct addrinfo, ai_next)      :: Ptr (AddrInfo a t p) -> Ptr (Ptr (AddrInfo a t p))
+    fnode = case mnode of
+      Just node    -> BS.useAsCString node
+      Nothing      -> \f-> f nullPtr
+    fservice = case mservice of
+      Just service -> BS.useAsCString service
+      Nothing      -> \f-> f nullPtr
+    peekAddrInfos ptr = 
+      if ptr == nullPtr
+        then return []
+        else do
+          flag  <- peek (ai_flags ptr)
+          addr  <- peek (ai_addr ptr) >>= peek
+          cname <- do cnPtr <- peek (ai_canonname ptr)
+                      if cnPtr == nullPtr
+                        then return Nothing
+                        else BS.packCString cnPtr >>= return . Just
+          as    <- peek (ai_next ptr) >>= peekAddrInfos
+          return ((AddrInfo (AddrInfoFlags flag) addr cname):as)
 
 -- | Maps addresss to readable host- and service names.
 --
@@ -270,8 +279,15 @@ getAddrInfo = getAddrInfo'
 --
 --   > > getNameInfo (SockAddrIn 80 inaddrLOOPBACK) mempty
 --   > ("localhost.localdomain","http")
-getNameInfo :: (SockAddr a) => a -> NameInfoFlags -> IO (BS.ByteString, BS.ByteString)
-getNameInfo addr (NameInfoFlags flags) =
+getNameInfo :: SockAddrIn -> NameInfoFlags -> IO (BS.ByteString, BS.ByteString)
+getNameInfo = getNameInfo'
+
+-- | Like `getNameInfo`, but for IPv6 addresses.
+getNameInfo6 :: SockAddrIn6 -> NameInfoFlags -> IO (BS.ByteString, BS.ByteString)
+getNameInfo6 = getNameInfo'
+
+getNameInfo' :: Storable a => a -> NameInfoFlags -> IO (BS.ByteString, BS.ByteString)
+getNameInfo' addr (NameInfoFlags flags) =
   alloca $ \addrPtr->
     allocaBytes (#const NI_MAXHOST) $ \hostPtr->
       allocaBytes (#const NI_MAXSERV) $ \servPtr-> do

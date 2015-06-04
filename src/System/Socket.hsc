@@ -88,8 +88,10 @@ module System.Socket (
     AddrInfo (..)
   -- ** getAddrInfo
   , getAddrInfo
+  , getAddrInfo6
   -- ** getNameInfo
   , getNameInfo
+  , getNameInfo6
   -- * Operations
   -- ** socket
   , socket
@@ -122,7 +124,6 @@ module System.Socket (
   , Socket (..)
   -- ** Families
   , Family (..)
-  , SockAddr
   -- *** INET
   , INET
   , SockAddrIn (..)

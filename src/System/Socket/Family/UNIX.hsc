@@ -31,8 +31,6 @@ data SockAddrUn
      { sunPath :: BS.ByteString
      } deriving (Eq, Ord, Show)
 
-instance SockAddr SockAddrUn
-
 instance Storable SockAddrUn where
   sizeOf    _ = (#size struct sockaddr_un)
   alignment _ = (#alignment struct sockaddr_un)
