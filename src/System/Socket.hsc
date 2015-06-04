@@ -262,7 +262,7 @@ import System.Socket.Protocol.SCTP
 --       socket descriptor on exception or regular termination of your
 --       computation:
 --
---       > result <- bracket (socket :: INET6 STREAM TCP) close $ \sock-> do
+--       > result <- bracket (socket :: IO (Socket INET6 STREAM TCP)) close $ \sock-> do
 --       >   somethingWith sock -- your computation here
 --       >   return somethingelse
 --
@@ -272,7 +272,7 @@ import System.Socket.Protocol.SCTP
 --     - This operation can safely deal with asynchronous exceptions without
 --       leaking file descriptors.
 --     - This operation throws `SocketException`s. Consult your @man@ page for
---       details and specific @errno@s..
+--       details and specific @errno@s.
 socket :: (Family f, Type t, Protocol  p) => IO (Socket f t p)
 socket = socket'
  where
