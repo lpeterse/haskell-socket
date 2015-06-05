@@ -1,3 +1,4 @@
+ * New operation `recvRecord`.
  * ReceiveMsg now returns a strict `ByteString`.
  * New operations `sendV`, `sendToV`.
  * Restricted getAddrInfo and getNameInfo and added `getAddrInfo6` and
