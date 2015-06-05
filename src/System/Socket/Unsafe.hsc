@@ -1,6 +1,8 @@
 module System.Socket.Unsafe (
+  -- * tryWaitAndRetry
+    tryWaitAndRetry
   -- * unsafeSend
-    unsafeSend
+  , unsafeSend
   -- * unsafeSendMsg
   , unsafeSendMsg
   -- * unsafeSendTo
@@ -40,130 +42,53 @@ import System.Socket.Internal.Exception
 import System.Socket.Internal.Msg
 import System.Socket.Family
 
+import System.Posix.Types (Fd)
+
 #include "sys/socket.h"
 
 unsafeSend :: Socket a t p -> Ptr a -> CSize -> MsgFlags -> IO CInt
-unsafeSend (Socket mfd) bufPtr bufSize flags = do
-  fix $ \again-> do
-    ewb <- withMVar mfd $ \fd-> do
-      when (fd < 0) $ do
-        throwIO (SocketException eBADF)
-      fix $ \retry-> do
-        i <- c_send fd bufPtr bufSize (flags `mappend` msgNOSIGNAL)
-        if (i < 0) then do
-          e <- getErrno
-          if e == eWOULDBLOCK || e == eAGAIN
-            then threadWaitWrite' fd >>= return . Left
-          else if e == eINTR
-            then retry
-            else throwIO (SocketException e)
-        -- Send succeeded. Return the bytes send.
-        else return (Right i)
-    case ewb of
-      Left  wait          -> wait >> again
-      Right bytesSent     -> return bytesSent
+unsafeSend s bufPtr bufSize flags = do
+  tryWaitAndRetry s threadWaitWrite' (\fd-> c_send fd bufPtr bufSize (flags `mappend` msgNOSIGNAL) )
 
 unsafeSendTo :: Socket f t p -> Ptr b -> CSize -> MsgFlags -> Ptr (Address f) -> CInt -> IO CInt
-unsafeSendTo (Socket mfd) bufPtr bufSize flags addrPtr addrSize = do
-  fix $ \again-> do
-    ewb <- withMVar mfd $ \fd-> do
-      when (fd < 0) $ do
-        throwIO (SocketException eBADF)
-      fix $ \retry-> do
-        i <- c_sendto fd bufPtr (fromIntegral bufSize) (flags `mappend` msgNOSIGNAL) addrPtr addrSize
-        if (i < 0) then do
-          e <- getErrno
-          if e == eWOULDBLOCK || e == eAGAIN
-            then threadWaitWrite' fd >>= return . Left
-          else if e == eINTR
-            then retry
-            else throwIO (SocketException e)
-        -- Send succeeded. Return the bytes send.
-        else return (Right i)
-    case ewb of
-      Left  wait          -> wait >> again
-      Right bytesSent     -> return (fromIntegral bytesSent)
+unsafeSendTo s bufPtr bufSize flags addrPtr addrSize = do
+  tryWaitAndRetry s threadWaitWrite' (\fd-> c_sendto fd bufPtr (fromIntegral bufSize) (flags `mappend` msgNOSIGNAL) addrPtr addrSize)
 
 unsafeSendMsg :: Socket a t p -> Ptr (Msg a t p) -> MsgFlags -> IO CInt
-unsafeSendMsg (Socket mfd) msghdrPtr flags = do
-  fix $ \again-> do
-    ewb <- withMVar mfd $ \fd-> do
-      when (fd < 0) $ do
-        throwIO (SocketException eBADF)
-      fix $ \retry-> do
-        i <- c_sendmsg fd msghdrPtr (flags `mappend` msgNOSIGNAL)
-        if (i < 0) then do
-          e <- getErrno
-          if e == eWOULDBLOCK || e == eAGAIN
-            then threadWaitWrite' fd >>= return . Left
-          else if e == eINTR
-            then retry
-            else throwIO (SocketException e)
-        -- Send succeeded. Return the bytes send.
-        else return (Right i)
-    case ewb of
-      Left  wait          -> wait >> again
-      Right bytesSent     -> return bytesSent
+unsafeSendMsg s msghdrPtr flags = do
+  tryWaitAndRetry s threadWaitWrite' (\fd-> c_sendmsg fd msghdrPtr (flags `mappend` msgNOSIGNAL))
 
 unsafeRecv :: Socket a t p -> Ptr b -> CSize -> MsgFlags -> IO CInt
-unsafeRecv (Socket mfd) bufPtr bufSize flags =
-  fix $ \again-> do
-    ewb <- withMVar mfd $ \fd-> do
-        when (fd < 0) $ do
-          throwIO (SocketException eBADF)
-        fix $ \retry-> do
-          i <- c_recv fd bufPtr bufSize flags
-          if (i < 0) then do
-            e <- getErrno
-            if e == eWOULDBLOCK || e == eAGAIN then do
-              threadWaitRead' fd >>= return . Left
-            else if e == eINTR
-              then retry
-              else throwIO (SocketException e)
-          else return (Right i)
-    case ewb of
-      Left  wait          -> wait >> again
-      Right bytesReceived -> return bytesReceived
+unsafeRecv s bufPtr bufSize flags =
+  tryWaitAndRetry s threadWaitRead' (\fd-> c_recv fd bufPtr bufSize flags)
 
 unsafeRecvMsg :: Socket a t p -> Ptr (Msg a t p) -> MsgFlags -> IO CInt
-unsafeRecvMsg (Socket mfd) msgPtr flags =
-  fix $ \again-> do
-    ewb <- withMVar mfd $ \fd-> do
-        when (fd < 0) $ do
-          throwIO (SocketException eBADF)
-        fix $ \retry-> do
-          i <- c_recvmsg fd msgPtr flags
-          if (i < 0) then do
-            e <- getErrno
-            if e == eWOULDBLOCK || e == eAGAIN then do
-              threadWaitRead' fd >>= return . Left
-            else if e == eINTR
-              then retry
-              else throwIO (SocketException e)
-          else return (Right i)
-    case ewb of
-      Left  wait          -> wait >> again
-      Right bytesReceived -> return bytesReceived
+unsafeRecvMsg s msgPtr flags =
+  tryWaitAndRetry s threadWaitRead' (\fd-> c_recvmsg fd msgPtr flags)
 
 unsafeRecvFrom :: Socket f t p -> Ptr b -> CSize -> MsgFlags -> Ptr (Address f) -> Ptr CInt -> IO CInt
-unsafeRecvFrom (Socket mfd) bufPtr bufSize flags addrPtr addrSizePtr = do
+unsafeRecvFrom s bufPtr bufSize flags addrPtr addrSizePtr = do
+  tryWaitAndRetry s threadWaitRead' (\fd-> c_recvfrom fd bufPtr bufSize flags addrPtr addrSizePtr)
+
+tryWaitAndRetry :: Socket f t p -> (Fd -> IO (IO ())) -> (Fd -> IO CInt) -> IO CInt
+tryWaitAndRetry (Socket mfd) getWaitAction action = do
   fix $ \again-> do
-    ewb <- withMVar mfd $ \fd-> do
+    ewr <- withMVar mfd $ \fd-> do
         when (fd < 0) $ do
           throwIO (SocketException eBADF)
         fix $ \retry-> do
-          i <- c_recvfrom fd bufPtr bufSize flags addrPtr addrSizePtr
+          i <- action fd
           if (i < 0) then do
             e <- getErrno
             if e == eWOULDBLOCK || e == eAGAIN then do
-              threadWaitRead' fd >>= return . Left
+              getWaitAction fd >>= return . Left
             else if e == eINTR
               then retry
               else throwIO (SocketException e)
           else return (Right i)
-    case ewb of
-      Left  wait          -> wait >> again
-      Right bytesReceived -> return (fromIntegral bytesReceived)
+    case ewr of
+      Left  wait   -> wait >> again
+      Right result -> return result
 
 unsafePokeByteStringToIoVec :: Ptr IoVec -> BS.ByteString -> IO ()
 unsafePokeByteStringToIoVec iovecPtr bs = do
