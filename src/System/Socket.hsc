@@ -227,7 +227,6 @@ import System.Socket.Internal.Event
 import System.Socket.Internal.FFI
 import System.Socket.Internal.Exception
 import System.Socket.Internal.Msg
-import System.Socket.Internal.MsgFlags
 import System.Socket.Internal.AddrInfo
 
 import System.Socket.Family

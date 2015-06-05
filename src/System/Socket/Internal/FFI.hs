@@ -6,7 +6,6 @@ import Foreign.C.Types
 import System.Posix.Types ( Fd(..) )
 
 import System.Socket.Internal.Msg
-import System.Socket.Internal.MsgFlags
 
 type CSSize
    = CInt
