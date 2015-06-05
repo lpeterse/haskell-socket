@@ -2,8 +2,7 @@ module System.Socket.Type.STREAM where
 
 import System.Socket.Type
 
-#include "sys/socket.h"
-#include "netinet/in.h"
+#include "hs_socket.h"
 
 data STREAM
 
