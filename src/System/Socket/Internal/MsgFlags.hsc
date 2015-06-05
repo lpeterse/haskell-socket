@@ -24,6 +24,10 @@ import Foreign.Storable
 -- | Use the `Data.Monoid.Monoid` instance to combine several flags:
 --
 --   > mconcat [msgNOSIGNAL, msgWAITALL]
+--
+--   Use the `Data.Bits.Bits` instance to check whether a flag is set:
+--
+--   > if flags .&. msgEOR /= mempty then ...
 newtype MsgFlags
       = MsgFlags CInt
       deriving (Eq, Bits, Storable)
