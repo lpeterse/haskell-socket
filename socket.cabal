@@ -27,7 +27,7 @@ extra-source-files:  README.md
                      include/hs_socket.h
                      include/hs_socket_win32.h
                      include/hs_socket_posix.h
-                     cbits/hs_socket.c
+                     cbits/hs_socket_posix.c
 
 library
   exposed-modules:     System.Socket
@@ -59,7 +59,10 @@ library
 
   include-dirs:        include
   install-includes:    hs_socket.h
-  c-sources:           cbits/hs_socket.c
+  if os(windows)
+    c-sources:         cbits/hs_socket_win32.c
+  else
+    c-sources:         cbits/hs_socket_posix.c
 
 test-suite basic
   hs-source-dirs:      tests

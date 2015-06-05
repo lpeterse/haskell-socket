@@ -116,8 +116,5 @@ unsafeUseAsMsgPtr bytestring performWith = do
       performWith msgHdrPtr
   where
     chunkCount     = length (LBS.toChunks bytestring)
---    msg_name       = (#ptr struct msghdr, msg_name)   :: Ptr (Msg a t p) -> Ptr (Ptr a)
---    msg_namelen    = (#ptr struct msghdr, msg_namelen):: Ptr (Msg a t p) -> Ptr CInt
     msg_iov        = (#ptr struct msghdr, msg_iov)    :: Ptr (Msg a t p) -> Ptr (Ptr IoVec)
     msg_iovlen     = (#ptr struct msghdr, msg_iovlen) :: Ptr (Msg a t p) -> Ptr CSize
-    msg_flags      = (#ptr struct msghdr, msg_flags)  :: Ptr (Msg a t p) -> Ptr CInt
