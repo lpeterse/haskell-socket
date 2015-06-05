@@ -118,6 +118,8 @@ module System.Socket (
   -- * Convenience Operations
   -- ** sendAll, sendAllV
   , sendAll, sendAllV
+  -- ** recvRecord
+  , recvRecord
   -- * Sockets
   , Socket (..)
   -- ** Families
@@ -171,9 +173,12 @@ module System.Socket (
   -- * Flags
   -- ** MsgFlags
   , MsgFlags (..)
+  , msgDONTWAIT
   , msgEOR
+  , msgMORE
   , msgNOSIGNAL
   , msgOOB
+  , msgTRUNC
   , msgWAITALL
   -- ** AddrInfoFlags
   , AddrInfoFlags (..)
@@ -198,10 +203,12 @@ import Control.Monad
 import Control.Applicative
 import Control.Concurrent.MVar
 
+import Data.Bits
 import Data.Function
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Unsafe as BS
 import qualified Data.ByteString.Lazy as LBS
+import qualified Data.ByteString.Lazy.Internal as LBS
 
 import GHC.Conc (closeFdWith)
 
@@ -552,6 +559,89 @@ recvMsg s bufSize flags = do
     msg_iov        = (#ptr struct msghdr, msg_iov)    :: Ptr (Msg a t p) -> Ptr (Ptr IoVec)
     msg_iovlen     = (#ptr struct msghdr, msg_iovlen) :: Ptr (Msg a t p) -> Ptr CSize
     msg_flags      = (#ptr struct msghdr, msg_flags)  :: Ptr (Msg a t p) -> Ptr CInt
+
+-- | Receives a record (if supported by the protocol). A record consists of several messages terminated by `msgEOR`.
+--
+-- - The operation accumulates received chunks to a lazy `Data.ByteString.Lazy.ByteString` and waits in between.
+-- - It stops accumulating if the supplied maximum length has been reached, but
+--   it continues receiving till the record is terminated. Further data gets
+--   dropped and `msgTRUNC` will be set.
+-- - The operation returns its result as soon as a chunk with `msgEOR` has been received.
+-- - Implementation detail: Every (but the last) chunk of the resulting
+--   `Data.ByteString.Lazy.ByteString` is exactly as long as the specified buffer size.
+recvRecord :: Socket f STREAM p 
+           -> Int -- ^ buffer size for a single chunk
+           -> Int -- ^ maximum length of the resulting record (to avoid Denial Of Service by memory exhaustion)
+           -> MsgFlags
+           -> IO (LBS.ByteString, MsgFlags)
+recvRecord s bufLen maxLen sflags = do
+  allocaBytes (#const sizeof(struct msghdr)) $ \msgPtr-> do
+    allocaBytes (#const sizeof(struct iovec)) $ \iovPtr-> do
+      c_memset msgPtr 0 (#const sizeof(struct msghdr))
+      c_memset iovPtr 0 (#const sizeof(struct iovec))
+      poke (msg_iov    msgPtr) iovPtr
+      poke (msg_iovlen msgPtr) 1
+      bs     <- doCollect s msgPtr iovPtr 0
+      rflags <- peek (msg_flags msgPtr)
+      return (bs,rflags)
+  where
+    iov_base       = (#ptr struct iovec, iov_base)    :: Ptr IoVec -> Ptr CString
+    iov_len        = (#ptr struct iovec, iov_len)     :: Ptr IoVec -> Ptr CSize
+    msg_iov        = (#ptr struct msghdr, msg_iov)    :: Ptr (Msg a t p) -> Ptr (Ptr IoVec)
+    msg_iovlen     = (#ptr struct msghdr, msg_iovlen) :: Ptr (Msg a t p) -> Ptr CSize
+    msg_flags      = (#ptr struct msghdr, msg_flags)  :: Ptr (Msg a t p) -> Ptr MsgFlags
+    -- | This mallocs memory for a single chunk and reads from the socket.
+    --   When the buffer is full the chunk is converted to a ByteString and
+    --   the operating proceeds with another chunk until msgEOR has been received.
+    doCollect sock msgPtr iovPtr resSize =
+      if resSize >= maxLen then do
+        doDrop sock msgPtr iovPtr
+        return LBS.Empty
+      else do
+        bs <- bracketOnError
+          ( mallocBytes bufLen )
+          ( free )
+          (\bufPtr-> do
+            poke (iov_base iovPtr) bufPtr
+            doFillBuf sock msgPtr iovPtr bufPtr 0
+          )
+        rflags <- peek (msg_flags msgPtr)
+        LBS.chunk bs <$> if rflags .&. msgEOR /= mempty then do
+          return LBS.Empty
+        else do
+          doCollect sock msgPtr iovPtr (resSize + bufLen)
+    -- | This reads from the socket until a single chunk buffer is full
+    --   or the `msgEOR` marker has been received.
+    doFillBuf sock msgPtr iovPtr bufPtr bufUsage = do
+      poke (iov_base iovPtr) (bufPtr `plusPtr` fromIntegral bufUsage)
+      poke (iov_len  iovPtr) (fromIntegral bufLen - bufUsage)
+      recvdBytes <- unsafeRecvMsg sock msgPtr sflags
+      rflags <- peek (msg_flags msgPtr)
+      let bufUsage' = bufUsage + fromIntegral recvdBytes
+      if bufUsage' >= fromIntegral bufLen || rflags .&. msgEOR /= mempty
+        then doFreezeBuf bufPtr bufUsage'
+        else doFillBuf sock msgPtr iovPtr bufPtr bufUsage'
+    -- | This takes a `Ptr` to malloced memory and converts it to
+    --   a ByteString. The result will a have a finalizer associated
+    --   with it and must not be freed manually. The `bracketOnError`
+    --   is critical. The memory is either freed because an exception
+    --   occured before `doFreezeBuf` was called or afterwards by
+    --   the `ByteString` finalizer. `doFreezeBuf` is the last thing
+    --   that happens is `doFillBuf`.
+    doFreezeBuf bufPtr bufUsage = do
+      BS.unsafePackMallocCStringLen (bufPtr, fromIntegral bufUsage)
+    -- | This reads and drops data from the socket till
+    --   a msgEOR has been received.
+    doDrop sock msgPtr iovPtr = do
+      -- allocate a local buffer for data we ignore anyway
+      allocaBytes bufLen $ \bufPtr-> do
+        poke (iov_base iovPtr) bufPtr
+        fix $ \again-> do
+          _      <- unsafeRecvMsg sock msgPtr sflags
+          rflags <- peek (msg_flags msgPtr)
+          if rflags .&. msgEOR /= mempty
+            then poke (msg_flags msgPtr) (rflags `mappend` msgTRUNC)
+            else again
 
 -- | Closes a socket.
 --

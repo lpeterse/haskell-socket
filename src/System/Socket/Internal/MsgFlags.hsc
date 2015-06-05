@@ -1,15 +1,23 @@
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module System.Socket.Internal.MsgFlags (
     MsgFlags (..)
+  , msgFlagsIsset
+  , msgDONTWAIT
   , msgEOR
+  , msgMORE
   , msgNOSIGNAL
   , msgOOB
+  , msgTRUNC
   , msgWAITALL
   ) where
 
 import Data.Bits
 import Data.Monoid
+import Data.Maybe
+import Data.List (intersperse)
 
 import Foreign.C.Types
+import Foreign.Storable
 
 #include "sys/socket.h"
 
@@ -18,13 +26,30 @@ import Foreign.C.Types
 --   > mconcat [msgNOSIGNAL, msgWAITALL]
 newtype MsgFlags
       = MsgFlags CInt
-      deriving (Eq, Show)
+      deriving (Eq, Bits, Storable)
 
 instance Monoid MsgFlags where
-  mempty
-    = MsgFlags 0
-  mappend (MsgFlags a) (MsgFlags b)
-    = MsgFlags (a .|. b)
+  mempty  = MsgFlags 0
+  mappend = (.|.)
+
+instance Show MsgFlags where
+  show msg = "mconcat [" ++ y ++ "]"
+    where
+      x = [ if msg .&. msgEOR      /= mempty then Just "msgEOR"      else Nothing
+          , if msg .&. msgNOSIGNAL /= mempty then Just "msgNOSIGNAL" else Nothing
+          , if msg .&. msgOOB      /= mempty then Just "msgOOB"      else Nothing
+          , if msg .&. msgWAITALL  /= mempty then Just "msgWAITALL"  else Nothing
+          , if msg .&. msgTRUNC    /= mempty then Just "msgTRUNC"    else Nothing
+          , if msg .&. msgMORE     /= mempty then Just "msgMORE"     else Nothing
+          , if msg .&. msgDONTWAIT /= mempty then Just "msgDONTWAIT" else Nothing
+          , let (MsgFlags i) = msg `xor` (mconcat [msgEOR,msgNOSIGNAL,msgOOB,msgWAITALL,msgTRUNC,msgMORE,msgDONTWAIT] .&. msg)
+            in if i /= 0 then Just ("MsgFlags " ++ show i) else Nothing 
+          ]
+      y = concat $ intersperse "," $ catMaybes x
+
+msgFlagsIsset :: MsgFlags -> MsgFlags -> Bool
+msgFlagsIsset (MsgFlags a) (MsgFlags  b) =
+  (a .&. b) /= 0
 
 msgEOR      :: MsgFlags
 msgEOR       = MsgFlags (#const MSG_EOR)
@@ -37,4 +62,13 @@ msgOOB       = MsgFlags (#const MSG_OOB)
 
 msgWAITALL  :: MsgFlags
 msgWAITALL   = MsgFlags (#const MSG_WAITALL)
+
+msgTRUNC    :: MsgFlags
+msgTRUNC     = MsgFlags (#const MSG_TRUNC)
+
+msgMORE     :: MsgFlags
+msgMORE      = MsgFlags (#const MSG_MORE)
+
+msgDONTWAIT :: MsgFlags
+msgDONTWAIT  = MsgFlags (#const MSG_DONTWAIT)
 

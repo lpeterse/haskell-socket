@@ -1,3 +1,5 @@
+ * ReceiveMsg now returns a strict `ByteString`.
+ * New operations `sendV`, `sendToV`.
  * Restricted getAddrInfo and getNameInfo and added `getAddrInfo6` and
    `getNameInfo6`
  * Added address family types INET, INET6 and UNIX (API breaking change)

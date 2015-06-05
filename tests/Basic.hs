@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings, ScopedTypeVariables, TypeFamilies #-}
 module Main where
 
+import Data.Bits
 import Data.Monoid
 import Data.ByteString (pack)
 import qualified Data.ByteString.Lazy as LBS
@@ -28,6 +29,8 @@ main = do
   test "test0003.04" $ test0003 (undefined :: Socket INET6 STREAM SCTP) localhost6
   test "test0004.01" $ test0004 (undefined :: Socket INET  STREAM SCTP) localhost
   test "test0004.02" $ test0004 (undefined :: Socket INET6 STREAM SCTP) localhost6
+  test "test0005.01" $ test0005 (undefined :: Socket INET  STREAM SCTP) localhost
+  test "test0005.02" $ test0005 (undefined :: Socket INET6 STREAM SCTP) localhost6
 
 -- Test send and receive on connection oriented sockets (i.e. TCP).
 test0001 :: (Family f, Type t, Protocol p) => Socket f t p -> Address f -> IO (Either String String)
@@ -154,7 +157,6 @@ test0004 dummy addr =
                 r3 <- recvMsg peerSock   32  mempty   `onException` print "E09"
                 r4 <- recvMsg peerSock 1024  mempty   `onException` print "E10"
                 return (r1, r2, r3, r4)
-              client <- socket `asTypeOf` return server
               connect client addr                     `onException` print "E11"
               sendV client msg1 mempty                `onException` print "E12"
               sendV client msg2 mempty                `onException` print "E13"
@@ -168,6 +170,52 @@ test0004 dummy addr =
               when (f3                /= mempty)           (error "First message should not have flags set.")
               when (LBS.fromStrict m4 /= LBS.drop 32 msg2) (error "Second message should contain the rest of msg2.")
               when (f4                /= msgEOR)           (error "Second message should terminate the record.")
+              return (Right "")
+        )
+  where
+    -- this message is 43 characters long
+    msg1 = LBS.fromChunks ["Hello world!", "All your base are belong to us!"]
+    -- this one is 38 characters long
+    msg2 = LBS.fromChunks ["Uns gefaellt das.", "Viel Spass am Geraet!"]
+
+-- Tests the recvRecord operation with SCTP
+test0005 :: Family f => Socket f STREAM SCTP -> Address f -> IO (Either String String)
+test0005 dummy addr =
+  handleJust
+    (\(SocketException e)-> if e == ePROTONOSUPPORT then Just () else Nothing)
+    (const $ return (Right "Protocol is not supported, but that may happen."))
+    $ bracket
+        ( do  server <- socket `asTypeOf` return dummy
+              client <- socket `asTypeOf` return dummy
+              return (server, client)
+        )
+        (\(server,client)-> do
+              close server                            `onException` print "E01"
+              close client                            `onException` print "E02"
+        )
+        (\(server,client)-> do
+              setSockOpt server (SO_REUSEADDR True)   `onException` print "E03"
+              bind server addr                        `onException` print "E04"
+              listen server 5                         `onException` print "E05"
+              connect client addr                     `onException` print "E06"
+              bracket
+                (accept server                        `onException` print "E07")
+                (\(peer,_)-> close peer               `onException` print "E08")
+                (\(peer,_)-> do
+                  sendV client msg1 mempty            `onException` print "E09"
+                  sendV client msg2 mempty            `onException` print "E10"
+                  sendV client msg1 mempty            `onException` print "E10"
+                  (m1, f1) <- recvRecord peer 4 32 mempty
+                  when (m1 /= LBS.take 32 msg1)                    (error "E11")
+                  when (f1 /= mconcat [msgEOR, msgTRUNC])          (error "E12")
+                  (m2, f2) <- recvRecord peer 128 128 mempty
+                  when (m2 /= msg2)                                (error "E13")
+                  when (f2 /= mconcat [msgEOR])                    (error "E14")
+                  (m3, f3) <- recvRecord peer 43 43 mempty
+                  when (m3 /= msg1)                                (error "E15")
+                  when (f3 /= mconcat [msgEOR])                    (error "E16")
+                  return ()
+                )
               return (Right "")
         )
   where
