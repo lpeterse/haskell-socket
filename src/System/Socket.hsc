@@ -205,6 +205,7 @@ import Control.Concurrent.MVar
 
 import Data.Bits
 import Data.Function
+import Data.Monoid
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Unsafe as BS
 import qualified Data.ByteString.Lazy as LBS

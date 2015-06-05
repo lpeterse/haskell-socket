@@ -40,8 +40,6 @@ import System.Socket.Internal.Exception
 import System.Socket.Internal.Msg
 import System.Socket.Internal.MsgFlags
 import System.Socket.Family
-import System.Socket.Type
-import System.Socket.Protocol
 
 #include "sys/socket.h"
 
