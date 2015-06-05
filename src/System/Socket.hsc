@@ -244,7 +244,7 @@ import System.Socket.Protocol.UDP
 import System.Socket.Protocol.TCP
 import System.Socket.Protocol.SCTP
 
-#include "sys/socket.h"
+#include "hs_socket.h"
 
 -- | Creates a new socket.
 --

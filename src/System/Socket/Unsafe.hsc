@@ -44,7 +44,7 @@ import System.Socket.Family
 
 import System.Posix.Types (Fd)
 
-#include "sys/socket.h"
+#include "hs_socket.h"
 
 unsafeSend :: Socket a t p -> Ptr a -> CSize -> MsgFlags -> IO CInt
 unsafeSend s bufPtr bufSize flags = do

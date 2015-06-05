@@ -21,7 +21,7 @@ import System.Posix.Types
 import System.Socket.Internal.FFI
 import System.Socket.Internal.Exception
 
-#include "sys/socket.h"
+#include "hs_socket.h"
 
 -- | A generic socket type. Also see `socket` for details.
 --

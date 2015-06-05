@@ -1,7 +1,4 @@
-#include <stdint.h>
-#include <fcntl.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
+#include <hs_socket.h>
 
 int setnonblocking(int fd) {
   int flags;

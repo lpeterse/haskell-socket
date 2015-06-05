@@ -20,7 +20,7 @@ import Data.List (intersperse)
 import Foreign.C.Types
 import Foreign.Storable
 
-#include "sys/socket.h"
+#include "hs_socket.h"
 
 -- | Use the `Data.Monoid.Monoid` instance to combine several flags:
 --

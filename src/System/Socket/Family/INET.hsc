@@ -27,10 +27,7 @@ import Foreign.Marshal.Utils
 import System.Socket.Family
 import System.Socket.Internal.FFI
 
-#include "sys/types.h"
-#include "sys/socket.h"
-#include "sys/un.h"
-#include "netinet/in.h"
+#include "hs_socket.h"
 #let alignment t = "%lu", (unsigned long)offsetof(struct {char x__; t (y__); }, y__)
 
 data INET

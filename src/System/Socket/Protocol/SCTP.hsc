@@ -2,8 +2,7 @@ module System.Socket.Protocol.SCTP where
 
 import System.Socket.Protocol
 
-#include "sys/socket.h"
-#include "netinet/in.h"
+#include "hs_socket.h"
 
 data SCTP
 

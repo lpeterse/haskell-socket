@@ -54,9 +54,7 @@ import System.Socket.Type
 import System.Socket.Protocol
 import System.Socket.Internal.FFI
 
-#include "sys/types.h"
-#include "sys/socket.h"
-#include "netdb.h"
+#include "hs_socket.h"
 #let alignment t = "%lu", (unsigned long)offsetof(struct {char x__; t (y__); }, y__)
 
 -------------------------------------------------------------------------------
