@@ -61,16 +61,64 @@ library
   install-includes:    hs_socket.h
   if os(windows)
     c-sources:         cbits/hs_socket_win32.c
-    cpp-options:       -DCALLCONV=stdcall
-                       -DFFI_SOCKET="hs_socket"
+    cpp-options:       -DFFI_SOCKET="hs_socket"
+                       -DFFI_SOCKET_SAFETY=unsafe
+                       -DFFI_BIND="hs_bind"
+                       -DFFI_BIND_SAFETY=unsafe
+                       -DFFI_LISTEN="hs_listen"
+                       -DFFI_LISTEN_SAFETY=unsafe
                        -DFFI_CLOSE="hs_close"
+                       -DFFI_CLOSE_SAFETY=unsafe
+                       -DFFI_ACCEPT="hs_accept"
+                       -DFFI_ACCEPT_SAFETY=unsafe
                        -DFFI_CONNECT="hs_connect"
+                       -DFFI_CONNECT_SAFETY=unsafe
+                       -DFFI_SEND="hs_send"
+                       -DFFI_SEND_SAFETY=unsafe
+                       -DFFI_SENDTO="hs_sendto"
+                       -DFFI_SENDTO_SAFETY=unsafe
+                       -DFFI_SENDMSG="hs_sendmsg"
+                       -DFFI_SENDMSG_SAFETY=unsafe
+                       -DFFI_RECV="hs_recv"
+                       -DFFI_RECV_SAFETY=unsafe
+                       -DFFI_RECVFROM="hs_recvfrom"
+                       -DFFI_RECVFROM_SAFETY=unsafe
+                       -DFFI_RECVMSG="hs_recvmsg"
+                       -DFFI_RECVMSG_SAFETY=unsafe
+                       -DFFI_GETSOCKOPT="hs_getsockopt"
+                       -DFFI_GETSOCKOPT_SAFETY=unsafe
+                       -DFFI_SETSOCKOPT="hs_setsockopt"
+                       -DFFI_SETSOCKOPT_SAFETY=unsafe
   else
     c-sources:         cbits/hs_socket_posix.c
-    cpp-options:       -DCALLCONV=ccall
-                       -DFFI_SOCKET="socket"
+    cpp-options:       -DFFI_SOCKET="socket"
+                       -DFFI_SOCKET_SAFETY=unsafe
+                       -DFFI_BIND="bind"
+                       -DFFI_BIND_SAFETY=unsafe
+                       -DFFI_LISTEN="listen"
+                       -DFFI_LISTEN_SAFETY=unsafe
                        -DFFI_CLOSE="close"
+                       -DFFI_CLOSE_SAFETY=unsafe
+                       -DFFI_ACCEPT="accept"
+                       -DFFI_ACCEPT_SAFETY=unsafe
                        -DFFI_CONNECT="connect"
+                       -DFFI_CONNECT_SAFETY=unsafe
+                       -DFFI_SEND="send"
+                       -DFFI_SEND_SAFETY=unsafe
+                       -DFFI_SENDTO="sendto"
+                       -DFFI_SENDTO_SAFETY=unsafe
+                       -DFFI_SENDMSG="sendmsg"
+                       -DFFI_SENDMSG_SAFETY=unsafe
+                       -DFFI_RECV="recv"
+                       -DFFI_RECV_SAFETY=unsafe
+                       -DFFI_RECVFROM="recvfrom"
+                       -DFFI_RECVFROM_SAFETY=unsafe
+                       -DFFI_RECVMSG="recvmsg"
+                       -DFFI_RECVMSG_SAFETY=unsafe
+                       -DFFI_GETSOCKOPT="getsockopt"
+                       -DFFI_GETSOCKOPT_SAFETY=unsafe
+                       -DFFI_SETSOCKOPT="setsockopt"
+                       -DFFI_SETSOCKOPT_SAFETY=unsafe
 
 test-suite basic
   hs-source-dirs:      tests

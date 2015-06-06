@@ -14,12 +14,16 @@ newtype SocketException
 instance Exception SocketException
 
 instance Show SocketException where
-  show e
+  show e@(SocketException i)
     | e == eOK             = "eOK"
     | e == eINTR           = "eINTR"
     | e == eAGAIN          = "eAGAIN"
     | e == eWOULDBLOCK     = "eWOULDBLOCK"
-    | otherwise            = "SocketException " ++ show e
+    | e == eBADF           = "eBADF"
+    | e == eINPROGRESS     = "eINPROGRESS"
+    | e == ePROTONOSUPPORT = "ePROTONOSUPPORT"
+    | e == eINVAL          = "eINVAL"
+    | otherwise            = "SocketException " ++ show i
 
 eOK         :: SocketException
 eOK          = SocketException (#const SEOK)
@@ -41,4 +45,7 @@ eINPROGRESS  = SocketException (#const SEINPROGRESS)
 
 ePROTONOSUPPORT :: SocketException
 ePROTONOSUPPORT  = SocketException (#const SEPROTONOSUPPORT)
+
+eINVAL      :: SocketException
+eINVAL       = SocketException (#const SEINVAL)
 
