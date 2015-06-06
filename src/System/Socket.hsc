@@ -16,6 +16,7 @@
 -- >
 -- > import System.Socket
 -- > import System.Socket.Family.INET (inaddrLOOPBACK)
+-- > import Data.Monoid
 -- > import Data.ByteString
 -- > import Control.Monad
 -- > import Control.Concurrent
@@ -24,7 +25,7 @@
 -- > main :: IO ()
 -- > main = do
 -- >   s <- socket :: IO (Socket INET STREAM TCP)
--- >   setSockOpt s (SO_REUSEADDR)
+-- >   setSockOpt s (SO_REUSEADDR True)
 -- >   bind s (SockAddrIn 8080 inaddrLOOPBACK)
 -- >   listen s 5
 -- >   forever $ do
