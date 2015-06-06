@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 module System.Socket.Internal.FFI where
 
 import Foreign.Ptr
@@ -10,51 +11,52 @@ import System.Socket.Internal.Msg
 type CSSize
    = CInt
 
-foreign import ccall unsafe "sys/socket.h socket"
+foreign import CALLCONV unsafe "socket"
   c_socket  :: CInt -> CInt -> CInt -> IO Fd
 
-foreign import ccall unsafe "unistd.h close"
+foreign import ccall unsafe "close"
   c_close   :: Fd -> IO CInt
 
-foreign import ccall unsafe "sys/socket.h bind"
+foreign import CALLCONV unsafe "bind"
   c_bind    :: Fd -> Ptr a -> CInt -> IO CInt
 
-foreign import ccall unsafe "sys/socket.h connect"
+foreign import CALLCONV unsafe "connect"
   c_connect :: Fd -> Ptr a -> CSize -> IO CInt
 
-foreign import ccall unsafe "sys/socket.h accept"
+foreign import CALLCONV unsafe "accept"
   c_accept  :: Fd -> Ptr a -> Ptr CInt -> IO Fd
 
-foreign import ccall unsafe "sys/socket.h listen"
+foreign import CALLCONV unsafe "listen"
   c_listen  :: Fd -> CInt -> IO CInt
 
-foreign import ccall unsafe "sys/socket.h send"
+foreign import CALLCONV unsafe "send"
   c_send    :: Fd -> Ptr a -> CSize -> MsgFlags -> IO CSSize
 
-foreign import ccall unsafe "sys/socket.h sendto"
+foreign import CALLCONV unsafe "sendto"
   c_sendto  :: Fd -> Ptr a -> CSize -> MsgFlags -> Ptr b -> CInt -> IO CSSize
 
-foreign import ccall unsafe "sys/socket.h sendmsg"
+foreign import ccall unsafe "sendmsg"
   c_sendmsg :: Fd -> Ptr (Msg a t p) -> MsgFlags -> IO CSSize
 
-foreign import ccall unsafe "sys/socket.h recv"
+foreign import CALLCONV unsafe "recv"
   c_recv    :: Fd -> Ptr a -> CSize -> MsgFlags -> IO CSSize
 
 -- socklen_t is an int not a size_t!
-foreign import ccall unsafe "sys/socket.h recvfrom"
+foreign import CALLCONV unsafe "recvfrom"
   c_recvfrom :: Fd -> Ptr a -> CSize -> MsgFlags -> Ptr b -> Ptr CInt -> IO CSSize
 
-foreign import ccall unsafe "sys/socket.hs recvmsg"
+foreign import ccall unsafe "recvmsg"
   c_recvmsg  :: Fd -> Ptr (Msg a t p) -> MsgFlags -> IO CSSize
 
-foreign import ccall unsafe "sys/socket.h getsockopt"
+foreign import CALLCONV unsafe "getsockopt"
   c_getsockopt  :: Fd -> CInt -> CInt -> Ptr a -> Ptr CInt -> IO CInt
 
-foreign import ccall unsafe "sys/socket.h setsockopt"
+foreign import CALLCONV unsafe "setsockopt"
   c_setsockopt  :: Fd -> CInt -> CInt -> Ptr a -> CInt -> IO CInt
 
-foreign import ccall unsafe "misc.h setnonblocking"
+foreign import ccall unsafe "memset"
+  c_memset       :: Ptr a -> CInt -> CSize -> IO ()
+
+foreign import ccall unsafe "setnonblocking"
   c_setnonblocking :: Fd -> IO CInt
 
-foreign import ccall unsafe "string.h memset"
-  c_memset       :: Ptr a -> CInt -> CSize -> IO ()

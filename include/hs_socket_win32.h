@@ -22,3 +22,6 @@ struct sockaddr_un {
   sa_family_t sun_family;
   char        sun_path[108];
 };
+
+int sendmsg(int sockfd, const struct msghdr *msg, int flags);
+int recvmsg(int sockfd,       struct msghdr *msg, int flags);

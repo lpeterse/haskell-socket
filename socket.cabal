@@ -61,8 +61,10 @@ library
   install-includes:    hs_socket.h
   if os(windows)
     c-sources:         cbits/hs_socket_win32.c
+    cpp-options:       -DCALLCONV=stdcall
   else
     c-sources:         cbits/hs_socket_posix.c
+    cpp-options:       -DCALLCONV=ccall
 
 test-suite basic
   hs-source-dirs:      tests
