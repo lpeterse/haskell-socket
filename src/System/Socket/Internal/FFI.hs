@@ -11,7 +11,7 @@ import System.Socket.Internal.Msg
 type CSSize
    = CInt
 
-foreign import CALLCONV unsafe "socket"
+foreign import ccall unsafe FFI_SOCKET
   c_socket  :: CInt -> CInt -> CInt -> IO Fd
 
 foreign import ccall unsafe "close"

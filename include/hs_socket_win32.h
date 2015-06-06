@@ -23,5 +23,7 @@ struct sockaddr_un {
   char        sun_path[108];
 };
 
+int hs_socket(int domain, int type, int protocol);
+
 int sendmsg(int sockfd, const struct msghdr *msg, int flags);
 int recvmsg(int sockfd,       struct msghdr *msg, int flags);
