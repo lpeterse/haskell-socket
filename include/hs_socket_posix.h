@@ -20,3 +20,4 @@ int hs_get_last_socket_error(void);
 #define SEINVAL                EINVAL
 #define SEINPROGRESS           EINPROGRESS
 #define SEPROTONOSUPPORT       EPROTONOSUPPORT
+#define SECONNREFUSED          ECONNREFUSED

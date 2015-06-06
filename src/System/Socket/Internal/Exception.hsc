@@ -23,6 +23,7 @@ instance Show SocketException where
     | e == eINPROGRESS     = "eINPROGRESS"
     | e == ePROTONOSUPPORT = "ePROTONOSUPPORT"
     | e == eINVAL          = "eINVAL"
+    | e == eCONNREFUSED    = "eCONNREFUSED"
     | otherwise            = "SocketException " ++ show i
 
 eOK         :: SocketException
@@ -46,6 +47,9 @@ eINPROGRESS  = SocketException (#const SEINPROGRESS)
 ePROTONOSUPPORT :: SocketException
 ePROTONOSUPPORT  = SocketException (#const SEPROTONOSUPPORT)
 
-eINVAL      :: SocketException
-eINVAL       = SocketException (#const SEINVAL)
+eINVAL          :: SocketException
+eINVAL           = SocketException (#const SEINVAL)
+
+eCONNREFUSED    :: SocketException
+eCONNREFUSED     = SocketException (#const SECONNREFUSED)
 

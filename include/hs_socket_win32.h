@@ -54,3 +54,4 @@ int hs_get_last_socket_error(void);
 #define SEINVAL                WSAEINVAL
 #define SEINPROGRESS           WSAEINPROGRESS
 #define SEPROTONOSUPPORT       WSAEPROTONOSUPPORT
+#define SECONNREFUSED          WSAECONNREFUSED
