@@ -24,6 +24,7 @@ struct sockaddr_un {
 };
 
 int hs_socket(int domain, int type, int protocol);
+int hs_close(int sockfd);
 
 int sendmsg(int sockfd, const struct msghdr *msg, int flags);
 int recvmsg(int sockfd,       struct msghdr *msg, int flags);

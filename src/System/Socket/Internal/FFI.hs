@@ -14,7 +14,7 @@ type CSSize
 foreign import ccall unsafe FFI_SOCKET
   c_socket  :: CInt -> CInt -> CInt -> IO Fd
 
-foreign import ccall unsafe "close"
+foreign import ccall unsafe FFI_CLOSE
   c_close   :: Fd -> IO CInt
 
 foreign import CALLCONV unsafe "bind"

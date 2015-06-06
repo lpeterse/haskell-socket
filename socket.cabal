@@ -63,10 +63,12 @@ library
     c-sources:         cbits/hs_socket_win32.c
     cpp-options:       -DCALLCONV=stdcall
                        -DFFI_SOCKET="hs_socket"
+                       -DFFI_CLOSE="hs_close"
   else
     c-sources:         cbits/hs_socket_posix.c
     cpp-options:       -DCALLCONV=ccall
                        -DFFI_SOCKET="socket"
+                       -DFFI_CLOSE="close"
 
 test-suite basic
   hs-source-dirs:      tests

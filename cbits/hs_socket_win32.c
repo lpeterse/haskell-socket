@@ -1,4 +1,6 @@
 #include <hs_socket.h>
+#include <stdio.h>
+#include <errno.h>
 
 int hs_socket(int domain, int type, int protocol) {
 
@@ -16,6 +18,10 @@ int hs_socket(int domain, int type, int protocol) {
 
   return s;
 };
+
+int hs_close(int sockfd) {
+  return closesocket(sockfd);
+}
 
 int setnonblocking(int fd) {
   // If iMode = 0, blocking is enabled; 
