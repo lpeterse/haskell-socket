@@ -151,7 +151,7 @@ module System.Socket (
   , SCTP
   -- * Exceptions
   -- ** SocketException
-  , SocketException (..)
+  , module System.Socket.Internal.Exception
   -- ** AddrInfoException
   , AddrInfoException (..)
   , aiStrError
@@ -213,7 +213,6 @@ import qualified Data.ByteString.Lazy.Internal as LBS
 
 import GHC.Conc (closeFdWith)
 
-import Foreign.C.Error
 import Foreign.C.Types
 import Foreign.C.String
 import Foreign.Ptr
@@ -293,12 +292,12 @@ socket = socket'
        -- If an exception is raised, it is reraised after the socket has been closed.
        -- This part has async exceptions unmasked (via restore).
        ( \fd-> if fd < 0 then do
-                getErrno >>= throwIO . SocketException
+                c_get_last_socket_error >>= throwIO
               else do
                 -- setNonBlockingFD calls c_fcntl_write which is an unsafe FFI call.
                 i <- c_setnonblocking fd
                 if i < 0 then do
-                  getErrno >>= throwIO . SocketException
+                  c_get_last_socket_error >>= throwIO
                 else do
                   mfd <- newMVar fd
                   let s = Socket mfd
@@ -323,7 +322,7 @@ bind (Socket mfd) addr = do
     withMVar mfd $ \fd-> do
       i <- c_bind fd addrPtr (fromIntegral $ sizeOf addr)
       if i < 0
-        then getErrno >>= throwIO . SocketException
+        then c_get_last_socket_error >>= throwIO
         else return ()
 
 -- | Starts listening and queueing connection requests on a connection-mode
@@ -341,7 +340,7 @@ listen (Socket ms) backlog = do
   i <- withMVar ms $ \s-> do
     c_listen s (fromIntegral backlog)
   if i < 0 then do
-    getErrno >>= throwIO . SocketException
+    c_get_last_socket_error >>= throwIO
   else do
     return ()
 
@@ -374,18 +373,18 @@ accept s@(Socket mfd) = accept'
               fix $ \retry-> do
                 ft <- c_accept fd addrPtr addrPtrLen
                 if ft < 0 then do
-                  e <- getErrno
+                  e <- c_get_last_socket_error
                   if e == eWOULDBLOCK || e == eAGAIN
                     then threadWaitRead' fd >>= return . Left
                     else if e == eINTR
                       -- On EINTR it is good practice to just retry.
                       then retry
-                      else throwIO (SocketException e)
+                      else throwIO e
                 -- This is the critical section: We got a valid descriptor we have not yet returned.
                 else do 
                   i <- c_setnonblocking ft
                   if i < 0 then do
-                    getErrno >>= throwIO . SocketException
+                    c_get_last_socket_error >>= throwIO
                   else do
                     -- This peek operation might be a little expensive, but I don't see an alternative.
                     addr <- peek addrPtr :: IO (Address f)
@@ -417,12 +416,12 @@ connect :: Family f => Socket f t p -> Address f -> IO ()
 connect (Socket mfd) addr = do
   mwait <- withMVar mfd $ \fd-> do
     when (fd < 0) $ do
-      throwIO (SocketException eBADF)
+      throwIO eBADF
     alloca $ \addrPtr-> do
       poke addrPtr addr
       i <- c_connect fd addrPtr (fromIntegral $ sizeOf addr)
       if i < 0 then do
-        e <- getErrno
+        e <- c_get_last_socket_error
         if e == eINPROGRESS || e == eINTR then do
           -- The manpage says that in this case the connection
           -- shall be established asynchronously and one is
@@ -430,7 +429,7 @@ connect (Socket mfd) addr = do
           wait <- threadWaitWrite' fd
           return (Just wait)
         else do
-          throwIO (SocketException e)
+          throwIO e
       else do
         -- This should not be the case on non-blocking socket, but better safe than sorry.
         return Nothing
@@ -673,10 +672,10 @@ close (Socket mfd) = do
         ( const $ fix $ \retry-> do
             i <- c_close fd
             if i < 0 then do
-              e <- getErrno
+              e <- c_get_last_socket_error
               if e == eINTR 
                 then retry
-                else throwIO (SocketException e)
+                else throwIO e
             else return ()
         ) fd
       -- When we arrive here, no exception has been thrown and the descriptor has been closed.

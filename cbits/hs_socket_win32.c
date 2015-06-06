@@ -4,24 +4,30 @@
 
 int hs_socket(int domain, int type, int protocol) {
 
-  WSADATA wsaData;
+  static int has_already_been_initialised = 0;
 
-  int iResult = WSAStartup(MAKEWORD(2,2), &wsaData);
-  if (iResult != NO_ERROR) {
-    return iResult;
+  if (!has_already_been_initialised) {
+    WSADATA wsaData;
+
+    int ini = WSAStartup(MAKEWORD(2,2), &wsaData);
+    if (ini != NO_ERROR) {
+      WSACleanup();
+      return -1;
+    } else {
+      has_already_been_initialised = 1;
+    }
   }
 
-  int s = socket(domain, type, protocol);
-  if (s == INVALID_SOCKET) {
-    WSACleanup();
-  }
+  return socket(domain, type, protocol);
+};
 
-  return s;
+int hs_connect(int sockfd, const struct sockaddr *name, int namelen) {
+  return connect(sockfd, name, namelen);
 };
 
 int hs_close(int sockfd) {
   return closesocket(sockfd);
-}
+};
 
 int setnonblocking(int fd) {
   // If iMode = 0, blocking is enabled; 
@@ -36,4 +42,8 @@ int sendmsg(int sockfd, const struct msghdr *msg, int flags) {
 
 int recvmsg(int sockfd,       struct msghdr *msg, int flags) {
   return -1;
+};
+
+int hs_get_last_socket_error(void) {
+  return WSAGetLastError();
 };

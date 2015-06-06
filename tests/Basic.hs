@@ -9,7 +9,6 @@ import Control.Monad
 import Control.Exception
 import Control.Concurrent
 import Control.Concurrent.Async
-import Foreign.C.Error
 import System.Socket
 import System.Socket.Family.INET
 import System.Socket.Family.INET6
@@ -36,7 +35,7 @@ main = do
 test0001 :: (Family f, Type t, Protocol p) => Socket f t p -> Address f -> IO (Either String String)
 test0001 dummy addr =
   handleJust
-    (\(SocketException e)-> if e == ePROTONOSUPPORT then Just () else Nothing)
+    (\e@(SocketException _)-> if e == ePROTONOSUPPORT then Just () else Nothing)
     (const $ return (Right "Protocol is not supported, but that may happen."))
     $ bracket
       ( do  server <- socket `asTypeOf` return dummy  `onException` print "E01"
@@ -71,7 +70,7 @@ test0001 dummy addr =
 test0002 :: (Family f, Type t, Protocol p) => Socket f t p -> Address f -> IO (Either String String)
 test0002 dummy addr =
   handleJust
-    (\(SocketException e)-> if e == ePROTONOSUPPORT then Just () else Nothing)
+    (\e@(SocketException _)-> if e == ePROTONOSUPPORT then Just () else Nothing)
     (const $ return (Right "Protocol is not supported, but that may happen."))
     $ bracket
       ( do  server <- socket `asTypeOf` return dummy
@@ -101,7 +100,7 @@ test0002 dummy addr =
 test0003 :: (Family f, Type t, Protocol p) => Socket f t p -> Address f -> IO (Either String String)
 test0003 dummy addr =
   handleJust
-    (\(SocketException e)-> if e == ePROTONOSUPPORT then Just () else Nothing)
+    (\e@(SocketException _)-> if e == ePROTONOSUPPORT then Just () else Nothing)
     (const $ return (Right "Protocol is not supported, but that may happen."))
     $ bracket
         ( do  server <- socket `asTypeOf` return dummy
@@ -134,7 +133,7 @@ test0003 dummy addr =
 test0004 :: Family f => Socket f STREAM SCTP -> Address f -> IO (Either String String)
 test0004 dummy addr =
   handleJust
-    (\(SocketException e)-> if e == ePROTONOSUPPORT then Just () else Nothing)
+    (\e@(SocketException _)-> if e == ePROTONOSUPPORT then Just () else Nothing)
     (const $ return (Right "Protocol is not supported, but that may happen."))
     $ bracket
         ( do  server <- socket `asTypeOf` return dummy
@@ -182,7 +181,7 @@ test0004 dummy addr =
 test0005 :: Family f => Socket f STREAM SCTP -> Address f -> IO (Either String String)
 test0005 dummy addr =
   handleJust
-    (\(SocketException e)-> if e == ePROTONOSUPPORT then Just () else Nothing)
+    (\e@(SocketException _)-> if e == ePROTONOSUPPORT then Just () else Nothing)
     (const $ return (Right "Protocol is not supported, but that may happen."))
     $ bracket
         ( do  server <- socket `asTypeOf` return dummy

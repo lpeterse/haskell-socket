@@ -8,3 +8,7 @@ int setnonblocking(int fd) {
   }
   return fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 }
+
+int hs_get_last_socket_error(void) {
+  return errno;
+};

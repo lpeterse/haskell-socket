@@ -13,7 +13,6 @@ import Control.Applicative
 
 import Foreign.Ptr
 import Foreign.Storable
-import Foreign.C.Error
 import Foreign.C.Types
 import Foreign.Marshal.Alloc
 import System.Posix.Types
@@ -87,7 +86,7 @@ setSockOptBool (Socket mfd) level name value = do
                           (vPtr :: Ptr CInt)
                           (fromIntegral $ sizeOf (undefined :: CInt))
         when (i < 0) $ do
-          throwIO . SocketException =<< getErrno
+          c_get_last_socket_error >>= throwIO
 
 getSockOptBool :: Socket f t p -> CInt -> CInt -> IO Bool
 getSockOptBool (Socket mfd) level name = do
@@ -98,7 +97,7 @@ getSockOptBool (Socket mfd) level name = do
                           (vPtr :: Ptr CInt)
                           (lPtr :: Ptr CInt)
         if i < 0 then do
-          throwIO . SocketException =<< getErrno
+          c_get_last_socket_error >>= throwIO
         else do
           v <- peek vPtr
           return (v == 1)

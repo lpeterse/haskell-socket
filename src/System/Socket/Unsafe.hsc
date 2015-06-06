@@ -28,7 +28,6 @@ import Control.Monad
 import Control.Exception
 import Control.Concurrent.MVar
 
-import Foreign.C.Error
 import Foreign.C.Types
 import Foreign.C.String
 import Foreign.Ptr
@@ -75,16 +74,16 @@ tryWaitAndRetry (Socket mfd) getWaitAction action = do
   fix $ \again-> do
     ewr <- withMVar mfd $ \fd-> do
         when (fd < 0) $ do
-          throwIO (SocketException eBADF)
+          throwIO eBADF
         fix $ \retry-> do
           i <- action fd
           if (i < 0) then do
-            e <- getErrno
+            e <- c_get_last_socket_error
             if e == eWOULDBLOCK || e == eAGAIN then do
               getWaitAction fd >>= return . Left
             else if e == eINTR
               then retry
-              else throwIO (SocketException e)
+              else throwIO e
           else return (Right i)
     case ewr of
       Left  wait   -> wait >> again

@@ -7,6 +7,7 @@ import Foreign.C.Types
 import System.Posix.Types ( Fd(..) )
 
 import System.Socket.Internal.Msg
+import System.Socket.Internal.Exception
 
 type CSSize
    = CInt
@@ -20,8 +21,8 @@ foreign import ccall unsafe FFI_CLOSE
 foreign import CALLCONV unsafe "bind"
   c_bind    :: Fd -> Ptr a -> CInt -> IO CInt
 
-foreign import CALLCONV unsafe "connect"
-  c_connect :: Fd -> Ptr a -> CSize -> IO CInt
+foreign import ccall unsafe FFI_CONNECT
+  c_connect :: Fd -> Ptr a -> CInt -> IO CInt
 
 foreign import CALLCONV unsafe "accept"
   c_accept  :: Fd -> Ptr a -> Ptr CInt -> IO Fd
@@ -59,4 +60,7 @@ foreign import ccall unsafe "memset"
 
 foreign import ccall unsafe "setnonblocking"
   c_setnonblocking :: Fd -> IO CInt
+
+foreign import ccall unsafe "hs_get_last_socket_error"
+  c_get_last_socket_error :: IO SocketException
 
