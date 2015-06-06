@@ -376,7 +376,9 @@ accept s@(Socket mfd) = accept'
                 if ft < 0 then do
                   e <- c_get_last_socket_error
                   if e == eWOULDBLOCK || e == eAGAIN
-                    then threadWaitRead' fd >>= return . Left
+                    then do
+                      print "will wait"
+                      threadWaitRead' fd >>= return . Left
                     else if e == eINTR
                       -- On EINTR it is good practice to just retry.
                       then retry

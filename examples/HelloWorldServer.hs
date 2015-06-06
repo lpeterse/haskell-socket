@@ -16,6 +16,17 @@ main = do
   bind s (SockAddrIn 8080 inaddrLOOPBACK)
   listen s 5
   forever $ do
-    (peer,addr) <- accept s
-    forkIO $ do
-      sendAll peer "Hello world!" mempty `finally` close peer
+    print "accept"
+    (peer,addr) <- accept s `onException` print "E01"
+    print "accepted"
+    print addr
+    sendAll peer "Hello world!" mempty 
+     `onException`
+       ( do print "E02"
+       )
+     `finally` 
+       ( do print "close"
+            close peer
+            print "closed"
+       )
+    print "end"
