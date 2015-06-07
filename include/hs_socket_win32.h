@@ -2,10 +2,13 @@
 #include <stdio.h>
 #include <winsock2.h>
 
-#ifdef _WIN32_WINNT
-#undef _WIN32_WINNT
-#endif
+#ifndef _WIN32_WINNT
 #define _WIN32_WINNT 0x0501
+#endif
+#if (_WIN32_WINNT < 0x0501)
+#undef _WIN32_WINNT
+#define _WIN32_WINNT 0x0501
+#endif
 
 #include <ws2tcpip.h>
 

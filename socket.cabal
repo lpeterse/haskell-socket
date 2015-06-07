@@ -128,6 +128,14 @@ library
                        -DFFI_GETSOCKOPT_SAFETY=unsafe
                        -DFFI_SETSOCKOPT="setsockopt"
                        -DFFI_SETSOCKOPT_SAFETY=unsafe
+                       -DFFI_GETADDRINFO="getaddrinfo"
+                       -DFFI_GETADDRINFO_SAFETY=safe
+                       -DFFI_FREEADDRINFO="freeaddrinfo"
+                       -DFFI_FREEADDRINFO_SAFETY=unsafe
+                       -DFFI_GETNAMEINFO="getnameinfo"
+                       -DFFI_GETNAMEINFO_SAFETY=safe
+                       -DFFI_GAISTRERROR="gaistrerror"
+                       -DFFI_GAISTRERROR_SAFETY=unsafe
 
 test-suite basic
   hs-source-dirs:      tests
