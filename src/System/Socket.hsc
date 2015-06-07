@@ -129,9 +129,6 @@ module System.Socket (
   -- *** INET6
   , INET6
   , SockAddrIn6 (..)
-  -- *** UNIX
-  , UNIX
-  , SockAddrUn (..)
   -- ** Types
   , Type (..)
   -- *** DGRAM
@@ -153,7 +150,7 @@ module System.Socket (
   , module System.Socket.Internal.Exception
   -- ** AddrInfoException
   , AddrInfoException (..)
-  , aiStrError
+  , gaiStrerror
   , eaiAGAIN
   , eaiBADFLAGS
   , eaiFAIL
@@ -228,7 +225,6 @@ import System.Socket.Internal.Msg
 import System.Socket.Internal.AddrInfo
 
 import System.Socket.Family
-import System.Socket.Family.UNIX
 import System.Socket.Family.INET
 import System.Socket.Family.INET6
 

@@ -4,7 +4,7 @@ module System.Socket.Internal.AddrInfo (
   , GetAddrInfo (..)
   , GetNameInfo (..)
   , AddrInfoException (..)
-  , aiStrError
+  , gaiStrerror
   , eaiAGAIN
   , eaiBADFLAGS
   , eaiFAIL
@@ -73,20 +73,21 @@ deriving instance (Show (SockAddr f)) => Show (AddrInfo f t p)
 -- AddrInfoException
 -------------------------------------------------------------------------------
 
--- | Contains the error code that can be matched against. Use `aiStrError`
---   to get a human readable explanation of the error.
+-- | Contains the error code that can be matched against. Use `gaiStrerror`
+--   to get a human readable explanation of the error (show`
+--   does this as well).
 newtype AddrInfoException
       = AddrInfoException CInt
    deriving (Eq, Typeable)
 
 instance Show AddrInfoException where
-  show e = "AddrInfoException \"" ++ aiStrError e ++ "\""
+  show e = "AddrInfoException \"" ++ gaiStrerror e ++ "\""
 
 instance Exception AddrInfoException
 
 -- | A wrapper around @gai_strerror@.
-aiStrError :: AddrInfoException -> String
-aiStrError (AddrInfoException e) =
+gaiStrerror :: AddrInfoException -> String
+gaiStrerror (AddrInfoException e) =
   unsafePerformIO $ do
     msgPtr <- c_gaistrerror e
     peekCString msgPtr
