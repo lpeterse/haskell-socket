@@ -1,6 +1,6 @@
 name:                socket
-version:             0.2.0.0
-synopsis:            A binding to the POSIX sockets interface
+version:             0.3.0.0
+synopsis:            A portable and extensible sockets library.
 description:
   __Motivation__
   .
@@ -15,7 +15,7 @@ description:
       Examples for things that have been ripped out of this library are:
       Unix sockets, SCTP, vectored IO (for now).
   .
-    - Absolutely no conditional defines.
+    - Absolutely no conditional export.
   .
     - No `#ifdef` madness in the Haskell sources. The Haskell binding code
       uses the FFI to reference the platform's native networking functions.

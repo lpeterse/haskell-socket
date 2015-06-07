@@ -21,7 +21,7 @@ POSIX compliant networking code.
       - Support for vectored IO (at least unless it can be guaranteed to
         be supported on all platforms).
 
-  - Absolutely no conditional defines.
+  - Absolutely no conditional exports.
 
   - No `#ifdef` madness in the Haskell sources. The Haskell binding code
     uses the FFI to reference the platform's native networking functions.

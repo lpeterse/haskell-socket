@@ -1,3 +1,5 @@
+0.3.0.0 Lars Petersen <info@lars-petersen.net> 2015-06-07
+
  * `AddrInfoFlags` and `NameInfoFlags` are now instances of `Bits`.
  * Dropped all sendmsg/recvmsg related operations (harden the core first!)
  * Dropped support for UNIX socket (will be separate package `socket-unix`)
