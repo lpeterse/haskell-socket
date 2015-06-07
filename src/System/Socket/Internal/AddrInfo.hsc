@@ -12,6 +12,7 @@ module System.Socket.Internal.AddrInfo (
   , eaiFAIL
   , eaiFAMILY
   , eaiMEMORY
+  , eaiNONAME
   , eaiSOCKTYPE
   , eaiSERVICE
   , eaiSYSTEM
@@ -113,6 +114,10 @@ eaiFAMILY    = AddrInfoException (#const EAI_FAMILY)
 -- | > AddrInfoException "Memory allocation failure"
 eaiMEMORY   :: AddrInfoException
 eaiMEMORY    = AddrInfoException (#const EAI_MEMORY)
+
+-- | > AddrInfoException "Memory allocation failure"
+eaiNONAME   :: AddrInfoException
+eaiNONAME    = AddrInfoException (#const EAI_NONAME)
 
 -- | > AddrInfoException "Servname not supported for ai_socktype"
 eaiSERVICE  :: AddrInfoException

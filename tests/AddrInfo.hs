@@ -12,6 +12,7 @@ import System.Exit
 main :: IO ()
 main = do 
   t0001
+  t0002
 
 t0001 :: IO ()
 t0001 = do
@@ -29,3 +30,16 @@ t0001 = do
   where
     p i = print ("t0001." ++ show i)
     e i = error ("t0001." ++ show i)
+
+t0002 :: IO ()
+t0002 = do
+  let x = getAddrInfo
+          Nothing
+          Nothing
+          mempty :: IO [AddrInfo INET STREAM TCP]
+  eui <- tryJust (\ex@(AddrInfoException _)-> if ex == eaiNONAME then Just () else Nothing)
+                 (x `onException` p 0)
+  when (eui /= Left ()) (e 1)
+  where
+    p i = print ("t0002." ++ show i)
+    e i = error ("t0002." ++ show i)

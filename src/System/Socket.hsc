@@ -148,6 +148,7 @@ module System.Socket (
   , eaiFAIL
   , eaiFAMILY
   , eaiMEMORY
+  , eaiNONAME
   , eaiSOCKTYPE
   , eaiSERVICE
   , eaiSYSTEM
