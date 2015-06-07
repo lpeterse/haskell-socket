@@ -12,22 +12,22 @@ POSIX compliant networking code.
 
 ### Implementation Philosophy
 
-    - Every operation and every flag exposed should be supported with same
-      semantics on every platform. If this cannot be guaranteed it should
-      be supplied by another (extension) package.
-      Examples for things that have been ripped out of this library are:
-        - Support for Unix sockets which don't have an equivalent on Windows.
-        - Support for SCTP.
-        - Support for vectored IO (at least unless it can be guaranteed to
-          be supported on all platforms).
+  - Every operation and every flag exposed should be supported with same
+    semantics on every platform. If this cannot be guaranteed it should
+    be supplied by another (extension) package.
+    Examples for things that have been ripped out of this library are:
+      - Support for Unix sockets which don't have an equivalent on Windows.
+      - Support for SCTP.
+      - Support for vectored IO (at least unless it can be guaranteed to
+        be supported on all platforms).
 
-    - Absolutely no conditional defines.
+  - Absolutely no conditional defines.
 
-    - No `#ifdef` madness in the Haskell sources. The Haskell binding code
-      uses the FFI to reference the platform's native networking functions.
-      If they are not Posix compliant (i.e. under Windows) an level of
-      indirection is introduced to write an Posix compliant equivalent in C
-      using whatever the plaform specific building blocks are.
+  - No `#ifdef` madness in the Haskell sources. The Haskell binding code
+    uses the FFI to reference the platform's native networking functions.
+    If they are not Posix compliant (i.e. under Windows) an level of
+    indirection is introduced to write an Posix compliant equivalent in C
+    using whatever the plaform specific building blocks are.
 
 ### Platform Support
 
