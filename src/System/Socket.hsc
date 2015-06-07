@@ -197,6 +197,7 @@ module System.Socket (
   , niNOFQDN
   , niNUMERICHOST
   , niNUMERICSERV
+  , foobar
   ) where
 
 import Control.Exception
@@ -245,6 +246,9 @@ import System.Socket.Protocol.TCP
 import System.Socket.Protocol.SCTP
 
 #include "hs_socket.h"
+
+foobar :: Int
+foobar  = (#const _WIN32_WINNT)
 
 -- | Creates a new socket.
 --

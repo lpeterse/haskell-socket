@@ -1,9 +1,6 @@
 #include <hs_socket.h>
-#include <stdio.h>
-#include <errno.h>
 
-int hs_socket(int domain, int type, int protocol) {
-
+int hs_socket_init() {
   static int has_already_been_initialised = 0;
 
   if (!has_already_been_initialised) {
@@ -16,6 +13,13 @@ int hs_socket(int domain, int type, int protocol) {
     } else {
       has_already_been_initialised = 1;
     }
+  }
+  return 0;
+};
+
+int hs_socket(int domain, int type, int protocol) {
+  if (hs_socket_init() != 0) {
+    return -1;
   }
 
   return socket(domain, type, protocol);
@@ -100,4 +104,31 @@ int hs_getsockopt(int sockfd, int level, int option_name,       void *option_val
 
 int hs_setsockopt(int sockfd, int level, int option_name, const void *option_value, int  option_len) {
   return setsockopt(sockfd, level, option_name, option_value, option_len);
+};
+
+const char *hs_gaistrerror(int errcode) {
+  return gai_strerror(errcode);
+};
+
+int  hs_getaddrinfo(const char *node, const char *service,
+                    const struct addrinfo *hints,
+                    struct addrinfo **res) {
+  if (hs_socket_init() != 0) {
+    return -1;
+  }
+  return getaddrinfo(node, service, hints, res);
+};
+
+int  hs_getnameinfo(const struct sockaddr *sa, int salen,
+                    char *host, int hostlen,
+                    char *serv, int servlen, int flags) {
+  if (hs_socket_init() != 0) {
+    return -1;
+  }
+  return getnameinfo(sa, salen, host, hostlen, serv, servlen, flags);
+};
+
+void hs_freeaddrinfo(struct addrinfo *res) {
+  freeaddrinfo(res);
+  return;
 };

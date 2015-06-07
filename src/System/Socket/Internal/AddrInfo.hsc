@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveDataTypeable, ScopedTypeVariables, StandaloneDeriving, FlexibleContexts, TypeFamilies #-}
+{-# LANGUAGE DeriveDataTypeable, ScopedTypeVariables, StandaloneDeriving, FlexibleContexts, TypeFamilies, CPP #-}
 module System.Socket.Internal.AddrInfo (
     AddrInfo (..)
   , getAddrInfo
@@ -305,15 +305,14 @@ getNameInfo' addr (NameInfoFlags flags) =
 -- FFI
 -------------------------------------------------------------------------------
 
-foreign import ccall safe "netdb.h getaddrinfo"
+foreign import ccall FFI_GETADDRINFO_SAFETY FFI_GETADDRINFO
   c_getaddrinfo  :: CString -> CString -> Ptr (AddrInfo a t p) -> Ptr (Ptr (AddrInfo a t p)) -> IO CInt
 
-foreign import ccall unsafe "netdb.h freeaddrinfo"
+foreign import ccall FFI_FREEADDRINFO_SAFETY FFI_FREEADDRINFO
   c_freeaddrinfo :: Ptr (AddrInfo a t p) -> IO ()
 
-foreign import ccall safe "netdb.h getnameinfo"
+foreign import ccall FFI_GETNAMEINFO_SAFETY FFI_GETNAMEINFO
   c_getnameinfo  :: Ptr a -> CInt -> CString -> CInt -> CString -> CInt -> CInt -> IO CInt
 
-foreign import ccall unsafe "netdb.h gai_strerror"
+foreign import ccall FFI_GAISTRERROR_SAFETY FFI_GAISTRERROR
   c_gaistrerror  :: CInt -> IO CString
-

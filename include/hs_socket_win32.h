@@ -1,6 +1,12 @@
 #include <stdint.h>
-#include <windows.h>
+#include <stdio.h>
 #include <winsock2.h>
+
+#ifdef _WIN32_WINNT
+#undef _WIN32_WINNT
+#endif
+#define _WIN32_WINNT 0x0501
+
 #include <ws2tcpip.h>
 
 typedef u_short sa_family_t;
@@ -23,6 +29,8 @@ struct sockaddr_un {
   char        sun_path[108];
 };
 
+int hs_socket_init();
+
 int hs_socket  (int domain, int type, int protocol);
 int hs_bind    (int sockfd, const struct sockaddr *name, int namelen);
 int hs_connect (int sockfd, const struct sockaddr *name, int namelen);
@@ -41,6 +49,18 @@ int hs_recvmsg (int sockfd,       struct msghdr *msg, int flags);
 
 int hs_getsockopt(int sockfd, int level, int option_name,       void *option_value, int *option_len);
 int hs_setsockopt(int sockfd, int level, int option_name, const void *option_value, int  option_len);
+
+int  hs_getaddrinfo(const char *node, const char *service,
+                    const struct addrinfo *hints,
+                    struct addrinfo **res);
+
+int  hs_getnameinfo(const struct sockaddr *sa, int salen,
+                    char *host, int hostlen,
+                    char *serv, int servlen, int flags);
+
+void hs_freeaddrinfo(struct addrinfo *res);
+
+const char *hs_gaistrerror(int errcode);
 
 /* SocketException */
 

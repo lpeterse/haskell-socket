@@ -3,6 +3,7 @@ module System.Socket.Internal.FFI where
 
 import Foreign.Ptr
 import Foreign.C.Types
+import Foreign.C.String
 
 import System.Posix.Types ( Fd(..) )
 
@@ -62,4 +63,6 @@ foreign import ccall unsafe "setnonblocking"
 
 foreign import ccall unsafe "hs_get_last_socket_error"
   c_get_last_socket_error :: IO SocketException
+
+
 

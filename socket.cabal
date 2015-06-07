@@ -61,6 +61,7 @@ library
   install-includes:    hs_socket.h
   if os(windows)
     c-sources:         cbits/hs_socket_win32.c
+    extra-libraries:   ws2_32
     cpp-options:       -DFFI_SOCKET="hs_socket"
                        -DFFI_SOCKET_SAFETY=safe
                        -DFFI_BIND="hs_bind"
@@ -89,6 +90,14 @@ library
                        -DFFI_GETSOCKOPT_SAFETY=safe
                        -DFFI_SETSOCKOPT="hs_setsockopt"
                        -DFFI_SETSOCKOPT_SAFETY=safe
+                       -DFFI_GETADDRINFO="hs_getaddrinfo"
+                       -DFFI_GETADDRINFO_SAFETY=safe
+                       -DFFI_FREEADDRINFO="hs_freeaddrinfo"
+                       -DFFI_FREEADDRINFO_SAFETY=unsafe
+                       -DFFI_GETNAMEINFO="hs_getnameinfo"
+                       -DFFI_GETNAMEINFO_SAFETY=safe
+                       -DFFI_GAISTRERROR="hs_gaistrerror"
+                       -DFFI_GAISTRERROR_SAFETY=unsafe
   else
     c-sources:         cbits/hs_socket_posix.c
     cpp-options:       -DFFI_SOCKET="socket"
