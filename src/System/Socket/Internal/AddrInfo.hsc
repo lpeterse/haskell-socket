@@ -115,7 +115,7 @@ eaiFAMILY    = AddrInfoException (#const EAI_FAMILY)
 eaiMEMORY   :: AddrInfoException
 eaiMEMORY    = AddrInfoException (#const EAI_MEMORY)
 
--- | > AddrInfoException "Memory allocation failure"
+-- | > AddrInfoException "No such host is known"
 eaiNONAME   :: AddrInfoException
 eaiNONAME    = AddrInfoException (#const EAI_NONAME)
 

@@ -62,7 +62,7 @@ extra-source-files:  README.md
                      include/hs_socket.h
                      include/hs_socket_win32.h
                      include/hs_socket_posix.h
-                     cbist/hs_socket_win32.c
+                     cbits/hs_socket_win32.c
                      cbits/hs_socket_posix.c
 
 library
