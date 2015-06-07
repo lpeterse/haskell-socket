@@ -20,11 +20,9 @@ main = do
   test "test0001.02" $ test0001 (undefined :: Socket INET6 STREAM TCP)  localhost6
   test "test0002.01" $ test0002 (undefined :: Socket INET  DGRAM  UDP)  localhost
   test "test0002.02" $ test0002 (undefined :: Socket INET6 DGRAM  UDP)  localhost6
-  test "test0003.01" $ test0003 (undefined :: Socket INET  STREAM TCP)  localhost
-  test "test0003.02" $ test0003 (undefined :: Socket INET6 STREAM TCP)  localhost6
 
 -- Test send and receive on connection oriented sockets (i.e. TCP).
-test0001 :: (Family f, Type t, Protocol p) => Socket f t p -> Address f -> IO (Either String String)
+test0001 :: (Family f, Type t, Protocol p) => Socket f t p -> SockAddr f -> IO (Either String String)
 test0001 dummy addr =
   bracket
       ( do  server <- socket `asTypeOf` return dummy  `onException` print "E01"
@@ -56,7 +54,7 @@ test0001 dummy addr =
     helloWorld = "Hello world!"
 
 -- Test stateless sockets (i.e. UDP).
-test0002 :: (Family f, Type t, Protocol p) => Socket f t p -> Address f -> IO (Either String String)
+test0002 :: (Family f, Type t, Protocol p) => Socket f t p -> SockAddr f -> IO (Either String String)
 test0002 dummy addr =
   bracket
       ( do  server <- socket `asTypeOf` return dummy
@@ -81,37 +79,6 @@ test0002 dummy addr =
       )
   where
     helloWorld = "Hello world!"
-
--- Test sendMsg and recvMsg (TODO!) on connection oriented sockets (i.e. TCP).
-test0003 :: (Family f, Type t, Protocol p) => Socket f t p -> Address f -> IO (Either String String)
-test0003 dummy addr =
-  bracket
-        ( do  server <- socket `asTypeOf` return dummy
-              client <- socket `asTypeOf` return dummy
-              return (server, client)
-        )
-        (\(server,client)-> do
-              close server
-              close client
-        )
-        (\(server,client)-> do
-              setSockOpt server (SO_REUSEADDR True)
-              bind server addr
-              listen server 5
-              serverRecv <- async $ do
-                (peerSock, peerAddr) <- accept server
-                recvMsg peerSock 4096 mempty
-              client <- socket `asTypeOf` return server
-              connect client addr
-              sendV client helloWorld mempty
-              (msg, flags) <- wait serverRecv
-              if (LBS.fromStrict msg /= helloWorld)
-                then return (Left  "Received message was bogus.")
-                else return (Right "")
-        )
-  where
-    helloWorld = LBS.fromChunks ["Hello world!", "All your base are belong to us!"]
-
 
 localhost :: SockAddrIn
 localhost =

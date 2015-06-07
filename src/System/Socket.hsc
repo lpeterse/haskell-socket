@@ -94,31 +94,23 @@ module System.Socket (
   -- * Operations
   -- ** socket
   , socket
+  -- ** connect
+  , connect
   -- ** bind
   , bind
   -- ** listen
   , listen
   -- ** accept
   , accept
-  -- ** connect
-  , connect
-  -- ** send, sendV
-  , send, sendV
-    -- ** sendTo, sendToV
-  , sendTo, sendToV
-  -- ** recv
-  , recv
-  -- ** recvFrom
-  , recvFrom
-  -- ** recvMsg
-  , recvMsg
+  -- ** send, sendTo
+  , send, sendTo
+  -- ** recv, recvFrom
+  , recv, recvFrom
   -- ** close
   , close
   -- * Convenience Operations
-  -- ** sendAll, sendAllV
-  , sendAll, sendAllV
-  -- ** recvRecord
-  , recvRecord
+  -- ** sendAll
+  , sendAll
   -- * Sockets
   , Socket (..)
   -- ** Families
@@ -300,6 +292,45 @@ socket = socket'
                   return s
        )
 
+-- | Connects to an remote address.
+--
+--   - Calling `connect` on a `close`d socket throws @EBADF@ even if the former file descriptor has been reassigned.
+--   - This function returns as soon as a connection has either been established
+--     or refused. A failed connection attempt does not throw an exception
+--     if @EINTR@ or @EINPROGRESS@ were caught internally. The operation
+--     just unblocks and returns in this case. The approach is to
+--     just try to read or write the socket and eventually fail there instead.
+--     Also see [these considerations](http://cr.yp.to/docs/connect.html) for an explanation.
+--   - This operation throws `SocketException`s. Consult your @man@ page for
+--     details and specific @errno@s.
+--   - @EINTR@ and @EINPROGRESS@ get catched internally and won't be thrown as the
+--     connection might still be established asynchronously. Expect failure
+--     when trying to read or write the socket in this case.
+connect :: Family f => Socket f t p -> SockAddr f -> IO ()
+connect (Socket mfd) addr = do
+  mwait <- withMVar mfd $ \fd-> do
+    when (fd < 0) $ do
+      throwIO eBADF
+    alloca $ \addrPtr-> do
+      poke addrPtr addr
+      i <- c_connect fd addrPtr (fromIntegral $ sizeOf addr)
+      if i < 0 then do
+        e <- c_get_last_socket_error
+        if e == eINPROGRESS || e == eINTR then do
+          -- The manpage says that in this case the connection
+          -- shall be established asynchronously and one is
+          -- supposed to wait.
+          wait <- threadWaitWrite' fd
+          return (Just wait)
+        else do
+          throwIO e
+      else do
+        -- This should not be the case on non-blocking socket, but better safe than sorry.
+        return Nothing
+  case mwait of
+    Just wait -> wait
+    Nothing   -> return ()
+
 -- | Bind a socket to an address.
 --
 --   - Calling `bind` on a `close`d socket throws @EBADF@ even if the former file descriptor has been reassigned.
@@ -371,7 +402,6 @@ accept s@(Socket mfd) = accept'
                   e <- c_get_last_socket_error
                   if e == eWOULDBLOCK || e == eAGAIN
                     then do
-                      print "will wait"
                       threadWaitRead' fd >>= return . Left
                     else if e == eINTR
                       -- On EINTR it is good practice to just retry.
@@ -395,45 +425,6 @@ accept s@(Socket mfd) = accept'
               Left  wait -> wait >> again
               Right sock -> return sock
 
--- | Connects to an remote address.
---
---   - Calling `connect` on a `close`d socket throws @EBADF@ even if the former file descriptor has been reassigned.
---   - This function returns as soon as a connection has either been established
---     or refused. A failed connection attempt does not throw an exception
---     if @EINTR@ or @EINPROGRESS@ were caught internally. The operation
---     just unblocks and returns in this case. The approach is to
---     just try to read or write the socket and eventually fail there instead.
---     Also see [these considerations](http://cr.yp.to/docs/connect.html) for an explanation.
---   - This operation throws `SocketException`s. Consult your @man@ page for
---     details and specific @errno@s.
---   - @EINTR@ and @EINPROGRESS@ get catched internally and won't be thrown as the
---     connection might still be established asynchronously. Expect failure
---     when trying to read or write the socket in this case.
-connect :: Family f => Socket f t p -> SockAddr f -> IO ()
-connect (Socket mfd) addr = do
-  mwait <- withMVar mfd $ \fd-> do
-    when (fd < 0) $ do
-      throwIO eBADF
-    alloca $ \addrPtr-> do
-      poke addrPtr addr
-      i <- c_connect fd addrPtr (fromIntegral $ sizeOf addr)
-      if i < 0 then do
-        e <- c_get_last_socket_error
-        if e == eINPROGRESS || e == eINTR then do
-          -- The manpage says that in this case the connection
-          -- shall be established asynchronously and one is
-          -- supposed to wait.
-          wait <- threadWaitWrite' fd
-          return (Just wait)
-        else do
-          throwIO e
-      else do
-        -- This should not be the case on non-blocking socket, but better safe than sorry.
-        return Nothing
-  case mwait of
-    Just wait -> wait
-    Nothing   -> return ()
-
 -- | Send a message on a connected socket.
 --
 --   - Calling `send` on a `close`d socket throws @EBADF@ even if the former
@@ -454,15 +445,6 @@ send s bs flags = do
     unsafeSend s (castPtr bufPtr) (fromIntegral bufSize) flags
   return (fromIntegral bytesSent)
 
--- | Like `send`, but uses the @sendmsg@ operation to transmit all
---   chunks of a lazy `Data.ByteString.Lazy.ByteString` with one system call
---   by putting them into several @iovec@s.
-sendV :: Socket f t p -> LBS.ByteString -> MsgFlags -> IO Int
-sendV s lbs flags = do
-  bytesSent <- unsafeUseAsMsgPtr lbs $ \msgPtr-> do
-    unsafeSendMsg s msgPtr flags
-  return (fromIntegral bytesSent)
-
 -- | Like `send`, but allows for specifying a destination address.
 sendTo ::(Family f) => Socket f t p -> BS.ByteString -> MsgFlags -> SockAddr f -> IO Int
 sendTo s bs flags addr = do
@@ -471,23 +453,6 @@ sendTo s bs flags addr = do
     BS.unsafeUseAsCStringLen bs $ \(bufPtr,bufSize)->
       unsafeSendTo s bufPtr (fromIntegral bufSize) flags addrPtr (fromIntegral $ sizeOf addr)
   return (fromIntegral bytesSent)
-
--- | Like `sendTo`, but uses the @sendmsg@ operation to transmit all
---   chunks of a lazy `Data.ByteString.Lazy.ByteString` with one system call
---   by putting them into several @iovec@s.
-sendToV ::(Family f) => Socket f t p -> LBS.ByteString -> MsgFlags -> SockAddr f -> IO Int
-sendToV s lbs flags addr = do
-  bytesSent <- unsafeUseAsMsgPtr lbs $ \msgPtr-> do
-    alloca $ \addrPtr-> do
-      poke              addrPtr  addr
-      poke (msg_name    msgPtr)  addrPtr
-      poke (msg_namelen msgPtr) (fromIntegral $ sizeOf addr)
-      unsafeSendMsg s msgPtr flags
-  return (fromIntegral bytesSent)
-  where
-    msg_name       = (#ptr struct msghdr, msg_name)   :: Ptr (Msg f t p) -> Ptr (Ptr a)
-    msg_namelen    = (#ptr struct msghdr, msg_namelen):: Ptr (Msg f t p) -> Ptr CInt
-
 
 -- | Receive a message on a connected socket.
 --
@@ -527,117 +492,6 @@ recvFrom = recvFrom'
                 bs   <- BS.unsafePackMallocCStringLen (bufPtr, fromIntegral bytesReceived)
                 return (bs, addr)
             )
-
--- | Like `recv`, but internally uses @sendmsg@ to retrieve associated `MsgFlags`.
-recvMsg :: Socket f t p -> Int -> MsgFlags -> IO (BS.ByteString, MsgFlags)
-recvMsg s bufSize flags = do
-  allocaBytes (#const sizeof(struct msghdr)) $ \msgPtr-> do
-    allocaBytes (#const sizeof(struct iovec)) $ \iovPtr-> do
-      c_memset msgPtr 0 (#const sizeof(struct msghdr))
-      c_memset iovPtr 0 (#const sizeof(struct iovec))
-      poke (msg_iov    msgPtr) iovPtr
-      poke (msg_iovlen msgPtr) 1
-      -- this is to protect the malloced space before it becomes a ByteString
-      bracketOnError
-        ( mallocBytes bufSize )
-        (\bufPtr-> free bufPtr )
-        (\bufPtr-> do
-            poke (iov_base iovPtr) bufPtr
-            poke (iov_len  iovPtr) (fromIntegral bufSize)
-            bytesReceived <- unsafeRecvMsg s msgPtr flags
-            lbs    <- BS.unsafePackMallocCStringLen (bufPtr, fromIntegral bytesReceived)
-            rflags <- MsgFlags <$> peek (msg_flags msgPtr)
-            return (lbs, rflags)
-        )
-  where
-    iov_base       = (#ptr struct iovec, iov_base)    :: Ptr IoVec -> Ptr CString
-    iov_len        = (#ptr struct iovec, iov_len)     :: Ptr IoVec -> Ptr CSize
-    msg_iov        = (#ptr struct msghdr, msg_iov)    :: Ptr (Msg a t p) -> Ptr (Ptr IoVec)
-    msg_iovlen     = (#ptr struct msghdr, msg_iovlen) :: Ptr (Msg a t p) -> Ptr CSize
-    msg_flags      = (#ptr struct msghdr, msg_flags)  :: Ptr (Msg a t p) -> Ptr CInt
-
--- | Receives a record (if supported by the protocol). A record consists of several messages terminated by `msgEOR`.
---
--- - The operation accumulates received chunks to a lazy `Data.ByteString.Lazy.ByteString` and waits in between.
--- - It stops accumulating if the supplied maximum length has been reached, but
---   it continues receiving till the record is terminated. Further data gets
---   dropped and `msgTRUNC` will be set.
--- - The operation returns its result as soon as a chunk with `msgEOR` has been received.
--- - Implementation detail: Every (but the last) chunk of the resulting
---   `Data.ByteString.Lazy.ByteString` is exactly as long as the specified buffer size.
-recvRecord :: Socket f STREAM p 
-           -> Int -- ^ buffer size for a single chunk
-           -> Int -- ^ maximum length of the resulting record (to avoid Denial Of Service by memory exhaustion)
-           -> MsgFlags
-           -> IO (LBS.ByteString, MsgFlags)
-recvRecord s bufLen maxLen sflags = do
-  allocaBytes (#const sizeof(struct msghdr)) $ \msgPtr-> do
-    allocaBytes (#const sizeof(struct iovec)) $ \iovPtr-> do
-      c_memset msgPtr 0 (#const sizeof(struct msghdr))
-      c_memset iovPtr 0 (#const sizeof(struct iovec))
-      poke (msg_iov    msgPtr) iovPtr
-      poke (msg_iovlen msgPtr) 1
-      bs     <- doCollect s msgPtr iovPtr 0
-      rflags <- peek (msg_flags msgPtr)
-      return (bs,rflags)
-  where
-    iov_base       = (#ptr struct iovec, iov_base)    :: Ptr IoVec -> Ptr CString
-    iov_len        = (#ptr struct iovec, iov_len)     :: Ptr IoVec -> Ptr CSize
-    msg_iov        = (#ptr struct msghdr, msg_iov)    :: Ptr (Msg a t p) -> Ptr (Ptr IoVec)
-    msg_iovlen     = (#ptr struct msghdr, msg_iovlen) :: Ptr (Msg a t p) -> Ptr CSize
-    msg_flags      = (#ptr struct msghdr, msg_flags)  :: Ptr (Msg a t p) -> Ptr MsgFlags
-    -- | This mallocs memory for a single chunk and reads from the socket.
-    --   When the buffer is full the chunk is converted to a ByteString and
-    --   the operating proceeds with another chunk until msgEOR has been received.
-    doCollect sock msgPtr iovPtr resSize =
-      if resSize >= maxLen then do
-        doDrop sock msgPtr iovPtr
-        return LBS.Empty
-      else do
-        bs <- bracketOnError
-          ( mallocBytes bufLen )
-          ( free )
-          (\bufPtr-> do
-            poke (iov_base iovPtr) bufPtr
-            doFillBuf sock msgPtr iovPtr bufPtr 0
-          )
-        rflags <- peek (msg_flags msgPtr)
-        LBS.chunk bs <$> if rflags .&. msgEOR /= mempty then do
-          return LBS.Empty
-        else do
-          doCollect sock msgPtr iovPtr (resSize + bufLen)
-    -- | This reads from the socket until a single chunk buffer is full
-    --   or the `msgEOR` marker has been received.
-    doFillBuf sock msgPtr iovPtr bufPtr bufUsage = do
-      poke (iov_base iovPtr) (bufPtr `plusPtr` fromIntegral bufUsage)
-      poke (iov_len  iovPtr) (fromIntegral bufLen - bufUsage)
-      recvdBytes <- unsafeRecvMsg sock msgPtr sflags
-      rflags <- peek (msg_flags msgPtr)
-      let bufUsage' = bufUsage + fromIntegral recvdBytes
-      if bufUsage' >= fromIntegral bufLen || rflags .&. msgEOR /= mempty
-        then doFreezeBuf bufPtr bufUsage'
-        else doFillBuf sock msgPtr iovPtr bufPtr bufUsage'
-    -- | This takes a `Ptr` to malloced memory and converts it to
-    --   a ByteString. The result will a have a finalizer associated
-    --   with it and must not be freed manually. The `bracketOnError`
-    --   is critical. The memory is either freed because an exception
-    --   occured before `doFreezeBuf` was called or afterwards by
-    --   the `ByteString` finalizer. `doFreezeBuf` is the last thing
-    --   that happens is `doFillBuf`.
-    doFreezeBuf bufPtr bufUsage = do
-      BS.unsafePackMallocCStringLen (bufPtr, fromIntegral bufUsage)
-    -- | This reads and drops data from the socket till
-    --   a msgEOR has been received.
-    doDrop sock msgPtr iovPtr = do
-      -- allocate a local buffer for data we ignore anyway
-      allocaBytes bufLen $ \bufPtr-> do
-        poke (iov_base iovPtr) bufPtr
-        fix $ \again-> do
-          _      <- unsafeRecvMsg sock msgPtr sflags
-          rflags <- peek (msg_flags msgPtr)
-          if rflags .&. msgEOR /= mempty
-            then poke (msg_flags msgPtr) (rflags `mappend` msgTRUNC)
-            else again
 
 -- | Closes a socket.
 --
@@ -690,15 +544,5 @@ close (Socket mfd) = do
 --   >   when (sent < length buf) $ sendAll sock (drop sent buf) flags
 sendAll ::Socket f STREAM p -> BS.ByteString -> MsgFlags -> IO ()
 sendAll s bs flags = do
-  sent <- send s bs flags
-  when (sent < BS.length bs) $ sendAll s (BS.drop sent bs) flags
-
--- | Like `sendV`, but continues until all data has been sent.
---
---   > sendAllV sock buf flags = do
---   >   sent <- sendV sock buf flags
---   >   when (sent < length buf) $ sendAllV sock (drop sent buf) flags
-sendAllV ::Socket f STREAM p -> BS.ByteString -> MsgFlags -> IO ()
-sendAllV s bs flags = do
   sent <- send s bs flags
   when (sent < BS.length bs) $ sendAll s (BS.drop sent bs) flags
