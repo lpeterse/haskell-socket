@@ -1,3 +1,4 @@
+ * `AddrInfoFlags` and `NameInfoFlags` are now instances of `Bits`.
  * Dropped all sendmsg/recvmsg related operations (harden the core first!)
  * Dropped support for UNIX socket (will be separate package `socket-unix`)
  * Renamed type function `Address` to `SockAddr`.
