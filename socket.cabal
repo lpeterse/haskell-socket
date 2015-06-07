@@ -95,8 +95,8 @@ library
                        -DFFI_FREEADDRINFO_SAFETY=unsafe
                        -DFFI_GETNAMEINFO="hs_getnameinfo"
                        -DFFI_GETNAMEINFO_SAFETY=safe
-                       -DFFI_GAISTRERROR="hs_gaistrerror"
-                       -DFFI_GAISTRERROR_SAFETY=unsafe
+                       -DFFI_GAI_STRERROR="hs_gai_strerror"
+                       -DFFI_GAI_STRERROR_SAFETY=unsafe
   else
     c-sources:         cbits/hs_socket_posix.c
     cpp-options:       -DFFI_SOCKET="socket"
@@ -133,8 +133,8 @@ library
                        -DFFI_FREEADDRINFO_SAFETY=unsafe
                        -DFFI_GETNAMEINFO="getnameinfo"
                        -DFFI_GETNAMEINFO_SAFETY=safe
-                       -DFFI_GAISTRERROR="gaistrerror"
-                       -DFFI_GAISTRERROR_SAFETY=unsafe
+                       -DFFI_GAI_STRERROR="gai_strerror"
+                       -DFFI_GAI_STRERROR_SAFETY=unsafe
 
 test-suite basic
   hs-source-dirs:      tests
@@ -145,6 +145,15 @@ test-suite basic
                      , bytestring < 0.11
                      , socket
                      , async
+
+test-suite AddrInfo
+  hs-source-dirs:      tests
+  main-is:             AddrInfo.hs
+  type:                exitcode-stdio-1.0
+  default-language:    Haskell2010
+  build-depends:       base >= 4.7 && < 5
+                     , bytestring < 0.11
+                     , socket
 
 source-repository head
   type:     git

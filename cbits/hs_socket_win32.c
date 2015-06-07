@@ -106,7 +106,7 @@ int hs_setsockopt(int sockfd, int level, int option_name, const void *option_val
   return setsockopt(sockfd, level, option_name, option_value, option_len);
 };
 
-const char *hs_gaistrerror(int errcode) {
+const char *hs_gai_strerror(int errcode) {
   return gai_strerror(errcode);
 };
 

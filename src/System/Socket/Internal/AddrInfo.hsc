@@ -91,7 +91,7 @@ instance Exception AddrInfoException
 gaiStrerror :: AddrInfoException -> String
 gaiStrerror (AddrInfoException e) =
   unsafePerformIO $ do
-    msgPtr <- c_gaistrerror e
+    msgPtr <- c_gai_strerror e
     peekCString msgPtr
 
 -- | > AddrInfoException "Temporary failure in name resolution"
@@ -318,5 +318,5 @@ foreign import ccall FFI_FREEADDRINFO_SAFETY FFI_FREEADDRINFO
 foreign import ccall FFI_GETNAMEINFO_SAFETY FFI_GETNAMEINFO
   c_getnameinfo  :: Ptr a -> CInt -> CString -> CInt -> CString -> CInt -> CInt -> IO CInt
 
-foreign import ccall FFI_GAISTRERROR_SAFETY FFI_GAISTRERROR
-  c_gaistrerror  :: CInt -> IO CString
+foreign import ccall FFI_GAI_STRERROR_SAFETY FFI_GAI_STRERROR
+  c_gai_strerror  :: CInt -> IO CString

@@ -63,7 +63,7 @@ int  hs_getnameinfo(const struct sockaddr *sa, int salen,
 
 void hs_freeaddrinfo(struct addrinfo *res);
 
-const char *hs_gaistrerror(int errcode);
+const char *hs_gai_strerror(int errcode);
 
 /* SocketException */
 
