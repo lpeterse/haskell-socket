@@ -88,11 +88,9 @@ module System.Socket (
   -- * Name Resolution
     AddrInfo (..)
   -- ** getAddrInfo
-  , getAddrInfo
-  , getAddrInfo6
+  , GetAddrInfo (..)
   -- ** getNameInfo
-  , getNameInfo
-  , getNameInfo6
+  , GetNameInfo (..)
   -- * Operations
   -- ** socket
   , socket

@@ -1,10 +1,8 @@
 {-# LANGUAGE DeriveDataTypeable, ScopedTypeVariables, StandaloneDeriving, FlexibleContexts, TypeFamilies, CPP #-}
 module System.Socket.Internal.AddrInfo (
     AddrInfo (..)
-  , getAddrInfo
-  , getAddrInfo6
-  , getNameInfo
-  , getNameInfo6
+  , GetAddrInfo (..)
+  , GetNameInfo (..)
   , AddrInfoException (..)
   , aiStrError
   , eaiAGAIN
@@ -193,7 +191,8 @@ niNUMERICHOST   = NameInfoFlags (#const NI_NUMERICHOST)
 niNUMERICSERV  :: NameInfoFlags
 niNUMERICSERV   = NameInfoFlags (#const NI_NUMERICSERV)
 
--- | Maps names to addresses (i.e. by DNS lookup).
+class (Family f) => GetAddrInfo f where
+  -- | Maps names to addresses (i.e. by DNS lookup).
 --
 --   The operation throws `AddrInfoException`s.
 --
@@ -205,11 +204,6 @@ niNUMERICSERV   = NameInfoFlags (#const NI_NUMERICSERV)
 --   If you need different types of records, you need to start several
 --   queries. If you want to connect to both IPv4 and IPV6 addresses use
 --   `aiV4MAPPED` and use IPv6-sockets.
-
-getAddrInfo :: (Type t, Protocol p) => Maybe BS.ByteString -> Maybe BS.ByteString -> AddrInfoFlags -> IO [AddrInfo INET t p]
-getAddrInfo = getAddrInfo'
-
--- | Like `getAddrInfo`, but for IPv6 addresses.
 --
 --   > > getAddrInfo (Just "www.haskell.org") (Just "80") aiV4MAPPED :: IO [AddrInfo INET6 STREAM TCP]
 --   > [AddrInfo {addrInfoFlags = AddrInfoFlags 8, addrAddress = [2400:cb00:2048:0001:0000:0000:6ca2:cc3c]:80, addrCanonName = Nothing}]
@@ -217,8 +211,13 @@ getAddrInfo = getAddrInfo'
 --   > [AddrInfo {addrInfoFlags = AddrInfoFlags 8, addrAddress = [0000:0000:0000:0000:0000:ffff:17fd:e1ad]:0, addrCanonName = Nothing}]
 --   > > getAddrInfo (Just "darcs.haskell.org") Nothing mempty :: IO [AddrInfo INET6 STREAM TCP]
 --   > *** Exception: AddrInfoException "Name or service not known"
-getAddrInfo6 :: (Type t, Protocol p) => Maybe BS.ByteString -> Maybe BS.ByteString -> AddrInfoFlags -> IO [AddrInfo INET6 t p]
-getAddrInfo6 = getAddrInfo'
+  getAddrInfo :: (Type t, Protocol p) => Maybe BS.ByteString -> Maybe BS.ByteString -> AddrInfoFlags -> IO [AddrInfo f t p]
+
+instance GetAddrInfo INET where
+  getAddrInfo = getAddrInfo'
+
+instance GetAddrInfo INET6 where
+  getAddrInfo = getAddrInfo'
 
 getAddrInfo' :: forall f t p. (Family f, Type t, Protocol p) => Maybe BS.ByteString -> Maybe BS.ByteString -> AddrInfoFlags -> IO [AddrInfo f t p]
 getAddrInfo' mnode mservice (AddrInfoFlags flags) = do
@@ -277,12 +276,14 @@ getAddrInfo' mnode mservice (AddrInfoFlags flags) = do
 --
 --   > > getNameInfo (SockAddrIn 80 inaddrLOOPBACK) mempty
 --   > ("localhost.localdomain","http")
-getNameInfo :: SockAddrIn -> NameInfoFlags -> IO (BS.ByteString, BS.ByteString)
-getNameInfo = getNameInfo'
+class (Family f) => GetNameInfo f where
+  getNameInfo :: Address f -> NameInfoFlags -> IO (BS.ByteString, BS.ByteString)
 
--- | Like `getNameInfo`, but for IPv6 addresses.
-getNameInfo6 :: SockAddrIn6 -> NameInfoFlags -> IO (BS.ByteString, BS.ByteString)
-getNameInfo6 = getNameInfo'
+instance GetNameInfo INET where
+  getNameInfo = getNameInfo'
+
+instance GetNameInfo INET6 where
+  getNameInfo = getNameInfo'
 
 getNameInfo' :: Storable a => a -> NameInfoFlags -> IO (BS.ByteString, BS.ByteString)
 getNameInfo' addr (NameInfoFlags flags) =
