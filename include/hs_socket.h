@@ -11,10 +11,6 @@
 
 #endif /* defined(_WIN32) */
 
-#ifndef IPPROTO_SCTP
-#define IPPROTO_SCTP 132
-#endif
-
 /* Flags (by convention) get defined 0 if they are not defined
    on the system. This has to be checked for in the application.
    This is the price to pay for not having conditionally defined

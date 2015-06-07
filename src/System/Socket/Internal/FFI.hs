@@ -3,7 +3,6 @@ module System.Socket.Internal.FFI where
 
 import Foreign.Ptr
 import Foreign.C.Types
-import Foreign.C.String
 
 import System.Posix.Types ( Fd(..) )
 
@@ -37,17 +36,11 @@ foreign import ccall FFI_SEND_SAFETY FFI_SEND
 foreign import ccall FFI_SENDTO_SAFETY FFI_SENDTO
   c_sendto  :: Fd -> Ptr a -> CSize -> MsgFlags -> Ptr b -> CInt -> IO CSSize
 
-foreign import ccall FFI_SENDMSG_SAFETY FFI_SENDMSG
-  c_sendmsg :: Fd -> Ptr (Msg a t p) -> MsgFlags -> IO CSSize
-
 foreign import ccall FFI_RECV_SAFETY FFI_RECV
   c_recv    :: Fd -> Ptr a -> CSize -> MsgFlags -> IO CSSize
 
 foreign import ccall FFI_RECVFROM_SAFETY FFI_RECVFROM
   c_recvfrom :: Fd -> Ptr a -> CSize -> MsgFlags -> Ptr b -> Ptr CInt -> IO CSSize
-
-foreign import ccall FFI_RECVMSG_SAFETY FFI_RECVMSG
-  c_recvmsg  :: Fd -> Ptr (Msg a t p) -> MsgFlags -> IO CSSize
 
 foreign import ccall FFI_GETSOCKOPT_SAFETY FFI_GETSOCKOPT
   c_getsockopt  :: Fd -> CInt -> CInt -> Ptr a -> Ptr CInt -> IO CInt
@@ -55,14 +48,14 @@ foreign import ccall FFI_GETSOCKOPT_SAFETY FFI_GETSOCKOPT
 foreign import ccall FFI_SETSOCKOPT_SAFETY FFI_SETSOCKOPT
   c_setsockopt  :: Fd -> CInt -> CInt -> Ptr a -> CInt -> IO CInt
 
-foreign import ccall unsafe "memset"
-  c_memset       :: Ptr a -> CInt -> CSize -> IO ()
-
-foreign import ccall unsafe "setnonblocking"
+foreign import ccall unsafe "hs_setnonblocking"
   c_setnonblocking :: Fd -> IO CInt
 
 foreign import ccall unsafe "hs_get_last_socket_error"
   c_get_last_socket_error :: IO SocketException
+
+foreign import ccall unsafe "memset"
+  c_memset       :: Ptr a -> CInt -> CSize -> IO ()
 
 
 

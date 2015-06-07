@@ -1,6 +1,6 @@
 #include <hs_socket.h>
 
-int setnonblocking(int fd) {
+int hs_setnonblocking(int fd) {
   int flags;
 
   if (-1 == (flags = fcntl(fd, F_GETFL, 0))) {

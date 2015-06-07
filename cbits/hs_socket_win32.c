@@ -56,7 +56,7 @@ int hs_close(int sockfd) {
   return closesocket(sockfd);
 };
 
-int setnonblocking(int fd) {
+int hs_setnonblocking(int fd) {
   // If iMode = 0, blocking is enabled; 
   // If iMode != 0, non-blocking mode is enabled.
   u_long iMode = 1;
@@ -83,14 +83,6 @@ int hs_sendto  (int sockfd, const void *buf, size_t len, int flags,
 
 int hs_recvfrom(int sockfd,       void *buf, size_t len, int flags,
                       struct sockaddr *src_addr, int *addrlen) {
-  return -1;
-};
-
-int hs_sendmsg(int sockfd, const struct msghdr *msg, int flags) {
-  return -1;
-};
-
-int hs_recvmsg(int sockfd,       struct msghdr *msg, int flags) {
   return -1;
 };
 

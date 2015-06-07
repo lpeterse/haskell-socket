@@ -10,6 +10,7 @@
 
 /* SocketException */
 
+int hs_setnonblocking(int fd);
 int hs_get_last_socket_error(void);
 
 #define SEOK                   0

@@ -192,18 +192,13 @@ import Control.Monad
 import Control.Applicative
 import Control.Concurrent.MVar
 
-import Data.Bits
 import Data.Function
 import Data.Monoid
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Unsafe as BS
-import qualified Data.ByteString.Lazy as LBS
-import qualified Data.ByteString.Lazy.Internal as LBS
 
 import GHC.Conc (closeFdWith)
 
-import Foreign.C.Types
-import Foreign.C.String
 import Foreign.Ptr
 import Foreign.Storable
 import Foreign.Marshal.Alloc
