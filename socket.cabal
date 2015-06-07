@@ -2,16 +2,51 @@ name:                socket
 version:             0.2.0.0
 synopsis:            A binding to the POSIX sockets interface
 description:
-  This package provides access to the system's socket interface with POSIX semantics.
+  __Motivation__
   .
-  The library is designed to be threadsafe and establishes a thin layer on
-  top of the underlying ccalls to help with the development of concurrent applications.
-  It integrates with GHC's event management mechanism (which itself uses epoll,
-  libev or similar) and makes all functions have blocking semantics
-  without actually blocking the runtime system.
+  This library aims to expose a minimal and platform-independant interface for
+  POSIX compliant networking code.
   .
-  This is a community project :-) Don't hesitate to request features on the
-  issue tracker or even implement some and send a pull request.
+  __Implementation Philosophy__
+  .
+    - Every operation and every flag exposed should be supported with same
+      semantics on every platform. If this cannot be guaranteed it should
+      be supplied by another (extension) package.
+      Examples for things that have been ripped out of this library are:
+      Unix sockets, SCTP, vectored IO (for now).
+  .
+    - Absolutely no conditional defines.
+  .
+    - No `#ifdef` madness in the Haskell sources. The Haskell binding code
+      uses the FFI to reference the platform's native networking functions.
+      If they are not Posix compliant (i.e. under Windows) an level of
+      indirection is introduced to write an Posix compliant equivalent in C
+      using whatever the plaform specific building blocks are.
+  .
+  __Platform Support__
+  .
+  /Linux/
+  .
+  Working.
+  .
+  /BSD/
+  .
+  Unknown. Should work. Please report if not.
+  .
+  /MacOS/
+  .
+  Unknown. Please report if you have a Mac.
+  .
+  /Windows/
+  .
+  Unfinished (problem with non-blocking IO).
+  .
+  Aim: Support Windows7 or higher. Don't have dependencies on autotools, just
+  Haskell Platform with MinGW should suffice.
+  .
+  /Android/
+  .
+  Unknown. Should be supported. Please get in touch if you plan to use it.
 license:             MIT
 license-file:        LICENSE
 author:              Lars Petersen
