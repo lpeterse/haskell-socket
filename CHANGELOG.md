@@ -1,3 +1,8 @@
+0.3.0.1 Lars Petersen <info@lars-petersen.net> 2015-06-07
+
+ * Fixed documentation of eaiNONAME.
+ * Fixed typo in .cabal file in reference to cbits file.
+
 0.3.0.0 Lars Petersen <info@lars-petersen.net> 2015-06-07
 
  * `AddrInfoFlags` and `NameInfoFlags` are now instances of `Bits`.

@@ -1,5 +1,5 @@
 name:                socket
-version:             0.3.0.0
+version:             0.3.0.1
 synopsis:            A portable and extensible sockets library.
 description:
   __Motivation__
