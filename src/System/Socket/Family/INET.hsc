@@ -33,7 +33,7 @@ import System.Socket.Internal.FFI
 data INET
 
 instance Family INET where
-  type Address INET = SockAddrIn
+  type SockAddr INET = SockAddrIn
   familyNumber _ = (#const AF_INET)
 
 data SockAddrIn

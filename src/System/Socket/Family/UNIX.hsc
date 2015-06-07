@@ -20,7 +20,7 @@ import System.Socket.Internal.FFI
 data UNIX
 
 instance Family UNIX where
-  type Address UNIX = SockAddrUn
+  type SockAddr UNIX = SockAddrUn
   familyNumber _ = (#const AF_UNIX)
 
 data SockAddrUn

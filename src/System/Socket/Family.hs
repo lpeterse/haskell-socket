@@ -6,6 +6,6 @@ module System.Socket.Family
 import Foreign.C.Types
 import Foreign.Storable
 
-class (Storable (Address f)) => Family f where
-  type Address f
+class (Storable (SockAddr f)) => Family f where
+  type SockAddr f
   familyNumber :: f -> CInt

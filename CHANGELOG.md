@@ -1,3 +1,4 @@
+ * Renamed type function `Address` to `SockAddr`.
  * Added GetAddrInfo and GetNameInfo classes.
  * Dropped support for SCTP (will be separate package `socket-sctp`)
  * Added support for RAW sockets.

@@ -62,12 +62,12 @@ import System.Socket.Internal.FFI
 data AddrInfo f t p
    = AddrInfo
      { addrInfoFlags :: AddrInfoFlags
-     , addrAddress   :: Address f
+     , addrAddress   :: SockAddr f
      , addrCanonName :: Maybe BS.ByteString
      }
 
-deriving instance (Eq   (Address f)) => Eq   (AddrInfo f t p)
-deriving instance (Show (Address f)) => Show (AddrInfo f t p)
+deriving instance (Eq   (SockAddr f)) => Eq   (AddrInfo f t p)
+deriving instance (Show (SockAddr f)) => Show (AddrInfo f t p)
 
 -------------------------------------------------------------------------------
 -- AddrInfoException
@@ -277,7 +277,7 @@ getAddrInfo' mnode mservice (AddrInfoFlags flags) = do
 --   > > getNameInfo (SockAddrIn 80 inaddrLOOPBACK) mempty
 --   > ("localhost.localdomain","http")
 class (Family f) => GetNameInfo f where
-  getNameInfo :: Address f -> NameInfoFlags -> IO (BS.ByteString, BS.ByteString)
+  getNameInfo :: SockAddr f -> NameInfoFlags -> IO (BS.ByteString, BS.ByteString)
 
 instance GetNameInfo INET where
   getNameInfo = getNameInfo'

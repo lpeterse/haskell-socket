@@ -26,7 +26,7 @@ import System.Socket.Internal.FFI
 data INET6
 
 instance Family INET6 where
-  type Address INET6 = SockAddrIn6
+  type SockAddr INET6 = SockAddrIn6
   familyNumber _ = (#const AF_INET6)
 
 data SockAddrIn6

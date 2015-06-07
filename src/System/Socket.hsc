@@ -314,7 +314,7 @@ socket = socket'
 --     [argued here](http://stackoverflow.com/a/14485305).
 --   - This operation throws `SocketException`s. Consult your @man@ page for
 --     details and specific @errno@s.
-bind :: (Family f) => Socket f t p -> Address f -> IO ()
+bind :: (Family f) => Socket f t p -> SockAddr f -> IO ()
 bind (Socket mfd) addr = do
   alloca $ \addrPtr-> do
     poke addrPtr addr
@@ -357,15 +357,15 @@ listen (Socket ms) backlog = do
 --     details and specific @errno@s.
 --   - This operation catches @EAGAIN@, @EWOULDBLOCK@ and @EINTR@ internally
 --     and retries automatically.
-accept :: (Family f) => Socket f t p -> IO (Socket f t p, Address f)
+accept :: (Family f) => Socket f t p -> IO (Socket f t p, SockAddr f)
 accept s@(Socket mfd) = accept'
   where
-    accept' :: forall f t p. (Family f) => IO (Socket f t p, Address f)
+    accept' :: forall f t p. (Family f) => IO (Socket f t p, SockAddr f)
     accept' = do
       -- Allocate local (!) memory for the address.
       alloca $ \addrPtr-> do
         alloca $ \addrPtrLen-> do
-          poke addrPtrLen (fromIntegral $ sizeOf (undefined :: Address f))
+          poke addrPtrLen (fromIntegral $ sizeOf (undefined :: SockAddr f))
           fix $ \again-> do
             -- We mask asynchronous exceptions during this critical section.
             ews <- withMVarMasked mfd $ \fd-> do
@@ -388,7 +388,7 @@ accept s@(Socket mfd) = accept'
                     c_get_last_socket_error >>= throwIO
                   else do
                     -- This peek operation might be a little expensive, but I don't see an alternative.
-                    addr <- peek addrPtr :: IO (Address f)
+                    addr <- peek addrPtr :: IO (SockAddr f)
                     -- newMVar is guaranteed to be not interruptible.
                     mft <- newMVar ft
                     -- Register a finalizer on the new socket.
@@ -413,7 +413,7 @@ accept s@(Socket mfd) = accept'
 --   - @EINTR@ and @EINPROGRESS@ get catched internally and won't be thrown as the
 --     connection might still be established asynchronously. Expect failure
 --     when trying to read or write the socket in this case.
-connect :: Family f => Socket f t p -> Address f -> IO ()
+connect :: Family f => Socket f t p -> SockAddr f -> IO ()
 connect (Socket mfd) addr = do
   mwait <- withMVar mfd $ \fd-> do
     when (fd < 0) $ do
@@ -468,7 +468,7 @@ sendV s lbs flags = do
   return (fromIntegral bytesSent)
 
 -- | Like `send`, but allows for specifying a destination address.
-sendTo ::(Family f) => Socket f t p -> BS.ByteString -> MsgFlags -> Address f -> IO Int
+sendTo ::(Family f) => Socket f t p -> BS.ByteString -> MsgFlags -> SockAddr f -> IO Int
 sendTo s bs flags addr = do
   bytesSent <- alloca $ \addrPtr-> do
     poke addrPtr addr
@@ -479,7 +479,7 @@ sendTo s bs flags addr = do
 -- | Like `sendTo`, but uses the @sendmsg@ operation to transmit all
 --   chunks of a lazy `Data.ByteString.Lazy.ByteString` with one system call
 --   by putting them into several @iovec@s.
-sendToV ::(Family f) => Socket f t p -> LBS.ByteString -> MsgFlags -> Address f -> IO Int
+sendToV ::(Family f) => Socket f t p -> LBS.ByteString -> MsgFlags -> SockAddr f -> IO Int
 sendToV s lbs flags addr = do
   bytesSent <- unsafeUseAsMsgPtr lbs $ \msgPtr-> do
     alloca $ \addrPtr-> do
@@ -514,14 +514,14 @@ recv s bufSize flags =
     )
 
 -- | Like `recv`, but additionally yields the peer address.
-recvFrom :: (Family f) => Socket f t p -> Int -> MsgFlags -> IO (BS.ByteString, Address f)
+recvFrom :: (Family f) => Socket f t p -> Int -> MsgFlags -> IO (BS.ByteString, SockAddr f)
 recvFrom = recvFrom'
   where
-    recvFrom' :: forall f t p. (Family f) => Socket f t p -> Int -> MsgFlags -> IO (BS.ByteString, Address f)
+    recvFrom' :: forall f t p. (Family f) => Socket f t p -> Int -> MsgFlags -> IO (BS.ByteString, SockAddr f)
     recvFrom' s bufSize flags = do
       alloca $ \addrPtr-> do
         alloca $ \addrSizePtr-> do
-          poke addrSizePtr (fromIntegral $ sizeOf (undefined :: Address f))
+          poke addrSizePtr (fromIntegral $ sizeOf (undefined :: SockAddr f))
           bracketOnError
             ( mallocBytes bufSize )
             (\bufPtr-> free bufPtr )
