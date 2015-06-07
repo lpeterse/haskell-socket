@@ -138,10 +138,12 @@ module System.Socket (
   , Type (..)
   -- *** DGRAM
   , DGRAM
+  -- *** RAW
+  , RAW
+    -- *** SEQPACKET
+  , SEQPACKET
   -- *** STREAM
   , STREAM
-  -- *** SEQPACKET
-  , SEQPACKET
   -- ** Protocols
   , Protocol  (..)
   -- *** UDP
@@ -235,9 +237,10 @@ import System.Socket.Family.INET
 import System.Socket.Family.INET6
 
 import System.Socket.Type
-import System.Socket.Type.STREAM
 import System.Socket.Type.DGRAM
+import System.Socket.Type.RAW
 import System.Socket.Type.SEQPACKET
+import System.Socket.Type.STREAM
 
 import System.Socket.Protocol
 import System.Socket.Protocol.UDP

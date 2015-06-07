@@ -36,6 +36,7 @@ library
                      , System.Socket.Family.INET
                      , System.Socket.Family.INET6
                      , System.Socket.Type
+                     , System.Socket.Type.RAW
                      , System.Socket.Type.DGRAM
                      , System.Socket.Type.STREAM
                      , System.Socket.Type.SEQPACKET

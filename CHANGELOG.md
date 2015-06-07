@@ -1,3 +1,5 @@
+ * Added support for RAW sockets.
+ * Started to support Windows (still unfinished).
  * New operation `recvRecord`.
  * ReceiveMsg now returns a strict `ByteString`.
  * New operations `sendV`, `sendToV`.
