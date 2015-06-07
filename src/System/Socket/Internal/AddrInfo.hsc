@@ -1,4 +1,6 @@
-{-# LANGUAGE DeriveDataTypeable, ScopedTypeVariables, StandaloneDeriving, FlexibleContexts, TypeFamilies, CPP #-}
+{-# LANGUAGE DeriveDataTypeable, ScopedTypeVariables,
+            StandaloneDeriving, FlexibleContexts, TypeFamilies, CPP,
+            GeneralizedNewtypeDeriving #-}
 module System.Socket.Internal.AddrInfo (
     AddrInfo (..)
   , GetAddrInfo (..)
@@ -130,7 +132,7 @@ eaiSYSTEM    = AddrInfoException (#const EAI_SYSTEM)
 --   > mconcat [aiADDRCONFIG, aiV4MAPPED]
 newtype AddrInfoFlags
       = AddrInfoFlags CInt
-      deriving (Eq, Show)
+      deriving (Eq, Show, Bits)
 
 instance Monoid AddrInfoFlags where
   mempty
@@ -164,7 +166,7 @@ aiV4MAPPED     = AddrInfoFlags (#const AI_V4MAPPED)
 --   > mconcat [niNAMEREQD, niNOFQDN]
 newtype NameInfoFlags
       = NameInfoFlags CInt
-      deriving (Eq, Show)
+      deriving (Eq, Show, Bits)
 
 instance Monoid NameInfoFlags where
   mempty
