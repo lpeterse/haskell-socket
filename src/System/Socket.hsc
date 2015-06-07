@@ -150,8 +150,6 @@ module System.Socket (
   , UDP
   -- *** TCP
   , TCP
-  -- *** SCTP
-  , SCTP
   -- * Exceptions
   -- ** SocketException
   , module System.Socket.Internal.Exception
@@ -245,7 +243,6 @@ import System.Socket.Type.STREAM
 import System.Socket.Protocol
 import System.Socket.Protocol.UDP
 import System.Socket.Protocol.TCP
-import System.Socket.Protocol.SCTP
 
 #include "hs_socket.h"
 

@@ -43,7 +43,6 @@ library
                      , System.Socket.Protocol
                      , System.Socket.Protocol.UDP
                      , System.Socket.Protocol.TCP
-                     , System.Socket.Protocol.SCTP
                      , System.Socket.Unsafe
   other-modules:       System.Socket.Internal.FFI
                      , System.Socket.Internal.Event
