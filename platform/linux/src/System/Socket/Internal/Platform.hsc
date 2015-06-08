@@ -4,10 +4,20 @@ import Foreign.Ptr
 import Foreign.C.Types
 import Foreign.C.String
 
+import GHC.Conc (threadWaitReadSTM, threadWaitWriteSTM, atomically)
+
 import System.Posix.Types ( Fd(..) )
 
 import System.Socket.Internal.Msg
 import System.Socket.Internal.Exception
+
+threadWaitWrite' :: Fd -> IO (IO ())
+threadWaitWrite' fd = do
+  threadWaitWriteSTM fd >>= return . atomically . fst
+
+threadWaitRead' :: Fd -> IO (IO ())
+threadWaitRead' fd = do
+  threadWaitReadSTM fd >>= return . atomically . fst
 
 type CSSize
    = CInt

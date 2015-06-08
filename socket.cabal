@@ -79,8 +79,7 @@ library
                      , System.Socket.Protocol.UDP
                      , System.Socket.Protocol.TCP
                      , System.Socket.Unsafe
-  other-modules:       System.Socket.Internal.Event
-                     , System.Socket.Internal.Socket
+  other-modules:       System.Socket.Internal.Socket
                      , System.Socket.Internal.Exception
                      , System.Socket.Internal.Msg
                      , System.Socket.Internal.AddrInfo
