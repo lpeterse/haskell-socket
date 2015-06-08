@@ -68,15 +68,11 @@ int hs_setnonblocking(int fd) {
 };
 
 int hs_send    (int sockfd, const void *buf, size_t len, int flags) {
-  printf("send1");
-  int x = send(sockfd, buf, len, flags);
-  printf("send2\n");
-  printf("%ld\n", x);
-  return x;
+  return send(sockfd, buf, len, flags);
 };
 
 int hs_recv    (int sockfd,       void *buf, size_t len, int flags) {
-  return -1;
+  return recv(sockfd, buf, len, flags);
 };
 
 int hs_sendto  (int sockfd, const void *buf, size_t len, int flags,

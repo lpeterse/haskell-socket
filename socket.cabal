@@ -101,6 +101,16 @@ library
     c-sources:         platform/win32/cbits/hs_socket.c
     extra-libraries:   ws2_32
 
+test-suite PingPong
+  hs-source-dirs:      tests
+  main-is:             PingPong.hs
+  type:                exitcode-stdio-1.0
+  default-language:    Haskell2010
+  build-depends:       base >= 4.7 && < 5
+                     , bytestring < 0.11
+                     , socket
+                     , async
+
 test-suite basic
   hs-source-dirs:      tests
   main-is:             Basic.hs
