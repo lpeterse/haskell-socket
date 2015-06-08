@@ -162,12 +162,9 @@ module System.Socket (
   -- * Flags
   -- ** MsgFlags
   , MsgFlags (..)
-  , msgDONTWAIT
   , msgEOR
-  , msgMORE
   , msgNOSIGNAL
   , msgOOB
-  , msgTRUNC
   , msgWAITALL
   -- ** AddrInfoFlags
   , AddrInfoFlags (..)

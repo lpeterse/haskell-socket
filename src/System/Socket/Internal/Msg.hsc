@@ -3,12 +3,9 @@ module System.Socket.Internal.Msg (
     MsgFlags (..)
   , Msg
   , IoVec
-  , msgDONTWAIT
   , msgEOR
-  , msgMORE
   , msgNOSIGNAL
   , msgOOB
-  , msgTRUNC
   , msgWAITALL
   ) where
 
@@ -48,10 +45,7 @@ instance Show MsgFlags where
           , if msg .&. msgNOSIGNAL /= mempty then Just "msgNOSIGNAL" else Nothing
           , if msg .&. msgOOB      /= mempty then Just "msgOOB"      else Nothing
           , if msg .&. msgWAITALL  /= mempty then Just "msgWAITALL"  else Nothing
-          , if msg .&. msgTRUNC    /= mempty then Just "msgTRUNC"    else Nothing
-          , if msg .&. msgMORE     /= mempty then Just "msgMORE"     else Nothing
-          , if msg .&. msgDONTWAIT /= mempty then Just "msgDONTWAIT" else Nothing
-          , let (MsgFlags i) = msg `xor` (mconcat [msgEOR,msgNOSIGNAL,msgOOB,msgWAITALL,msgTRUNC,msgMORE,msgDONTWAIT] .&. msg)
+          , let (MsgFlags i) = msg `xor` (mconcat [msgEOR,msgNOSIGNAL,msgOOB,msgWAITALL] .&. msg)
             in if i /= 0 then Just ("MsgFlags " ++ show i) else Nothing 
           ]
       y = concat $ intersperse "," $ catMaybes x
@@ -67,13 +61,3 @@ msgOOB       = MsgFlags (#const MSG_OOB)
 
 msgWAITALL  :: MsgFlags
 msgWAITALL   = MsgFlags (#const MSG_WAITALL)
-
-msgTRUNC    :: MsgFlags
-msgTRUNC     = MsgFlags (#const MSG_TRUNC)
-
-msgMORE     :: MsgFlags
-msgMORE      = MsgFlags (#const MSG_MORE)
-
-msgDONTWAIT :: MsgFlags
-msgDONTWAIT  = MsgFlags (#const MSG_DONTWAIT)
-
