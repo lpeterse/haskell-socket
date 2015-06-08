@@ -17,7 +17,7 @@ import Foreign.C.Types
 import Foreign.Marshal.Alloc
 import System.Posix.Types
 
-import System.Socket.Internal.FFI
+import System.Socket.Internal.Platform
 import System.Socket.Internal.Exception
 
 #include "hs_socket.h"

@@ -1,5 +1,5 @@
 {-# LANGUAGE DeriveDataTypeable, ScopedTypeVariables,
-            StandaloneDeriving, FlexibleContexts, TypeFamilies, CPP,
+            StandaloneDeriving, FlexibleContexts, TypeFamilies,
             GeneralizedNewtypeDeriving #-}
 module System.Socket.Internal.AddrInfo (
     AddrInfo (..)
@@ -53,7 +53,7 @@ import System.Socket.Family.INET
 import System.Socket.Family.INET6
 import System.Socket.Type
 import System.Socket.Protocol
-import System.Socket.Internal.FFI
+import System.Socket.Internal.Platform
 
 #include "hs_socket.h"
 #let alignment t = "%lu", (unsigned long)offsetof(struct {char x__; t (y__); }, y__)
@@ -309,19 +309,3 @@ getNameInfo' addr (NameInfoFlags flags) =
           return (host,serv)
         else do
           throwIO (AddrInfoException e)
-
--------------------------------------------------------------------------------
--- FFI
--------------------------------------------------------------------------------
-
-foreign import ccall FFI_GETADDRINFO_SAFETY FFI_GETADDRINFO
-  c_getaddrinfo  :: CString -> CString -> Ptr (AddrInfo a t p) -> Ptr (Ptr (AddrInfo a t p)) -> IO CInt
-
-foreign import ccall FFI_FREEADDRINFO_SAFETY FFI_FREEADDRINFO
-  c_freeaddrinfo :: Ptr (AddrInfo a t p) -> IO ()
-
-foreign import ccall FFI_GETNAMEINFO_SAFETY FFI_GETNAMEINFO
-  c_getnameinfo  :: Ptr a -> CInt -> CString -> CInt -> CString -> CInt -> CInt -> IO CInt
-
-foreign import ccall FFI_GAI_STRERROR_SAFETY FFI_GAI_STRERROR
-  c_gai_strerror  :: CInt -> IO CString

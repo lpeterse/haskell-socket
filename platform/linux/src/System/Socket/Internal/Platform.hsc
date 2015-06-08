@@ -1,8 +1,8 @@
-{-# LANGUAGE CPP #-}
-module System.Socket.Internal.FFI where
+module System.Socket.Internal.Platform where
 
 import Foreign.Ptr
 import Foreign.C.Types
+import Foreign.C.String
 
 import System.Posix.Types ( Fd(..) )
 
@@ -12,40 +12,40 @@ import System.Socket.Internal.Exception
 type CSSize
    = CInt
 
-foreign import ccall FFI_SOCKET_SAFETY FFI_SOCKET
+foreign import ccall unsafe "socket"
   c_socket  :: CInt -> CInt -> CInt -> IO Fd
 
-foreign import ccall FFI_CLOSE_SAFETY FFI_CLOSE
+foreign import ccall unsafe "close"
   c_close   :: Fd -> IO CInt
 
-foreign import ccall FFI_BIND_SAFETY FFI_BIND
+foreign import ccall unsafe "bind"
   c_bind    :: Fd -> Ptr a -> CInt -> IO CInt
 
-foreign import ccall FFI_CONNECT_SAFETY FFI_CONNECT
+foreign import ccall unsafe "connect"
   c_connect :: Fd -> Ptr a -> CInt -> IO CInt
 
-foreign import ccall FFI_ACCEPT_SAFETY FFI_ACCEPT
+foreign import ccall unsafe "accept"
   c_accept  :: Fd -> Ptr a -> Ptr CInt -> IO Fd
 
-foreign import ccall FFI_LISTEN_SAFETY FFI_LISTEN
+foreign import ccall unsafe "listen"
   c_listen  :: Fd -> CInt -> IO CInt
 
-foreign import ccall FFI_SEND_SAFETY FFI_SEND
+foreign import ccall unsafe "send"
   c_send    :: Fd -> Ptr a -> CSize -> MsgFlags -> IO CSSize
 
-foreign import ccall FFI_SENDTO_SAFETY FFI_SENDTO
+foreign import ccall unsafe "sendto"
   c_sendto  :: Fd -> Ptr a -> CSize -> MsgFlags -> Ptr b -> CInt -> IO CSSize
 
-foreign import ccall FFI_RECV_SAFETY FFI_RECV
+foreign import ccall unsafe "recv"
   c_recv    :: Fd -> Ptr a -> CSize -> MsgFlags -> IO CSSize
 
-foreign import ccall FFI_RECVFROM_SAFETY FFI_RECVFROM
+foreign import ccall unsafe "recvfrom"
   c_recvfrom :: Fd -> Ptr a -> CSize -> MsgFlags -> Ptr b -> Ptr CInt -> IO CSSize
 
-foreign import ccall FFI_GETSOCKOPT_SAFETY FFI_GETSOCKOPT
+foreign import ccall unsafe "getsockopt"
   c_getsockopt  :: Fd -> CInt -> CInt -> Ptr a -> Ptr CInt -> IO CInt
 
-foreign import ccall FFI_SETSOCKOPT_SAFETY FFI_SETSOCKOPT
+foreign import ccall unsafe "setsockopt"
   c_setsockopt  :: Fd -> CInt -> CInt -> Ptr a -> CInt -> IO CInt
 
 foreign import ccall unsafe "hs_setnonblocking"
@@ -57,5 +57,14 @@ foreign import ccall unsafe "hs_get_last_socket_error"
 foreign import ccall unsafe "memset"
   c_memset       :: Ptr a -> CInt -> CSize -> IO ()
 
+foreign import ccall safe "getaddrinfo"
+  c_getaddrinfo  :: CString -> CString -> Ptr a -> Ptr (Ptr a) -> IO CInt
 
+foreign import ccall unsafe "freeaddrinfo"
+  c_freeaddrinfo :: Ptr a -> IO ()
 
+foreign import ccall safe "getnameinfo"
+  c_getnameinfo  :: Ptr a -> CInt -> CString -> CInt -> CString -> CInt -> CInt -> IO CInt
+
+foreign import ccall unsafe "gai_strerror"
+  c_gai_strerror  :: CInt -> IO CString

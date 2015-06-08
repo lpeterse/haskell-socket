@@ -25,7 +25,7 @@ import Foreign.Storable
 import Foreign.Marshal.Utils
 
 import System.Socket.Family
-import System.Socket.Internal.FFI
+import System.Socket.Internal.Platform
 
 #include "hs_socket.h"
 #let alignment t = "%lu", (unsigned long)offsetof(struct {char x__; t (y__); }, y__)

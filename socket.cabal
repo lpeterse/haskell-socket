@@ -79,99 +79,28 @@ library
                      , System.Socket.Protocol.UDP
                      , System.Socket.Protocol.TCP
                      , System.Socket.Unsafe
-  other-modules:       System.Socket.Internal.FFI
-                     , System.Socket.Internal.Event
+  other-modules:       System.Socket.Internal.Event
                      , System.Socket.Internal.Socket
                      , System.Socket.Internal.Exception
                      , System.Socket.Internal.Msg
                      , System.Socket.Internal.AddrInfo
+                     , System.Socket.Internal.Platform
   build-depends:       base >= 4.7 && < 5
                      , bytestring < 0.11
   hs-source-dirs:      src
   build-tools:         hsc2hs
   default-language:    Haskell2010
-  ghc-options:         -Wall
-
-  include-dirs:        include
   install-includes:    hs_socket.h
+  ghc-options:         -Wall
+  if os(linux)
+    include-dirs:      platform/linux/include
+    hs-source-dirs:    platform/linux/src
+    c-sources:         platform/linux/cbits/hs_socket.c
   if os(windows)
-    c-sources:         cbits/hs_socket_win32.c
+    include-dirs:      platform/win32/include
+    hs-source-dirs:    platform/win32/src
+    c-sources:         platform/win32/cbits/hs_socket.c
     extra-libraries:   ws2_32
-    cpp-options:       -D_WIN32
-                       -DFFI_SOCKET="hs_socket"
-                       -DFFI_SOCKET_SAFETY=safe
-                       -DFFI_BIND="hs_bind"
-                       -DFFI_BIND_SAFETY=safe
-                       -DFFI_LISTEN="hs_listen"
-                       -DFFI_LISTEN_SAFETY=safe
-                       -DFFI_CLOSE="hs_close"
-                       -DFFI_CLOSE_SAFETY=safe
-                       -DFFI_ACCEPT="hs_accept"
-                       -DFFI_ACCEPT_SAFETY=safe
-                       -DFFI_CONNECT="hs_connect"
-                       -DFFI_CONNECT_SAFETY=safe
-                       -DFFI_SEND="hs_send"
-                       -DFFI_SEND_SAFETY=safe
-                       -DFFI_SENDTO="hs_sendto"
-                       -DFFI_SENDTO_SAFETY=safe
-                       -DFFI_SENDMSG="hs_sendmsg"
-                       -DFFI_SENDMSG_SAFETY=safe
-                       -DFFI_RECV="hs_recv"
-                       -DFFI_RECV_SAFETY=safe
-                       -DFFI_RECVFROM="hs_recvfrom"
-                       -DFFI_RECVFROM_SAFETY=safe
-                       -DFFI_RECVMSG="hs_recvmsg"
-                       -DFFI_RECVMSG_SAFETY=safe
-                       -DFFI_GETSOCKOPT="hs_getsockopt"
-                       -DFFI_GETSOCKOPT_SAFETY=safe
-                       -DFFI_SETSOCKOPT="hs_setsockopt"
-                       -DFFI_SETSOCKOPT_SAFETY=safe
-                       -DFFI_GETADDRINFO="hs_getaddrinfo"
-                       -DFFI_GETADDRINFO_SAFETY=safe
-                       -DFFI_FREEADDRINFO="hs_freeaddrinfo"
-                       -DFFI_FREEADDRINFO_SAFETY=unsafe
-                       -DFFI_GETNAMEINFO="hs_getnameinfo"
-                       -DFFI_GETNAMEINFO_SAFETY=safe
-                       -DFFI_GAI_STRERROR="hs_gai_strerror"
-                       -DFFI_GAI_STRERROR_SAFETY=unsafe
-  else
-    c-sources:         cbits/hs_socket_posix.c
-    cpp-options:       -DFFI_SOCKET="socket"
-                       -DFFI_SOCKET_SAFETY=unsafe
-                       -DFFI_BIND="bind"
-                       -DFFI_BIND_SAFETY=unsafe
-                       -DFFI_LISTEN="listen"
-                       -DFFI_LISTEN_SAFETY=unsafe
-                       -DFFI_CLOSE="close"
-                       -DFFI_CLOSE_SAFETY=unsafe
-                       -DFFI_ACCEPT="accept"
-                       -DFFI_ACCEPT_SAFETY=unsafe
-                       -DFFI_CONNECT="connect"
-                       -DFFI_CONNECT_SAFETY=unsafe
-                       -DFFI_SEND="send"
-                       -DFFI_SEND_SAFETY=unsafe
-                       -DFFI_SENDTO="sendto"
-                       -DFFI_SENDTO_SAFETY=unsafe
-                       -DFFI_SENDMSG="sendmsg"
-                       -DFFI_SENDMSG_SAFETY=unsafe
-                       -DFFI_RECV="recv"
-                       -DFFI_RECV_SAFETY=unsafe
-                       -DFFI_RECVFROM="recvfrom"
-                       -DFFI_RECVFROM_SAFETY=unsafe
-                       -DFFI_RECVMSG="recvmsg"
-                       -DFFI_RECVMSG_SAFETY=unsafe
-                       -DFFI_GETSOCKOPT="getsockopt"
-                       -DFFI_GETSOCKOPT_SAFETY=unsafe
-                       -DFFI_SETSOCKOPT="setsockopt"
-                       -DFFI_SETSOCKOPT_SAFETY=unsafe
-                       -DFFI_GETADDRINFO="getaddrinfo"
-                       -DFFI_GETADDRINFO_SAFETY=safe
-                       -DFFI_FREEADDRINFO="freeaddrinfo"
-                       -DFFI_FREEADDRINFO_SAFETY=unsafe
-                       -DFFI_GETNAMEINFO="getnameinfo"
-                       -DFFI_GETNAMEINFO_SAFETY=safe
-                       -DFFI_GAI_STRERROR="gai_strerror"
-                       -DFFI_GAI_STRERROR_SAFETY=unsafe
 
 test-suite basic
   hs-source-dirs:      tests
