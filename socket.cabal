@@ -97,7 +97,8 @@ library
   if os(windows)
     c-sources:         cbits/hs_socket_win32.c
     extra-libraries:   ws2_32
-    cpp-options:       -DFFI_SOCKET="hs_socket"
+    cpp-options:       -D_WIN32
+                       -DFFI_SOCKET="hs_socket"
                        -DFFI_SOCKET_SAFETY=safe
                        -DFFI_BIND="hs_bind"
                        -DFFI_BIND_SAFETY=safe

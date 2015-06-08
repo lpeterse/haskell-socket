@@ -49,7 +49,10 @@ int hs_listen (int sockfd, int backlog) {
 };
 
 int hs_accept(int sockfd, struct sockaddr *addr, int *addrlen) {
-  return accept(sockfd, addr, addrlen);
+  //printf("accepting");
+  int x = accept(sockfd, addr, addrlen);
+  //printf("accepted");
+  return x;
 }
 
 int hs_close(int sockfd) {
@@ -60,8 +63,8 @@ int hs_setnonblocking(int fd) {
   // If iMode = 0, blocking is enabled; 
   // If iMode != 0, non-blocking mode is enabled.
   u_long iMode = 1;
-  //return ioctlsocket(fd, FIONBIO, &iMode);
-  return 0;
+  return ioctlsocket(fd, FIONBIO, &iMode);
+  //return 0;
 };
 
 int hs_send    (int sockfd, const void *buf, size_t len, int flags) {
