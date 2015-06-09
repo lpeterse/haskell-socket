@@ -77,12 +77,12 @@ int hs_recv    (int sockfd,       void *buf, size_t len, int flags) {
 
 int hs_sendto  (int sockfd, const void *buf, size_t len, int flags,
                 const struct sockaddr *dest_addr, int addrlen) {
-  return -1;
+  return hs_sendto(sockfd, buf, len, flags, dest_addr, addrlen);
 };
 
 int hs_recvfrom(int sockfd,       void *buf, size_t len, int flags,
                       struct sockaddr *src_addr, int *addrlen) {
-  return -1;
+  return hs_recvfrom(sockfd, buf, len, flags, src_addr, addrlen);
 };
 
 int hs_get_last_socket_error(void) {

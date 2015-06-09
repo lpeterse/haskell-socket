@@ -1,10 +1,7 @@
 {-# LANGUAGE OverloadedStrings, ScopedTypeVariables, TypeFamilies #-}
 module Main where
 
-import Data.Bits
 import Data.Monoid
-import Data.ByteString (pack)
-import qualified Data.ByteString.Lazy as LBS
 import Control.Monad
 import Control.Exception
 import Control.Concurrent
@@ -18,8 +15,6 @@ main :: IO ()
 main = do 
   test "test0001.01" $ test0001 (undefined :: Socket INET  STREAM TCP)  localhost
   test "test0001.02" $ test0001 (undefined :: Socket INET6 STREAM TCP)  localhost6
-  test "test0002.01" $ test0002 (undefined :: Socket INET  DGRAM  UDP)  localhost
-  test "test0002.02" $ test0002 (undefined :: Socket INET6 DGRAM  UDP)  localhost6
 
 -- Test send and receive on connection oriented sockets (i.e. TCP).
 test0001 :: (Family f, Type t, Protocol p) => Socket f t p -> SockAddr f -> IO (Either String String)
@@ -53,32 +48,6 @@ test0001 dummy addr =
   where
     helloWorld = "Hello world!"
 
--- Test stateless sockets (i.e. UDP).
-test0002 :: (Family f, Type t, Protocol p) => Socket f t p -> SockAddr f -> IO (Either String String)
-test0002 dummy addr =
-  bracket
-      ( do  server <- socket `asTypeOf` return dummy
-            client <- socket `asTypeOf` return dummy
-            return (server, client)
-      )
-      (\(server,client)-> do
-            close server
-            close client
-      )
-      (\(server,client)-> do
-            setSockOpt server (SO_REUSEADDR True)
-            bind server addr
-            serverRecv <- async $ do
-              recvFrom server 4096 mempty
-            client <- socket `asTypeOf` return server
-            sendTo client helloWorld mempty addr
-            (msg,peerAddr) <- wait serverRecv
-            if (msg /= helloWorld)
-              then return (Left  "Received message was bogus.")
-              else return (Right "")
-      )
-  where
-    helloWorld = "Hello world!"
 
 localhost :: SockAddrIn
 localhost =
