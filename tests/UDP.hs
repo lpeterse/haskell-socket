@@ -22,12 +22,21 @@ test inet dummy addr = do
   server <- socket `asTypeOf` return dummy                   `onException` p 1
   client <- socket `asTypeOf` return dummy                   `onException` p 2
 
-  setSockOpt server (SO_REUSEADDR True)                      `onException` p 3
   bind server addr                                           `onException` p 4
-  serverRecv <- async $ do
-    recvFrom server 4096 mempty                              `onException` p 5
-  sendTo client helloWorld mempty addr                       `onException` p 6
-  (msg,peerAddr) <- wait serverRecv                          `onException` p 7
+
+  ((msg,peeraddr),_) <- concurrently 
+   ( do
+      recvFrom server 4096 mempty                            `onException` p 5
+   )
+   ( do 
+      -- This is a race condition:
+      --   The server must listen before the client sends his msg or the packt goes
+      --   to nirvana. Still, a second here should be enough. If not, there's 
+      --   something wrong worth investigating.
+      threadDelay 1000000
+      sendTo client helloWorld mempty addr                   `onException` p 6
+   )
+
   when (msg /= helloWorld) $                                               e 8
 
   close client                                               `onException` p 10
