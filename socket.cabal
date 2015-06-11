@@ -121,6 +121,16 @@ test-suite TCP
                      , socket
                      , async
 
+test-suite TCP-sendAll
+  hs-source-dirs:      tests
+  main-is:             TCP-sendAll.hs
+  type:                exitcode-stdio-1.0
+  default-language:    Haskell2010
+  build-depends:       base >= 4.7 && < 5
+                     , bytestring < 0.11
+                     , socket
+                     , async
+
 test-suite PingPong
   hs-source-dirs:      tests
   main-is:             PingPong.hs
