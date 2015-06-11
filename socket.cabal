@@ -59,11 +59,6 @@ bug-reports:         https://github.com/lpeterse/haskell-socket/issues
 tested-with:         GHC==7.10.1, GHC==7.8.3
 extra-source-files:  README.md
                      CHANGELOG.md
-                     include/hs_socket.h
-                     include/hs_socket_win32.h
-                     include/hs_socket_posix.h
-                     cbits/hs_socket_win32.c
-                     cbits/hs_socket_posix.c
 
 library
   exposed-modules:     System.Socket
