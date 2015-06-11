@@ -1,3 +1,7 @@
+ * Correctly defining AI_ flags on Windows (MinGW doesn't although
+   they are all well support on Vista or higher).
+ * Got all tests passing on Windows 7.
+
 0.3.0.1 Lars Petersen <info@lars-petersen.net> 2015-06-07
 
  * Fixed documentation of eaiNONAME.

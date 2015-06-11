@@ -13,6 +13,7 @@ main :: IO ()
 main = do 
   t0001
   t0002
+  t0003
 
 t0001 :: IO ()
 t0001 = do
@@ -43,3 +44,24 @@ t0002 = do
   where
     p i = print ("t0002." ++ show i)
     e i = error ("t0002." ++ show i)
+
+-- | This tests the correct funtionality of the flags
+--   AI_V4MAPPEND and AI_ALL. Asking for localhost should
+--   yield an additional v4-mappend IPV6-Address in the second case,
+--   but not in the first one.
+t0003 :: IO ()
+t0003 = do
+  x <- getAddrInfo
+          (Just "localhost")
+          Nothing
+          mempty 
+          `onException` p 0:: IO [AddrInfo INET6 STREAM TCP]
+  y <- getAddrInfo
+          (Just "localhost")
+          Nothing
+          (aiALL `mappend` aiV4MAPPED)
+          `onException` p 1 :: IO [AddrInfo INET6 STREAM TCP]
+  when (length x == length y) (e 2)
+  where
+    p i = print ("t0003." ++ show i)
+    e i = error ("t0003." ++ show i)
