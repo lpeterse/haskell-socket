@@ -317,7 +317,7 @@ connect (Socket mfd) addr = do
           -- The manpage says that in this case the connection
           -- shall be established asynchronously and one is
           -- supposed to wait.
-          wait <- threadWaitWrite' fd
+          wait <- socketWaitWrite' fd 10
           return (Just wait)
         else do
           throwIO e
@@ -399,7 +399,7 @@ accept s@(Socket mfd) = accept'
                   e <- c_get_last_socket_error
                   if e == eWOULDBLOCK || e == eAGAIN
                     then do
-                      threadWaitRead' fd >>= return . Left
+                      socketWaitRead' fd 10 >>= return . Left
                     else if e == eINTR
                       -- On EINTR it is good practice to just retry.
                       then retry

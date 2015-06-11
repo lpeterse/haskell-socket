@@ -11,12 +11,12 @@ import System.Posix.Types ( Fd(..) )
 import System.Socket.Internal.Msg
 import System.Socket.Internal.Exception
 
-threadWaitWrite' :: Fd -> IO (IO ())
-threadWaitWrite' fd = do
+socketWaitWrite' :: Fd -> Int -> IO (IO ())
+socketWaitWrite' fd _ = do
   threadWaitWriteSTM fd >>= return . atomically . fst
 
-threadWaitRead' :: Fd -> IO (IO ())
-threadWaitRead' fd = do
+socketWaitRead' :: Fd -> Int -> IO (IO ())
+socketWaitRead' fd _ = do
   threadWaitReadSTM fd >>= return . atomically . fst
 
 type CSSize

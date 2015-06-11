@@ -2,6 +2,8 @@ module System.Socket.Internal.Platform where
 
 import Control.Concurrent ( threadDelay )
 
+import Data.Bits
+
 import Foreign.Ptr
 import Foreign.C.Types
 import Foreign.C.String
@@ -11,15 +13,13 @@ import System.Posix.Types ( Fd(..) )
 import System.Socket.Internal.Msg
 import System.Socket.Internal.Exception
 
+socketWaitWrite' :: Fd -> Int -> IO (IO ())
+socketWaitWrite' fd iteration = do
+  return (threadDelay $ 1 `shiftL` min iteration 20)
 
-threadWaitWrite' :: Fd -> IO (IO ())
-threadWaitWrite' fd = do
-  return (threadDelay 10000)
-
-threadWaitRead' :: Fd -> IO (IO ())
-threadWaitRead' fd = do
-  return (threadDelay 10000)
-
+socketWaitRead' :: Fd -> Int -> IO (IO ())
+socketWaitRead'  fd iteration = do
+  return (threadDelay $ 1 `shiftL` min iteration 20)
 
 type CSSize
    = CInt
