@@ -14,11 +14,11 @@ import System.Socket.Internal.Exception
 
 threadWaitWrite' :: Fd -> IO (IO ())
 threadWaitWrite' fd = do
-  return (threadDelay 500000)
+  return (threadDelay 10000)
 
 threadWaitRead' :: Fd -> IO (IO ())
 threadWaitRead' fd = do
-  return (threadDelay 500000)
+  return (threadDelay 10000)
 
 
 type CSSize

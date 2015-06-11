@@ -1,3 +1,4 @@
+ * Added new operation `recvAll` and changed `sendAll` to lazy `ByteString`.
  * Added new socket option IPV6_V6ONLY.
  * Removed untested socket option SO_ACCEPTCONN.
  * Correctly defining AI_ flags on Windows (MinGW doesn't although

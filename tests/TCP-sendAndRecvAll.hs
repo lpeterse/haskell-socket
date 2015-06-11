@@ -5,8 +5,9 @@ import Control.Exception
 import Control.Concurrent
 import Control.Concurrent.Async
 
+import Data.Int
 import Data.Monoid
-import qualified Data.ByteString as B
+import qualified Data.ByteString.Lazy as LBS
 
 import System.Socket
 import System.Socket.Family.INET
@@ -28,22 +29,17 @@ main =
             listen server 5                           `onException` print "E07"
             serverRecv <- async $ do
               (peerSock, peerAddr) <- accept server   `onException` print "E08"
-              recvCount peerSock 0                    `onException` print "E09"
+              recvAll peerSock msgSize mempty         `onException` print "E09"
 
             threadDelay 100000
             connect client addr                       `onException` print "E11"
             sendAll client msg mempty                 `onException` print "E12"
             close client
 
-            count <- wait serverRecv                  `onException` print "E13"
-            when (count /= msgSize) $                               error "E14"
+            msgReceived <- wait serverRecv            `onException` print "E13"
+            when (msgReceived /= msg) $                             error "E14"
       )
   where
-    msgSize       = 128*1024*1024
-    msg           = B.replicate msgSize 23
+    msgSize       = 128*1024*1024 + 1 :: Int64
+    msg           = LBS.replicate msgSize 23
     addr          = SockAddrIn 7777 inaddrLOOPBACK
-    recvCount s i = do
-      b <- recv s 4096 mempty
-      if B.null b
-        then return i
-        else recvCount s $! i + B.length b
