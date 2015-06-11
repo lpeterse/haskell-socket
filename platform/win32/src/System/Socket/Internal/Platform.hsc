@@ -24,43 +24,43 @@ socketWaitRead'  fd iteration = do
 type CSSize
    = CInt
 
-foreign import ccall safe "hs_socket"
+foreign import ccall unsafe "hs_socket"
   c_socket  :: CInt -> CInt -> CInt -> IO Fd
 
-foreign import ccall safe "hs_close"
+foreign import ccall unsafe "hs_close"
   c_close   :: Fd -> IO CInt
 
-foreign import ccall safe "hs_bind"
+foreign import ccall unsafe "hs_bind"
   c_bind    :: Fd -> Ptr a -> CInt -> IO CInt
 
-foreign import ccall safe "hs_connect"
+foreign import ccall unsafe "hs_connect"
   c_connect :: Fd -> Ptr a -> CInt -> IO CInt
 
-foreign import ccall safe "hs_accept"
+foreign import ccall unsafe "hs_accept"
   c_accept  :: Fd -> Ptr a -> Ptr CInt -> IO Fd
 
-foreign import ccall safe "hs_listen"
+foreign import ccall unsafe "hs_listen"
   c_listen  :: Fd -> CInt -> IO CInt
 
-foreign import ccall safe "hs_send"
+foreign import ccall unsafe "hs_send"
   c_send    :: Fd -> Ptr a -> CSize -> MsgFlags -> IO CSSize
 
-foreign import ccall safe "hs_sendto"
+foreign import ccall unsafe "hs_sendto"
   c_sendto  :: Fd -> Ptr a -> CSize -> MsgFlags -> Ptr b -> CInt -> IO CSSize
 
-foreign import ccall safe "hs_recv"
+foreign import ccall unsafe "hs_recv"
   c_recv    :: Fd -> Ptr a -> CSize -> MsgFlags -> IO CSSize
 
-foreign import ccall safe "hs_recvfrom"
+foreign import ccall unsafe "hs_recvfrom"
   c_recvfrom :: Fd -> Ptr a -> CSize -> MsgFlags -> Ptr b -> Ptr CInt -> IO CSSize
 
-foreign import ccall safe "hs_getsockopt"
+foreign import ccall unsafe "hs_getsockopt"
   c_getsockopt  :: Fd -> CInt -> CInt -> Ptr a -> Ptr CInt -> IO CInt
 
-foreign import ccall safe "hs_setsockopt"
+foreign import ccall unsafe "hs_setsockopt"
   c_setsockopt  :: Fd -> CInt -> CInt -> Ptr a -> CInt -> IO CInt
 
-foreign import ccall safe "hs_setnonblocking"
+foreign import ccall unsafe "hs_setnonblocking"
   c_setnonblocking :: Fd -> IO CInt
 
 foreign import ccall unsafe "hs_get_last_socket_error"
