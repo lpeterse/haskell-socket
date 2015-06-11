@@ -1,10 +1,14 @@
 {-# LANGUAGE TypeFamilies #-}
 module System.Socket.Family.INET6
   ( INET6
+    -- * Addresses
   , AddrIn6 ()
   , SockAddrIn6 (..)
+    -- ** Special Address Constants
   , in6addrANY
   , in6addrLOOPBACK
+  -- * Socket Options
+  , IPV6_V6ONLY (..)
   ) where
 
 import Data.Word
@@ -18,6 +22,7 @@ import Foreign.Storable
 import Foreign.Marshal.Utils
 
 import System.Socket.Family
+import System.Socket.Internal.Socket
 import System.Socket.Internal.Platform
 
 #include "hs_socket.h"
@@ -130,3 +135,19 @@ instance Storable SockAddrIn6 where
       sin6_scope_id = (#ptr struct sockaddr_in6, sin6_scope_id)
       sin6_port     = (#ptr struct sockaddr_in6, sin6_port)
       sin6_addr     = (#ptr struct in6_addr, s6_addr) . (#ptr struct sockaddr_in6, sin6_addr)
+
+-------------------------------------------------------------------------------
+-- Address family specific socket options
+-------------------------------------------------------------------------------
+
+data IPV6_V6ONLY
+   = IPV6_V6ONLY Bool
+   deriving (Eq, Ord, Show)
+
+instance GetSockOpt IPV6_V6ONLY where
+  getSockOpt s =
+    IPV6_V6ONLY <$> getSockOptBool s (#const IPPROTO_IPV6) (#const IPV6_V6ONLY)
+
+instance SetSockOpt IPV6_V6ONLY where
+  setSockOpt s (IPV6_V6ONLY o) =
+    setSockOptBool s (#const IPPROTO_IPV6) (#const IPV6_V6ONLY) o

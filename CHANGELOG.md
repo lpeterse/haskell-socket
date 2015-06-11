@@ -1,3 +1,4 @@
+ * Added new socket option IPV6_V6ONLY.
  * Removed untested socket option SO_ACCEPTCONN.
  * Correctly defining AI_ flags on Windows (MinGW doesn't although
    they are all well support on Vista or higher).

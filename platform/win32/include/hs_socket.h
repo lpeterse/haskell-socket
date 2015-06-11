@@ -28,6 +28,13 @@
 #define EAI_SYSTEM 0
 #endif
 
+/* Value for this flag taken from the former Haskell network
+   library. Remove if MinGW fixed this.
+*/
+#ifndef IPV6_V6ONLY
+#define IPV6_V6ONLY 27
+#endif
+
 /* Values for this flags taken from
    http://sourceforge.net/p/mingw-w64/mailman/message/33056995/.
    According to MSDN documentation they are supported on

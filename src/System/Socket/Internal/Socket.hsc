@@ -1,7 +1,9 @@
 module System.Socket.Internal.Socket (
     Socket (..)
   , GetSockOpt (..)
+  , getSockOptBool
   , SetSockOpt (..)
+  , setSockOptBool
   , SO_REUSEADDR (..)
   ) where
 
@@ -54,6 +56,7 @@ class SetSockOpt o where
 
 data SO_REUSEADDR
    = SO_REUSEADDR Bool
+   deriving (Eq, Ord, Show)
 
 instance GetSockOpt SO_REUSEADDR where
   getSockOpt s =
