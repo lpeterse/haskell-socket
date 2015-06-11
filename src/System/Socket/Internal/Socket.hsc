@@ -2,7 +2,6 @@ module System.Socket.Internal.Socket (
     Socket (..)
   , GetSockOpt (..)
   , SetSockOpt (..)
-  , SO_ACCEPTCONN (..)
   , SO_REUSEADDR (..)
   ) where
 
@@ -52,13 +51,6 @@ class GetSockOpt o where
 
 class SetSockOpt o where
   setSockOpt :: Socket f t p -> o -> IO ()
-
-data SO_ACCEPTCONN
-   = SO_ACCEPTCONN Bool
-
-instance GetSockOpt SO_ACCEPTCONN where
-  getSockOpt s =
-    SO_ACCEPTCONN <$> getSockOptBool s (#const SOL_SOCKET) (#const SO_ACCEPTCONN)
 
 data SO_REUSEADDR
    = SO_REUSEADDR Bool

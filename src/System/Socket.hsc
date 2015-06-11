@@ -155,8 +155,6 @@ module System.Socket (
   -- * Options
   , GetSockOpt (..)
   , SetSockOpt (..)
-  -- ** SO_ACCEPTCONN
-  , SO_ACCEPTCONN (..)
     -- ** SO_REUSEADDR
   , SO_REUSEADDR (..)
   -- * Flags
