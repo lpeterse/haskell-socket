@@ -148,6 +148,9 @@ instance Monoid AddrInfoFlags where
 aiADDRCONFIG  :: AddrInfoFlags
 aiADDRCONFIG   = AddrInfoFlags (#const AI_ADDRCONFIG)
 
+-- | Return both IPv4 (as mapped `SockAddrIn6`) and IPv6 addresses when
+-- `aiV4MAPPED` is set independent of whether IPv6 addresses exist for this
+--  name.
 aiALL         :: AddrInfoFlags
 aiALL          = AddrInfoFlags (#const AI_ALL)
 
@@ -163,6 +166,8 @@ aiNUMERICSERV  = AddrInfoFlags (#const AI_NUMERICSERV)
 aiPASSIVE     :: AddrInfoFlags
 aiPASSIVE      = AddrInfoFlags (#const AI_PASSIVE)
 
+-- | Return mapped IPv4 addresses if no IPv6 addresses could be found
+--   or if `aiALL` flag is set.
 aiV4MAPPED    :: AddrInfoFlags
 aiV4MAPPED     = AddrInfoFlags (#const AI_V4MAPPED)
 
