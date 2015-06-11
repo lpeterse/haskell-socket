@@ -28,20 +28,42 @@
 #define EAI_SYSTEM 0
 #endif
 
-#ifndef AI_ALL
-#define AI_ALL 0
-#endif
+/* Values for this flags taken from
+   http://sourceforge.net/p/mingw-w64/mailman/message/33056995/.
+   According to MSDN documentation they are supported on
+   Windows Vista or higher. This definitions may be removed
+   when MinGW finally ships them.
+*/
 
-#ifndef AI_ADDRCONFIG
-#define AI_ADDRCONFIG 0
+#ifndef AI_PASSIVE
+#define AI_PASSIVE                  0x00000001
 #endif
-
-#ifndef AI_V4MAPPED
-#define AI_V4MAPPED 0
+#ifndef AI_CANONNAME
+#define AI_CANONNAME                0x00000002
 #endif
-
+#ifndef AI_NUMERICHOST
+#define AI_NUMERICHOST              0x00000004
+#endif
 #ifndef AI_NUMERICSERV
-#define AI_NUMERICSERV 0
+#define AI_NUMERICSERV              0x00000008
+#endif
+#ifndef AI_ALL
+#define AI_ALL                      0x00000100
+#endif
+#ifndef AI_ADDRCONFIG
+#define AI_ADDRCONFIG               0x00000400
+#endif
+#ifndef AI_V4MAPPED
+#define AI_V4MAPPED                 0x00000800
+#endif
+#ifndef AI_NON_AUTHORITATIVE
+#define AI_NON_AUTHORITATIVE        0x00004000
+#endif
+#ifndef AI_SECURE
+#define AI_SECURE                   0x00008000
+#endif
+#ifndef AI_RETURN_PREFERRED_NAMES
+#define AI_RETURN_PREFERRED_NAMES   0x00010000
 #endif
 
 
