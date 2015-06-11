@@ -96,3 +96,28 @@ getSockOptBool (Socket mfd) level name = do
         else do
           v <- peek vPtr
           return (v == 1)
+
+setSockOptInt :: Socket f t p -> CInt -> CInt -> Int -> IO ()
+setSockOptInt (Socket mfd) level name value = do
+  withMVar mfd $ \fd->
+    alloca $ \vPtr-> do
+        poke vPtr (fromIntegral value :: CInt)
+        i <- c_setsockopt fd level name 
+                          (vPtr :: Ptr CInt)
+                          (fromIntegral $ sizeOf (undefined :: CInt))
+        when (i < 0) $ do
+          c_get_last_socket_error >>= throwIO
+
+getSockOptInt :: Socket f t p -> CInt -> CInt -> IO Int
+getSockOptInt (Socket mfd) level name = do
+  withMVar mfd $ \fd->
+    alloca $ \vPtr-> do
+      alloca $ \lPtr-> do
+        i <- c_getsockopt fd level name
+                          (vPtr :: Ptr CInt)
+                          (lPtr :: Ptr CInt)
+        if i < 0 then do
+          c_get_last_socket_error >>= throwIO
+        else do
+          v <- peek vPtr
+          return (fromIntegral v)

@@ -152,10 +152,11 @@ module System.Socket (
   , eaiSOCKTYPE
   , eaiSERVICE
   , eaiSYSTEM
-  -- * Options
+  -- * Socket Options
+  -- ** getSockOpt
   , GetSockOpt (..)
+  -- ** setSockOpt
   , SetSockOpt (..)
-    -- ** SO_REUSEADDR
   , SO_REUSEADDR (..)
   -- * Flags
   -- ** MsgFlags
