@@ -317,7 +317,7 @@ connect (Socket mfd) addr = do
           -- The manpage says that in this case the connection
           -- shall be established asynchronously and one is
           -- supposed to wait.
-          wait <- socketWaitWrite' fd 10
+          wait <- socketWaitWrite' fd 0
           return (Just wait)
         else do
           throwIO e
@@ -390,37 +390,38 @@ accept s@(Socket mfd) = accept'
       alloca $ \addrPtr-> do
         alloca $ \addrPtrLen-> do
           poke addrPtrLen (fromIntegral $ sizeOf (undefined :: SockAddr f))
-          fix $ \again-> do
-            -- We mask asynchronous exceptions during this critical section.
-            ews <- withMVarMasked mfd $ \fd-> do
-              fix $ \retry-> do
-                ft <- c_accept fd addrPtr addrPtrLen
-                if ft < 0 then do
-                  e <- c_get_last_socket_error
-                  if e == eWOULDBLOCK || e == eAGAIN
-                    then do
-                      socketWaitRead' fd 10 >>= return . Left
-                    else if e == eINTR
-                      -- On EINTR it is good practice to just retry.
-                      then retry
-                      else throwIO e
-                -- This is the critical section: We got a valid descriptor we have not yet returned.
-                else do 
-                  i <- c_setnonblocking ft
-                  if i < 0 then do
-                    c_get_last_socket_error >>= throwIO
-                  else do
-                    -- This peek operation might be a little expensive, but I don't see an alternative.
-                    addr <- peek addrPtr :: IO (SockAddr f)
-                    -- newMVar is guaranteed to be not interruptible.
-                    mft <- newMVar ft
-                    -- Register a finalizer on the new socket.
-                    _ <- mkWeakMVar mft (close (Socket mft `asTypeOf` s))
-                    return (Right (Socket mft, addr))
-            -- If ews is Left we got EAGAIN or EWOULDBLOCK and retry after the next event.
-            case ews of
-              Left  wait -> wait >> again
-              Right sock -> return sock
+          ( fix $ \again iteration-> do
+              -- We mask asynchronous exceptions during this critical section.
+              ews <- withMVarMasked mfd $ \fd-> do
+                fix $ \retry-> do
+                  ft <- c_accept fd addrPtr addrPtrLen
+                  if ft < 0 then do
+                    e <- c_get_last_socket_error
+                    if e == eWOULDBLOCK || e == eAGAIN
+                      then do
+                        socketWaitRead' fd iteration >>= return . Left
+                      else if e == eINTR
+                        -- On EINTR it is good practice to just retry.
+                        then retry
+                        else throwIO e
+                  -- This is the critical section: We got a valid descriptor we have not yet returned.
+                  else do 
+                    i <- c_setnonblocking ft
+                    if i < 0 then do
+                      c_get_last_socket_error >>= throwIO
+                    else do
+                      -- This peek operation might be a little expensive, but I don't see an alternative.
+                      addr <- peek addrPtr :: IO (SockAddr f)
+                      -- newMVar is guaranteed to be not interruptible.
+                      mft <- newMVar ft
+                      -- Register a finalizer on the new socket.
+                      _ <- mkWeakMVar mft (close (Socket mft `asTypeOf` s))
+                      return (Right (Socket mft, addr))
+              -- If ews is Left we got EAGAIN or EWOULDBLOCK and retry after the next event.
+              case ews of
+                Left  wait -> wait >> (again $! iteration + 1)
+                Right sock -> return sock
+              ) 0 -- This is the initial iteration value.
 
 -- | Send a message on a connected socket.
 --
