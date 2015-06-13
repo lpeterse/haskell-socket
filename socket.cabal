@@ -86,15 +86,16 @@ library
   default-language:    Haskell2010
   install-includes:    hs_socket.h
   ghc-options:         -Wall
-  if os(linux)
-    include-dirs:      platform/linux/include
-    hs-source-dirs:    platform/linux/src
-    c-sources:         platform/linux/cbits/hs_socket.c
   if os(windows)
     include-dirs:      platform/win32/include
     hs-source-dirs:    platform/win32/src
     c-sources:         platform/win32/cbits/hs_socket.c
     extra-libraries:   ws2_32
+  else
+    include-dirs:      platform/linux/include
+    hs-source-dirs:    platform/linux/src
+    c-sources:         platform/linux/cbits/hs_socket.c
+
 
 test-suite UDP
   hs-source-dirs:      tests

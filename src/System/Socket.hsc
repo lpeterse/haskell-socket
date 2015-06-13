@@ -66,7 +66,7 @@
 -- > 
 -- > fetch :: IO ()
 -- > fetch = do
--- >   addrs <- getAddrInfo6 (Just "www.haskell.org") (Just "80") aiV4MAPPED :: IO [AddrInfo INET6 STREAM TCP]
+-- >   addrs <- getAddrInfo (Just "www.haskell.org") (Just "80") aiV4MAPPED :: IO [AddrInfo INET6 STREAM TCP]
 -- >   case addrs of
 -- >     (addr:_) ->
 -- >       -- always use the `bracket` pattern to reliably release resources!
