@@ -22,3 +22,4 @@ int hs_get_last_socket_error(void);
 #define SEINPROGRESS           EINPROGRESS
 #define SEPROTONOSUPPORT       EPROTONOSUPPORT
 #define SECONNREFUSED          ECONNREFUSED
+#define SENETUNREACH           ENETUNREACH

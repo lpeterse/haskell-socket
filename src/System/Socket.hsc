@@ -34,55 +34,24 @@
 -- >       sendAll peer "Hello world!" mempty `finally` close peer
 --
 -- This downloads the [Haskell website](http://www.haskell.org) and shows how to
--- handle exceptions. Note the use of IPv4-mapped IPv6 addresses: This will work
+-- handle exceptions. Note the use of IPv4-mapped `INET6` addresses: This will work
 -- even if you don't have IPv6 connectivity yet and is the preferred method
 -- when writing new applications.
 --
 -- > {-# LANGUAGE OverloadedStrings #-}
 -- > module Main where
 -- > 
--- > import Control.Monad
--- > import Control.Exception
--- > 
--- > import Data.Function (fix)
--- > import qualified Data.ByteString as BS
--- > 
--- > import System.IO
--- > import System.Exit
+-- > import Data.Monoid
+-- > import Data.ByteString.Lazy as B
 -- > import System.Socket
 -- > 
 -- > main :: IO ()
--- > main = fetch
--- >   `catch` (\e-> do
--- >     hPutStr   stderr "Something failed when resolving the name: "
--- >     hPutStrLn stderr $ show (e :: AddrInfoException)
--- >     exitFailure
--- >   )
--- >   `catch` (\e-> do
--- >     hPutStr   stderr "Something went wrong with the socket: "
--- >     hPutStrLn stderr $ show (e :: SocketException)
--- >     exitFailure
--- >   )
--- > 
--- > fetch :: IO ()
--- > fetch = do
--- >   addrs <- getAddrInfo (Just "www.haskell.org") (Just "80") aiV4MAPPED :: IO [AddrInfo INET6 STREAM TCP]
--- >   case addrs of
--- >     (addr:_) ->
--- >       -- always use the `bracket` pattern to reliably release resources!
--- >       bracket
--- >         ( socket :: IO (Socket INET6 STREAM TCP) )
--- >         ( close )
--- >         ( \s-> do connect s (addrAddress addr)
--- >                   sendAll s "GET / HTTP/1.0\r\nHost: www.haskell.org\r\n\r\n" mempty
--- >                   fix $ \recvMore-> do
--- >                     bs <- recv s 4096 mempty
--- >                     BS.putStr bs
--- >                     if BS.length bs == 0 -- an empty string means the peer terminated the connection
--- >                       then exitSuccess
--- >                       else recvMore
--- >          )
--- >     _ -> error "Illegal state: getAddrInfo yields non-empty list or exception."
+-- > main = do
+-- >   withConnection "www.haskell.org" "80" (aiALL `mappend` aiV4MAPPED) $ \sock-> do
+-- >     let _ = sock :: Socket INET6 STREAM TCP
+-- >     sendAll sock "GET / HTTP/1.0\r\nHost: www.haskell.org\r\n\r\n" mempty
+-- >     x <- recvAll sock (1024*1024*1024) mempty
+-- >     B.putStr x
 -----------------------------------------------------------------------------
 module System.Socket (
   -- * Name Resolution
@@ -109,6 +78,8 @@ module System.Socket (
   -- ** close
   , close
   -- * Convenience Operations
+  -- ** withConnection
+  , withConnection
   -- ** sendAll
   , sendAll
   -- ** recvAll
@@ -573,3 +544,52 @@ recvAll sock maxLen flags = collect 0 mempty
                  $! (accum `mappend` BB.byteString bs)
     build accum = do
       return (BB.toLazyByteString accum)
+
+-- | Looks up a name and executes a supplied action with a connected socket.
+--
+-- - The addresses returned by `getAddrInfo` are tried in sequence until a
+--   connection has been established or all have been tried.
+-- - If `connect` fails on all addresses the exception that occured on the
+--   last connection attempt is thrown.
+-- - The supplied action is executed at most once with the first established
+--   connection.
+-- - All sockets created by this operation get closed automatically.
+-- - This operation throws `AddrInfoException`s, `SocketException`s and all
+--   exceptions that that the supplied action might throw.
+--
+-- > withConnect "wwww.haskell.org" "80" mempty $ \sock-> do
+-- >   let _ = sock :: Socket INET STREAM TCP
+-- >   doSomethingWithSocket sock
+withConnection :: forall f t p a.
+                 ( GetAddrInfo f, Type t, Protocol p)
+                => BS.ByteString
+                -> BS.ByteString
+                -> AddrInfoFlags
+                -> (Socket f t p -> IO a)
+                -> IO a
+withConnection host serv flags action = do
+  addrs <- getAddrInfo (Just host) (Just serv) flags :: IO [AddrInfo f t p]
+  tryAddrs addrs
+  where
+    tryAddrs :: [AddrInfo f t p] -> IO a
+    tryAddrs [] = do
+      -- This should not happen.
+      throwIO eaiNONAME
+    tryAddrs (addr:addrs) = do
+      eith <- bracket
+        ( socket )
+        ( close )
+        ( \sock-> do
+            connected <- try (connect sock $ addrAddress addr)
+            case connected of
+              Left e  -> return (Left (e :: SocketException))
+              Right _ -> Right <$> action sock
+        )
+      case eith of
+        Left e ->
+          -- Rethrow the last exception if there are no more addresses to try.
+          if null addrs
+            then throwIO e
+            else tryAddrs addrs
+        Right a -> do
+          return a

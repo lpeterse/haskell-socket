@@ -1,3 +1,5 @@
+ * Added convenience operation `withConnection`.
+ * Added `eNETUNREACH` exception constant.
  * Added new operation `recvAll` and changed `sendAll` to lazy `ByteString`.
  * Added new socket option IPV6_V6ONLY.
  * Removed untested socket option SO_ACCEPTCONN.
