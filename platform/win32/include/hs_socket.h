@@ -121,3 +121,4 @@ int hs_get_last_socket_error(void);
 #define SEPROTONOSUPPORT       WSAEPROTONOSUPPORT
 #define SECONNREFUSED          WSAECONNREFUSED
 #define SENETUNREACH           WSAENETUNREACH
+#define SENOTCONN              WSAENOTCONN

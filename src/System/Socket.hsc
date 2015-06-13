@@ -557,7 +557,7 @@ recvAll sock maxLen flags = collect 0 mempty
 -- - This operation throws `AddrInfoException`s, `SocketException`s and all
 --   exceptions that that the supplied action might throw.
 --
--- > withConnect "wwww.haskell.org" "80" mempty $ \sock-> do
+-- > withConnection "wwww.haskell.org" "80" mempty $ \sock-> do
 -- >   let _ = sock :: Socket INET STREAM TCP
 -- >   doSomethingWithSocket sock
 withConnection :: forall f t p a.

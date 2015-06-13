@@ -25,6 +25,7 @@ instance Show SocketException where
     | e == eINVAL          = "eINVAL"
     | e == eCONNREFUSED    = "eCONNREFUSED"
     | e == eNETUNREACH     = "eNETUNREACH"
+    | e == eNOTCONN        = "eNOTCONN"
     | otherwise            = "SocketException " ++ show i
 
 eOK         :: SocketException
@@ -56,4 +57,7 @@ eCONNREFUSED     = SocketException (#const SECONNREFUSED)
 
 eNETUNREACH     :: SocketException
 eNETUNREACH      = SocketException (#const SENETUNREACH)
+
+eNOTCONN        :: SocketException
+eNOTCONN         = SocketException (#const SENOTCONN)
 

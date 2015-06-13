@@ -1,3 +1,4 @@
+ * Added `eNOTCONN` exception constant.
  * Added convenience operation `withConnection`.
  * Added `eNETUNREACH` exception constant.
  * Added new operation `recvAll` and changed `sendAll` to lazy `ByteString`.

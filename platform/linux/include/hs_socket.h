@@ -23,3 +23,4 @@ int hs_get_last_socket_error(void);
 #define SEPROTONOSUPPORT       EPROTONOSUPPORT
 #define SECONNREFUSED          ECONNREFUSED
 #define SENETUNREACH           ENETUNREACH
+#define SENOTCONN              ENOTCONN
