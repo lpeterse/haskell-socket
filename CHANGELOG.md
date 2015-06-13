@@ -1,3 +1,4 @@
+ * Added `SO_ERROR` socket option.
  * Added `eNOTCONN` exception constant.
  * Added convenience operation `withConnection`.
  * Added `eNETUNREACH` exception constant.

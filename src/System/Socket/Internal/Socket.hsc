@@ -4,6 +4,7 @@ module System.Socket.Internal.Socket (
   , getSockOptBool
   , SetSockOpt (..)
   , setSockOptBool
+  , SO_ERROR (..)
   , SO_REUSEADDR (..)
   ) where
 
@@ -53,6 +54,14 @@ class GetSockOpt o where
 
 class SetSockOpt o where
   setSockOpt :: Socket f t p -> o -> IO ()
+
+data SO_ERROR
+   = SO_ERROR SocketException
+   deriving (Eq, Ord, Show)
+
+instance GetSockOpt SO_ERROR where
+  getSockOpt s =
+    SO_ERROR . SocketException <$> getSockOptCInt s (#const SOL_SOCKET) (#const SO_ERROR)
 
 data SO_REUSEADDR
    = SO_REUSEADDR Bool
@@ -121,3 +130,27 @@ getSockOptInt (Socket mfd) level name = do
         else do
           v <- peek vPtr
           return (fromIntegral v)
+
+setSockOptCInt :: Socket f t p -> CInt -> CInt -> CInt -> IO ()
+setSockOptCInt (Socket mfd) level name value = do
+  withMVar mfd $ \fd->
+    alloca $ \vPtr-> do
+        poke vPtr value
+        i <- c_setsockopt fd level name 
+                          (vPtr :: Ptr CInt)
+                          (fromIntegral $ sizeOf (undefined :: CInt))
+        when (i < 0) $ do
+          c_get_last_socket_error >>= throwIO
+
+getSockOptCInt :: Socket f t p -> CInt -> CInt -> IO CInt
+getSockOptCInt (Socket mfd) level name = do
+  withMVar mfd $ \fd->
+    alloca $ \vPtr-> do
+      alloca $ \lPtr-> do
+        i <- c_getsockopt fd level name
+                          (vPtr :: Ptr CInt)
+                          (lPtr :: Ptr CInt)
+        if i < 0 then do
+          c_get_last_socket_error >>= throwIO
+        else do
+          peek vPtr

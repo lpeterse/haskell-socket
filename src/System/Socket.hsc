@@ -130,6 +130,7 @@ module System.Socket (
   , GetSockOpt (..)
   -- ** setSockOpt
   , SetSockOpt (..)
+  , SO_ERROR (..)
   , SO_REUSEADDR (..)
   -- * Flags
   -- ** MsgFlags
@@ -275,7 +276,7 @@ socket = socket'
 --     connection might still be established asynchronously. Expect failure
 --     when trying to read or write the socket in this case.
 connect :: Family f => Socket f t p -> SockAddr f -> IO ()
-connect (Socket mfd) addr = do
+connect s@(Socket mfd) addr = do
   mwait <- withMVar mfd $ \fd-> do
     when (fd < 0) $ do
       throwIO eBADF

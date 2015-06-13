@@ -9,7 +9,7 @@ import Foreign.C.Types
 
 newtype SocketException
       = SocketException CInt
-  deriving (Typeable, Eq)
+  deriving (Typeable, Eq, Ord)
 
 instance Exception SocketException
 

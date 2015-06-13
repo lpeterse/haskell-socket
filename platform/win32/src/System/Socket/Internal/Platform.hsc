@@ -14,11 +14,11 @@ import System.Socket.Internal.Msg
 import System.Socket.Internal.Exception
 
 socketWaitWrite' :: Fd -> Int -> IO (IO ())
-socketWaitWrite' fd iteration = do
+socketWaitWrite' _ iteration = do
   return (threadDelay $ 1 `shiftL` min iteration 20)
 
 socketWaitRead' :: Fd -> Int -> IO (IO ())
-socketWaitRead'  fd iteration = do
+socketWaitRead'  _ iteration = do
   return (threadDelay $ 1 `shiftL` min iteration 20)
 
 type CSSize
