@@ -24,3 +24,6 @@ int hs_get_last_socket_error(void);
 #define SECONNREFUSED          ECONNREFUSED
 #define SENETUNREACH           ENETUNREACH
 #define SENOTCONN              ENOTCONN
+#define SEALREADY              EALREADY
+#define SEISCONN               EISCONN
+#define SETIMEDOUT             ETIMEDOUT

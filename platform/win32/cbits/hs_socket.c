@@ -30,18 +30,7 @@ int hs_bind(int sockfd, const struct sockaddr *name, int namelen) {
 };
 
 int hs_connect(int sockfd, const struct sockaddr *name, int namelen) {
-  int i = connect(sockfd, name, namelen);
-  if (i != 0) {
-    switch (WSAGetLastError()) {
-      case WSAEWOULDBLOCK:
-        return 0;
-        break;
-      // TODO: remap other error codes that don't behave the posix way.
-      default:
-        break;
-    }
-  }
-  return i;
+  return connect(sockfd, name, namelen);
 };
 
 int hs_listen (int sockfd, int backlog) {

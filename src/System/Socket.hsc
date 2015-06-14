@@ -47,7 +47,7 @@
 -- > 
 -- > main :: IO ()
 -- > main = do
--- >   withConnection "www.haskell.org" "80" (aiALL `mappend` aiV4MAPPED) $ \sock-> do
+-- >   withConnectedSocket "www.haskell.org" "80" (aiALL `mappend` aiV4MAPPED) $ \sock-> do
 -- >     let _ = sock :: Socket INET6 STREAM TCP
 -- >     sendAll sock "GET / HTTP/1.0\r\nHost: www.haskell.org\r\n\r\n" mempty
 -- >     x <- recvAll sock (1024*1024*1024) mempty
@@ -78,8 +78,8 @@ module System.Socket (
   -- ** close
   , close
   -- * Convenience Operations
-  -- ** withConnection
-  , withConnection
+  -- ** withConnectedSocket
+  , withConnectedSocket
   -- ** sendAll
   , sendAll
   -- ** recvAll
@@ -160,6 +160,7 @@ module System.Socket (
 import Control.Exception
 import Control.Monad
 import Control.Applicative
+import Control.Concurrent
 import Control.Concurrent.MVar
 
 import Data.Function
@@ -264,28 +265,27 @@ socket = socket'
 -- | Connects to an remote address.
 --
 --   - Calling `connect` on a `close`d socket throws @EBADF@ even if the former file descriptor has been reassigned.
---   - This function returns as soon as a connection has either been established
---     or refused. A failed connection attempt does not throw an exception
---     if @EINTR@ or @EINPROGRESS@ were caught internally. The operation
---     just unblocks and returns in this case. The approach is to
---     just try to read or write the socket and eventually fail there instead.
---     Also see [these considerations](http://cr.yp.to/docs/connect.html) for an explanation.
---   - This operation throws `SocketException`s. Consult your @man@ page for
---     details and specific @errno@s.
---   - @EINTR@ and @EINPROGRESS@ get catched internally and won't be thrown as the
---     connection might still be established asynchronously. Expect failure
---     when trying to read or write the socket in this case.
+--   - This operation returns as soon as a connection has been established (as
+--     if the socket were blocking). The connection attempt has either failed or
+--     succeeded after this operation threw an exception or returned.
+--   - The operation might throw `SocketException`s. Due to implementation quirks
+--     the socket should be considered in an undefined state when this operation
+--     failed. It should be closed then.
+--   - Also see [these considerations](http://cr.yp.to/docs/connect.html) on
+--     the problems with connecting non-blocking sockets.
 connect :: Family f => Socket f t p -> SockAddr f -> IO ()
 connect s@(Socket mfd) addr = do
-  mwait <- withMVar mfd $ \fd-> do
-    when (fd < 0) $ do
-      throwIO eBADF
-    alloca $ \addrPtr-> do
-      poke addrPtr addr
-      i <- c_connect fd addrPtr (fromIntegral $ sizeOf addr)
+  alloca $ \addrPtr-> do
+    poke addrPtr addr
+    let addrLen = fromIntegral (sizeOf addr)
+    mwait <- withMVar mfd $ \fd-> do
+      when (fd < 0) (throwIO eBADF)
+      -- The actual connection attempt.
+      i <- c_connect fd addrPtr addrLen
+      -- On non-blocking sockets we expect to get EINPROGRESS or EWOULDBLOCK.
       if i < 0 then do
         e <- c_get_last_socket_error
-        if e == eINPROGRESS || e == eINTR then do
+        if e == eINPROGRESS || e == eWOULDBLOCK || e == eINTR then do
           -- The manpage says that in this case the connection
           -- shall be established asynchronously and one is
           -- supposed to wait.
@@ -296,9 +296,46 @@ connect s@(Socket mfd) addr = do
       else do
         -- This should not be the case on non-blocking socket, but better safe than sorry.
         return Nothing
-  case mwait of
-    Just wait -> wait
-    Nothing   -> return ()
+    case mwait of
+      Nothing -> do
+        -- The connection could be established synchronously. Nothing else to do.
+        return ()
+      Just wait -> do
+        -- This either waits or does nothing.
+        wait
+        -- By here we don't know anything about the current connection status.
+        -- It might either have succeeded, failed or is still undecided.
+        -- The approach is to try a second connection attempt, because its error
+        -- codes allow us to distinguish all three potential states.
+        ( fix $ \again iteration-> do
+            mwait' <- withMVar mfd $ \fd-> do
+              i <- c_connect fd addrPtr addrLen
+              if i < 0 then do
+                e <- c_get_last_socket_error
+                if e == eISCONN then do
+                  -- This is what we want. The connection is established.
+                  return Nothing
+                else if e == eALREADY then do
+                  -- The previous connection attempt is still pending.
+                  Just <$> socketWaitWrite' fd iteration
+                else do
+                  -- The previous connection failed (results in EINPROGRESS or
+                  -- EWOULBLOCK here) or something else is wrong.
+                  -- We throw eTIMEDOUT here as we don't know and will never
+                  -- know the exact reason (better suggestions appreciated).
+                  throwIO eTIMEDOUT
+              else do
+                -- This means the last connection attempt succeeded immediately.
+                -- Linux does this when connecting to the same address when the
+                -- socketWaitWrite' call signals writeability.
+                return Nothing
+            case mwait' of
+              Nothing    -> do
+                return ()
+              Just wait' -> do
+                wait'
+                again $! iteration + 1
+         ) 1
 
 -- | Bind a socket to an address.
 --
@@ -546,7 +583,7 @@ recvAll sock maxLen flags = collect 0 mempty
     build accum = do
       return (BB.toLazyByteString accum)
 
--- | Looks up a name and executes a supplied action with a connected socket.
+-- | Looks up a name and executes an supplied action with a connected socket.
 --
 -- - The addresses returned by `getAddrInfo` are tried in sequence until a
 --   connection has been established or all have been tried.
@@ -554,21 +591,23 @@ recvAll sock maxLen flags = collect 0 mempty
 --   last connection attempt is thrown.
 -- - The supplied action is executed at most once with the first established
 --   connection.
+-- - If the address family is `INET6`, `IPV6_V6ONLY` is set to `False` which
+--   means the other end may be both IPv4 or IPv6.
 -- - All sockets created by this operation get closed automatically.
 -- - This operation throws `AddrInfoException`s, `SocketException`s and all
 --   exceptions that that the supplied action might throw.
 --
--- > withConnection "wwww.haskell.org" "80" mempty $ \sock-> do
--- >   let _ = sock :: Socket INET STREAM TCP
+-- > withConnectedSocket "wwww.haskell.org" "80" (aiALL `mappend` aiV4MAPPED) $ \sock-> do
+-- >   let _ = sock :: Socket INET6 STREAM TCP
 -- >   doSomethingWithSocket sock
-withConnection :: forall f t p a.
+withConnectedSocket :: forall f t p a.
                  ( GetAddrInfo f, Type t, Protocol p)
                 => BS.ByteString
                 -> BS.ByteString
                 -> AddrInfoFlags
                 -> (Socket f t p -> IO a)
                 -> IO a
-withConnection host serv flags action = do
+withConnectedSocket host serv flags action = do
   addrs <- getAddrInfo (Just host) (Just serv) flags :: IO [AddrInfo f t p]
   tryAddrs addrs
   where
@@ -581,6 +620,7 @@ withConnection host serv flags action = do
         ( socket )
         ( close )
         ( \sock-> do
+            configureSocketSpecific sock
             connected <- try (connect sock $ addrAddress addr)
             case connected of
               Left e  -> return (Left (e :: SocketException))
@@ -594,3 +634,7 @@ withConnection host serv flags action = do
             else tryAddrs addrs
         Right a -> do
           return a
+
+    configureSocketSpecific sock = do
+      when (familyNumber (undefined :: f) == familyNumber (undefined :: INET6)) $ do
+        setSockOpt sock (IPV6_V6ONLY False)

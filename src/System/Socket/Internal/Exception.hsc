@@ -26,25 +26,28 @@ instance Show SocketException where
     | e == eCONNREFUSED    = "eCONNREFUSED"
     | e == eNETUNREACH     = "eNETUNREACH"
     | e == eNOTCONN        = "eNOTCONN"
+    | e == eALREADY        = "eALREADY"
+    | e == eISCONN         = "eISCONN"
+    | e == eTIMEDOUT       = "eTIMEDOUT"
     | otherwise            = "SocketException " ++ show i
 
-eOK         :: SocketException
-eOK          = SocketException (#const SEOK)
+eOK             :: SocketException
+eOK              = SocketException (#const SEOK)
 
-eINTR       :: SocketException
-eINTR        = SocketException (#const SEINTR)
+eINTR           :: SocketException
+eINTR            = SocketException (#const SEINTR)
 
-eAGAIN      :: SocketException
-eAGAIN       = SocketException (#const SEAGAIN)
+eAGAIN          :: SocketException
+eAGAIN           = SocketException (#const SEAGAIN)
 
-eWOULDBLOCK :: SocketException
-eWOULDBLOCK  = SocketException (#const SEWOULDBLOCK)
+eWOULDBLOCK     :: SocketException
+eWOULDBLOCK      = SocketException (#const SEWOULDBLOCK)
 
-eBADF       :: SocketException
-eBADF        = SocketException (#const SEBADF)
+eBADF           :: SocketException
+eBADF            = SocketException (#const SEBADF)
 
-eINPROGRESS :: SocketException
-eINPROGRESS  = SocketException (#const SEINPROGRESS)
+eINPROGRESS     :: SocketException
+eINPROGRESS      = SocketException (#const SEINPROGRESS)
 
 ePROTONOSUPPORT :: SocketException
 ePROTONOSUPPORT  = SocketException (#const SEPROTONOSUPPORT)
@@ -61,3 +64,11 @@ eNETUNREACH      = SocketException (#const SENETUNREACH)
 eNOTCONN        :: SocketException
 eNOTCONN         = SocketException (#const SENOTCONN)
 
+eALREADY        :: SocketException
+eALREADY         = SocketException (#const SEALREADY)
+
+eISCONN         :: SocketException
+eISCONN          = SocketException (#const SEISCONN)
+
+eTIMEDOUT       :: SocketException
+eTIMEDOUT        = SocketException (#const SETIMEDOUT)

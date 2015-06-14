@@ -1,6 +1,10 @@
+ * Changed semantics of `connect` operation. It now
+   blocks until a connection has either has been established or failed.
  * Added `SO_ERROR` socket option.
+ * Added `eALREADY` exception constant.
+ * Added `eISCONN` exception constant.
  * Added `eNOTCONN` exception constant.
- * Added convenience operation `withConnection`.
+ * Added convenience operation `withConnectedSocket`.
  * Added `eNETUNREACH` exception constant.
  * Added new operation `recvAll` and changed `sendAll` to lazy `ByteString`.
  * Added new socket option IPV6_V6ONLY.
