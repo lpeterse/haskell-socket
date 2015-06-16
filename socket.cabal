@@ -1,13 +1,13 @@
 name:                socket
-version:             0.3.0.1
+version:             0.4.0.0
 synopsis:            A portable and extensible sockets library.
 description:
-  __Motivation__
+  /Motivation/
   .
   This library aims to expose a minimal and platform-independant interface for
   POSIX compliant networking code.
   .
-  __Implementation Philosophy__
+  /Implementation Philosophy/
   .
     - Every operation and every flag exposed should be supported with same
       semantics on every platform. If this cannot be guaranteed it should
@@ -23,30 +23,32 @@ description:
       indirection is introduced to write an Posix compliant equivalent in C
       using whatever the plaform specific building blocks are.
   .
-  __Platform Support__
+  /Platform Support/
   .
-  /Linux/
+  /Linux/: Working.
   .
-  Working.
+  /BSD/: Unknown. Should work. Please report if not.
   .
-  /BSD/
+  /OS X/: Unknown. Please report if you have a Mac.
   .
-  Unknown. Should work. Please report if not.
+  /Windows/: Fully supported on Windows7 (maybe Vista) or higher :-)
   .
-  /MacOS/
+  GHCs runtime system on Windows does not offer an event notification mechanism for sockets.
+  The original [network](https://hackage.haskell.org/package/network) library
+  suffers from this, too. For example, connection attempts are uninterruptible etc.
+  The approach taken to circumvent this in this library is to poll the
+  non-blocking sockets with increasing delay. This guarantees interruptability
+  and fairness between different threads. It allows for decent throughput
+  while also keeping CPU consumption on a moderate level if a socket has not seen
+  events for a longer period of time (maximum of 1 second delay after 20
+  polling iterations). The only drawback is potentially reduced response time
+  of your application. The good part: Heavy load (e.g. connection requests or
+  incoming traffic) will reduce this problem. Eventually your accepting thread
+  won't wait at all if there are several connection requests queued.
   .
-  Unknown. Please report if you have a Mac.
-  .
-  /Windows/
-  .
-  Unfinished (problem with non-blocking IO).
-  .
-  Aim: Support Windows7 or higher. Don't have dependencies on autotools, just
-  Haskell Platform with MinGW should suffice.
-  .
-  /Android/
-  .
-  Unknown. Should be supported. Please get in touch if you plan to use it.
+  This workaround may be removed if someone is willing to sacrifice to improve
+  the IO manager on Windows.
+
 license:             MIT
 license-file:        LICENSE
 author:              Lars Petersen

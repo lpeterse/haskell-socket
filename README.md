@@ -45,14 +45,23 @@ Unknown. Please report if you have a Mac.
 
 #### Windows
 
-Unfinished (problem with non-blocking IO).
+Fully supported on Windows7 (maybe Vista) or higher :-)
 
-Aim: Support Windows7 or higher. Don't have dependencies on autotools, just
-Haskell Platform with MinGW should suffice.
+GHCs runtime system on Windows does not offer an event notification mechanism for sockets.
+The original [network](https://hackage.haskell.org/package/network) library
+suffers from this, too. For example, connection attempts are uninterruptible etc.
+The approach taken to circumvent this in this library is to poll the
+non-blocking sockets with increasing delay. This guarantees interruptability
+and fairness between different threads. It allows for decent throughput
+while also keeping CPU consumption on a moderate level if a socket has not seen
+events for a longer period of time (maximum of 1 second delay after 20
+polling iterations). The only drawback is potentially reduced response time
+of your application. The good part: Heavy load (e.g. connection requests or
+incoming traffic) will reduce this problem. Eventually your accepting thread
+won't wait at all if there are several connection requests queued.
 
-#### Android
-
-Unknown. Should be supported. Please get in touch if you plan to use it.
+This workaround may be removed if someone is willing to sacrifice to improve
+the IO manager on Windows.
 
 ### Dependencies
 
@@ -61,7 +70,7 @@ Unknown. Should be supported. Please get in touch if you plan to use it.
 
 ### Tests
 
-Run the default test suite:
+Run the default test suites:
 
 ```bash
 cabal test

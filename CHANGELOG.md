@@ -1,3 +1,5 @@
+0.4.0.0 Lars Petersen <info@lars-petersen.net> 2015-06-16
+
  * Changed semantics of `connect` operation. It now
    blocks until a connection has either has been established or failed.
  * Added `SO_ERROR` socket option.
