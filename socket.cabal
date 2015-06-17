@@ -1,5 +1,5 @@
 name:                socket
-version:             0.4.0.0
+version:             0.4.0.1
 synopsis:            A portable and extensible sockets library.
 description:
   /Motivation/
@@ -61,6 +61,12 @@ bug-reports:         https://github.com/lpeterse/haskell-socket/issues
 tested-with:         GHC==7.10.1, GHC==7.8.3
 extra-source-files:  README.md
                      CHANGELOG.md
+                     platform/linux/src/System/Socket/Internal/Platform.hsc
+                     platform/linux/include/hs_socket.h
+                     platform/linux/cbits/hs_socket.c
+                     platform/win32/src/System/Socket/Internal/Platform.hsc
+                     platform/win32/include/hs_socket.h
+                     platform/win32/cbits/hs_socket.c
 
 library
   exposed-modules:     System.Socket
@@ -97,7 +103,6 @@ library
     include-dirs:      platform/linux/include
     hs-source-dirs:    platform/linux/src
     c-sources:         platform/linux/cbits/hs_socket.c
-
 
 test-suite UDP
   hs-source-dirs:      tests

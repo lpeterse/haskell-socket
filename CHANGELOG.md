@@ -1,3 +1,7 @@
+0.4.0.1 Lars Petersen <info@lars-petersen.net> 2015-06-17
+
+ * tar-ball did not contain relevant source files.
+
 0.4.0.0 Lars Petersen <info@lars-petersen.net> 2015-06-16
 
  * Changed semantics of `connect` operation. It now

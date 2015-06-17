@@ -274,7 +274,7 @@ socket = socket'
 --   - Also see [these considerations](http://cr.yp.to/docs/connect.html) on
 --     the problems with connecting non-blocking sockets.
 connect :: Family f => Socket f t p -> SockAddr f -> IO ()
-connect s@(Socket mfd) addr = do
+connect (Socket mfd) addr = do
   alloca $ \addrPtr-> do
     poke addrPtr addr
     let addrLen = fromIntegral (sizeOf addr)
