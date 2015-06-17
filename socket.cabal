@@ -61,6 +61,7 @@ bug-reports:         https://github.com/lpeterse/haskell-socket/issues
 tested-with:         GHC==7.10.1, GHC==7.8.3
 extra-source-files:  README.md
                      CHANGELOG.md
+                     CONTRIBUTORS.txt
                      platform/linux/src/System/Socket/Internal/Platform.hsc
                      platform/linux/include/hs_socket.h
                      platform/linux/cbits/hs_socket.c

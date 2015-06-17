@@ -61,11 +61,11 @@ newtype AddrIn
 inaddrANY             :: AddrIn
 inaddrANY              = AddrIn $ BS.pack [  0,  0,  0,  0]
 
--- | @255.255.255.0@
+-- | @255.255.255.255@
 inaddrBROADCAST       :: AddrIn
 inaddrBROADCAST        = AddrIn $ BS.pack [255,255,255,255]
 
--- | @255.255.255.0@
+-- | @255.255.255.255@
 inaddrNONE            :: AddrIn
 inaddrNONE             = AddrIn $ BS.pack [255,255,255,255]
 

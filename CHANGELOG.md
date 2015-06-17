@@ -1,3 +1,6 @@
+ * Issue #7: Typo in documentation of inaddrNONE and inaddrBROADCAST.
+   Kudos to Michael Fox.
+
 0.4.0.1 Lars Petersen <info@lars-petersen.net> 2015-06-17
 
  * tar-ball did not contain relevant source files.
