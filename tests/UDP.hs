@@ -47,16 +47,16 @@ test inet dummy addr = do
     e i        = error (inet ++ ": " ++ show i)
     p i        = print (inet ++ ": " ++ show i)
 
-localhost :: SocketAddressIn
+localhost :: SocketAddressInet
 localhost =
-  SocketAddressIn
+  SocketAddressInet
   { sinPort      = 7777
   , sinAddr      = inaddrLOOPBACK
   }
 
-localhost6 :: SocketAddressIn6
+localhost6 :: SocketAddressInet6
 localhost6 =
-  SocketAddressIn6
+  SocketAddressInet6
   { sin6Port     = 7777
   , sin6Addr     = in6addrLOOPBACK
   , sin6Flowinfo = 0

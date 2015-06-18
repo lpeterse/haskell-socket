@@ -28,7 +28,7 @@ t0001 :: IO ()
 t0001 = do
   s <- socket                             `onException` e 0 :: IO (Socket Inet STREAM TCP)
   setSockOpt s (SO_REUSEADDR True)        `onException` e 1
-  bind s (SocketAddressIn 8080 inaddrLOOPBACK) `onException` e 2
+  bind s (SocketAddressInet 8080 inaddrLOOPBACK) `onException` e 2
   listen s 5                              `onException` e 3
   a <- async (accept s)                   `onException` e 4
   threadDelay 1000000 -- make sure the async call really got enough time to start

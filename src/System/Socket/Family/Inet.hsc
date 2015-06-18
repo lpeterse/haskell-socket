@@ -2,7 +2,7 @@
 module System.Socket.Family.Inet
   ( Inet
   , AddrIn ()
-  , SocketAddressIn (..)
+  , SocketAddressInet (..)
   , inaddrANY
   , inaddrBROADCAST
   , inaddrNONE
@@ -33,11 +33,11 @@ import System.Socket.Internal.Platform
 data Inet
 
 instance Family Inet where
-  type SocketAddress Inet = SocketAddressIn
+  type SocketAddress Inet = SocketAddressInet
   familyNumber _ = (#const AF_INET)
 
-data SocketAddressIn
-   = SocketAddressIn
+data SocketAddressInet
+   = SocketAddressInet
      { sinPort      :: Word16
      , sinAddr      :: AddrIn
      } deriving (Eq)
@@ -51,7 +51,7 @@ data SocketAddressIn
 --   Another hint: Use `System.Socket.getAddressInfo` for parsing and suppress
 --   nameserver lookups:
 --
---   > > getAddressInfo (Just "127.0.0.1") Nothing aiNUMERICHOST :: IO [AddressInfo SocketAddressIn STREAM TCP]
+--   > > getAddressInfo (Just "127.0.0.1") Nothing aiNUMERICHOST :: IO [AddressInfo SocketAddressInet STREAM TCP]
 --   > [AddressInfo {addrInfoFlags = AddressInfoFlags 4, addrAddress = "127.0.0.1:0", addrCanonName = Nothing}]
 newtype AddrIn
       = AddrIn BS.ByteString
@@ -89,8 +89,8 @@ inaddrALLRTS_GROUP     = AddrIn $ BS.pack [224,  0,  0,  2]
 inaddrMAXLOCAL_GROUP  :: AddrIn
 inaddrMAXLOCAL_GROUP   = AddrIn $ BS.pack [224,  0,  0,255]
 
-instance Show SocketAddressIn where
-  show (SocketAddressIn p a) =
+instance Show SocketAddressInet where
+  show (SocketAddressInet p a) =
     show a ++ ":" ++ show p
 
 instance Show AddrIn where
@@ -106,18 +106,18 @@ instance Storable AddrIn where
     BS.unsafeUseAsCString a $ \aPtr-> do
       copyBytes ptr (castPtr aPtr) (min 4 $ BS.length a)
 
-instance Storable SocketAddressIn where
+instance Storable SocketAddressInet where
   sizeOf    _ = (#size struct sockaddr_in)
   alignment _ = (#alignment struct sockaddr_in)
   peek ptr    = do
     ph  <- peekByteOff (sin_port ptr)  0 :: IO Word8
     pl  <- peekByteOff (sin_port ptr)  1 :: IO Word8
     a   <- peek        (sin_addr ptr)    :: IO AddrIn
-    return (SocketAddressIn (fromIntegral ph * 256 + fromIntegral pl) a)
+    return (SocketAddressInet (fromIntegral ph * 256 + fromIntegral pl) a)
     where
       sin_port     = (#ptr struct sockaddr_in, sin_port)
       sin_addr     = (#ptr struct in_addr, s_addr) . (#ptr struct sockaddr_in, sin_addr)
-  poke ptr (SocketAddressIn p a) = do
+  poke ptr (SocketAddressInet p a) = do
     c_memset ptr 0 (#const sizeof(struct sockaddr_in))
     poke        (sin_family   ptr) ((#const AF_INET) :: Word16)
     pokeByteOff (sin_port     ptr)  0 (fromIntegral $ rem (quot p 256) 256 :: Word8)

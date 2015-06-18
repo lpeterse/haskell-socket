@@ -26,7 +26,7 @@
 -- > main = do
 -- >   s <- socket :: IO (Socket Inet STREAM TCP)
 -- >   setSockOpt s (SO_REUSEADDR True)
--- >   bind s (SocketAddressIn 8080 inaddrLOOPBACK)
+-- >   bind s (SocketAddressInet 8080 inaddrLOOPBACK)
 -- >   listen s 5
 -- >   forever $ do
 -- >     (peer,addr) <- accept s
@@ -90,10 +90,10 @@ module System.Socket (
   , Family (..)
   -- *** Inet
   , Inet
-  , SocketAddressIn (..)
+  , SocketAddressInet (..)
   -- *** Inet6
   , Inet6
-  , SocketAddressIn6 (..)
+  , SocketAddressInet6 (..)
   -- ** Types
   , Type (..)
   -- *** DGRAM

@@ -148,7 +148,7 @@ instance Monoid AddressInfoFlags where
 aiADDRCONFIG  :: AddressInfoFlags
 aiADDRCONFIG   = AddressInfoFlags (#const AI_ADDRCONFIG)
 
--- | Return both IPv4 (as mapped `SocketAddressIn6`) and IPv6 addresses when
+-- | Return both IPv4 (as mapped `SocketAddressInet6`) and IPv6 addresses when
 -- `aiV4MAPPED` is set independent of whether IPv6 addresses exist for this
 --  name.
 aiALL         :: AddressInfoFlags
@@ -287,7 +287,7 @@ getAddressInfo' mnode mservice (AddressInfoFlags flags) = do
 --
 --   The operation throws `AddressInfoException`s.
 --
---   > > getNameInfo (SocketAddressIn 80 inaddrLOOPBACK) mempty
+--   > > getNameInfo (SocketAddressInet 80 inaddrLOOPBACK) mempty
 --   > ("localhost.localdomain","http")
 class (Family f) => GetNameInfo f where
   getNameInfo :: SocketAddress f -> NameInfoFlags -> IO (BS.ByteString, BS.ByteString)
