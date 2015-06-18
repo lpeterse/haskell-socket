@@ -5,10 +5,10 @@ module System.Socket.Unsafe (
   , unsafeSend
   -- * unsafeSendTo
   , unsafeSendTo
-  -- * unsafeRecv
-  , unsafeRecv
-  -- * unsafeRecvFrom
-  , unsafeRecvFrom
+  -- * unsafeReceive
+  , unsafeReceive
+  -- * unsafeReceiveFrom
+  , unsafeReceiveFrom
   ) where
 
 import Data.Function
@@ -47,12 +47,12 @@ unsafeSendTo :: Socket f t p -> Ptr b -> CSize -> MsgFlags -> Ptr (SockAddr f) -
 unsafeSendTo s bufPtr bufSize flags addrPtr addrSize = do
   tryWaitAndRetry s socketWaitWrite' (\fd-> c_sendto fd bufPtr (fromIntegral bufSize) (flags `mappend` msgNOSIGNAL) addrPtr addrSize)
 
-unsafeRecv :: Socket a t p -> Ptr b -> CSize -> MsgFlags -> IO CInt
-unsafeRecv s bufPtr bufSize flags =
+unsafeReceive :: Socket a t p -> Ptr b -> CSize -> MsgFlags -> IO CInt
+unsafeReceive s bufPtr bufSize flags =
   tryWaitAndRetry s socketWaitRead' (\fd-> c_recv fd bufPtr bufSize flags)
 
-unsafeRecvFrom :: Socket f t p -> Ptr b -> CSize -> MsgFlags -> Ptr (SockAddr f) -> Ptr CInt -> IO CInt
-unsafeRecvFrom s bufPtr bufSize flags addrPtr addrSizePtr = do
+unsafeReceiveFrom :: Socket f t p -> Ptr b -> CSize -> MsgFlags -> Ptr (SockAddr f) -> Ptr CInt -> IO CInt
+unsafeReceiveFrom s bufPtr bufSize flags addrPtr addrSizePtr = do
   tryWaitAndRetry s socketWaitRead' (\fd-> c_recvfrom fd bufPtr bufSize flags addrPtr addrSizePtr)
 
 tryWaitAndRetry :: Socket f t p -> (Fd -> Int-> IO (IO ())) -> (Fd -> IO CInt) -> IO CInt

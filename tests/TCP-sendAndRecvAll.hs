@@ -29,7 +29,7 @@ main =
             listen server 5                           `onException` print "E07"
             serverRecv <- async $ do
               (peerSock, peerAddr) <- accept server   `onException` print "E08"
-              recvAll peerSock msgSize mempty         `onException` print "E09"
+              receiveAll peerSock msgSize mempty         `onException` print "E09"
 
             threadDelay 100000
             connect client addr                       `onException` print "E11"

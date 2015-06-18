@@ -37,7 +37,7 @@ t0001 =
         sendTo client "PING" mempty (SockAddrIn 7777 inaddrLOOPBACK)
                                                       `onException` p 6
         eith <- race
-          ( recvFrom server 4096 mempty `onException` p 7 >> return () )
+          ( receiveFrom server 4096 mempty `onException` p 7 >> return () )
           ( threadDelay 1000000 )
         case eith of
           Left  () -> e 8        -- we didn't expect receiving a msg
@@ -67,7 +67,7 @@ t0002 =
         sendTo client "PING" mempty (SockAddrIn 7778 inaddrLOOPBACK)
                                                       `onException` p 6
         eith <- race
-          ( recvFrom server 4096 mempty `onException` p 7 >> return ())
+          ( receiveFrom server 4096 mempty `onException` p 7 >> return ())
           ( threadDelay 1000000 )
         case eith of
           Left  () -> return ()  -- we received the expected msg

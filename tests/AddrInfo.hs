@@ -24,8 +24,8 @@ t0001 = do
           `onException` p 0 :: IO [AddressInfo INET STREAM TCP]
   when (length ais /= 1) (e 1)
   let [ai] = ais
-  when (addrCanonName ai /= Nothing) (e 2)
-  let addr = addrAddress ai
+  when (canonicalName ai /= Nothing) (e 2)
+  let addr = address ai
   when (sinPort addr /= 80) (e 3)
   when (sinAddr addr /= inaddrLOOPBACK) (e 4)
   where

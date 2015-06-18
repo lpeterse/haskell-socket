@@ -34,7 +34,7 @@ test0001 dummy addr =
             listen server 5                           `onException` print "E07"
             serverRecv <- async $ do
               (peerSock, peerAddr) <- accept server   `onException` print "E08"
-              recv peerSock 4096 mempty               `onException` print "E09"
+              receive peerSock 4096 mempty               `onException` print "E09"
             connect client addr                       `onException` print "E11"
             send client helloWorld mempty             `onException` print "E12"
             msg <- wait serverRecv                    `onException` print "E13"

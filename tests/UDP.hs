@@ -26,7 +26,7 @@ test inet dummy addr = do
 
   ((msg,peeraddr),_) <- concurrently 
    ( do
-      recvFrom server 4096 mempty                            `onException` p 5
+      receiveFrom server 4096 mempty                            `onException` p 5
    )
    ( do 
       -- This is a race condition:

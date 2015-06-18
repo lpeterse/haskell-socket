@@ -42,7 +42,7 @@ t0001 = do
     addr = SockAddrIn 8080 inaddrLOOPBACK
     e i  = print ("t0001." ++ show i)
     loop sock index = ( do
-      ping <- recv sock 4096 mempty
+      ping <- receive sock 4096 mempty
       when (ping /= "Ping!") (e 14)
       send sock ping mempty
       loop sock (index + 1)

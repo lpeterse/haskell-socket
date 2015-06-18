@@ -50,7 +50,7 @@
 -- >   withConnectedSocket "www.haskell.org" "80" (aiALL `mappend` aiV4MAPPED) $ \sock-> do
 -- >     let _ = sock :: Socket INET6 STREAM TCP
 -- >     sendAll sock "GET / HTTP/1.0\r\nHost: www.haskell.org\r\n\r\n" mempty
--- >     x <- recvAll sock (1024*1024*1024) mempty
+-- >     x <- receiveAll sock (1024*1024*1024) mempty
 -- >     B.putStr x
 -----------------------------------------------------------------------------
 module System.Socket (
@@ -73,8 +73,8 @@ module System.Socket (
   , accept
   -- ** send, sendTo
   , send, sendTo
-  -- ** recv, recvFrom
-  , recv, recvFrom
+  -- ** receive, receiveFrom
+  , receive, receiveFrom
   -- ** close
   , close
   -- * Convenience Operations
@@ -82,8 +82,8 @@ module System.Socket (
   , withConnectedSocket
   -- ** sendAll
   , sendAll
-  -- ** recvAll
-  , recvAll
+  -- ** receiveAll
+  , receiveAll
   -- * Sockets
   , Socket (..)
   -- ** Families
@@ -463,30 +463,30 @@ sendTo s bs flags addr = do
 
 -- | Receive a message on a connected socket.
 --
---   - Calling `recv` on a `close`d socket throws @EBADF@ even if the former file descriptor has been reassigned.
+--   - Calling `receive` on a `close`d socket throws @EBADF@ even if the former file descriptor has been reassigned.
 --   - The operation takes a buffer size in bytes a first parameter which
 --     limits the maximum length of the returned `Data.ByteString.ByteString`.
---   - This operation throws `SocketException`s. Consult @man 3p recv@ for
+--   - This operation throws `SocketException`s. Consult @man 3p receive@ for
 --     details and specific @errno@s.
 --   - @EAGAIN@, @EWOULDBLOCK@ and @EINTR@ and handled internally and won't be thrown.
 --     For performance reasons the operation first tries a read
 --     on the socket and then waits when it got @EAGAIN@ or @EWOULDBLOCK@.
-recv :: Socket f t p -> Int -> MsgFlags -> IO BS.ByteString
-recv s bufSize flags =
+receive :: Socket f t p -> Int -> MsgFlags -> IO BS.ByteString
+receive s bufSize flags =
   bracketOnError
     ( mallocBytes bufSize )
     (\bufPtr-> free bufPtr )
     (\bufPtr-> do
-        bytesReceived <- unsafeRecv s bufPtr (fromIntegral bufSize) flags
+        bytesReceived <- unsafeReceive s bufPtr (fromIntegral bufSize) flags
         BS.unsafePackMallocCStringLen (bufPtr, fromIntegral bytesReceived)
     )
 
--- | Like `recv`, but additionally yields the peer address.
-recvFrom :: (Family f) => Socket f t p -> Int -> MsgFlags -> IO (BS.ByteString, SockAddr f)
-recvFrom = recvFrom'
+-- | Like `receive`, but additionally yields the peer address.
+receiveFrom :: (Family f) => Socket f t p -> Int -> MsgFlags -> IO (BS.ByteString, SockAddr f)
+receiveFrom = receiveFrom'
   where
-    recvFrom' :: forall f t p. (Family f) => Socket f t p -> Int -> MsgFlags -> IO (BS.ByteString, SockAddr f)
-    recvFrom' s bufSize flags = do
+    receiveFrom' :: forall f t p. (Family f) => Socket f t p -> Int -> MsgFlags -> IO (BS.ByteString, SockAddr f)
+    receiveFrom' s bufSize flags = do
       alloca $ \addrPtr-> do
         alloca $ \addrSizePtr-> do
           poke addrSizePtr (fromIntegral $ sizeOf (undefined :: SockAddr f))
@@ -494,7 +494,7 @@ recvFrom = recvFrom'
             ( mallocBytes bufSize )
             (\bufPtr-> free bufPtr )
             (\bufPtr-> do
-                bytesReceived <- unsafeRecvFrom s bufPtr (fromIntegral bufSize) flags addrPtr addrSizePtr
+                bytesReceived <- unsafeReceiveFrom s bufPtr (fromIntegral bufSize) flags addrPtr addrSizePtr
                 addr <- peek addrPtr
                 bs   <- BS.unsafePackMallocCStringLen (bufPtr, fromIntegral bytesReceived)
                 return (bs, addr)
@@ -556,7 +556,7 @@ sendAll s lbs flags =
       sent <- send s bs flags
       when (sent < BS.length bs) $ sendAll' (BS.drop sent bs)
 
--- | Like `recv`, but operates on lazy `Data.ByteString.Lazy.ByteString`s and
+-- | Like `receive`, but operates on lazy `Data.ByteString.Lazy.ByteString`s and
 --   continues until either an empty part has been received (peer closed
 --   the connection) or given buffer limit has been exceeded or an
 --   exception occured.
@@ -567,14 +567,14 @@ sendAll s lbs flags =
 --     If the returned `Data.ByteString.Lazy.ByteString`s length is lower or
 --     eqal than the limit, the data has not been truncated and the
 --     transmission is complete.
-recvAll :: Socket f STREAM p -> Int64 -> MsgFlags -> IO LBS.ByteString
-recvAll sock maxLen flags = collect 0 mempty
+receiveAll :: Socket f STREAM p -> Int64 -> MsgFlags -> IO LBS.ByteString
+receiveAll sock maxLen flags = collect 0 mempty
   where
     collect len accum
       | len > maxLen = do
           build accum
       | otherwise = do
-          bs <- recv sock BB.smallChunkSize flags
+          bs <- receive sock BB.smallChunkSize flags
           if BS.null bs then do
             build accum
           else do
@@ -621,7 +621,7 @@ withConnectedSocket host serv flags action = do
         ( close )
         ( \sock-> do
             configureSocketSpecific sock
-            connected <- try (connect sock $ addrAddress addr)
+            connected <- try (connect sock $ address addr)
             case connected of
               Left e  -> return (Left (e :: SocketException))
               Right _ -> Right <$> action sock
