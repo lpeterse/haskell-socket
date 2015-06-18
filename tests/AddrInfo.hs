@@ -17,11 +17,11 @@ main = do
 
 t0001 :: IO ()
 t0001 = do
-  ais <- getAddrInfo
+  ais <- getAddressInfo
           (Just "127.0.0.1")
           (Just "http")
           aiNUMERICHOST 
-          `onException` p 0 :: IO [AddrInfo INET STREAM TCP]
+          `onException` p 0 :: IO [AddressInfo INET STREAM TCP]
   when (length ais /= 1) (e 1)
   let [ai] = ais
   when (addrCanonName ai /= Nothing) (e 2)
@@ -34,11 +34,11 @@ t0001 = do
 
 t0002 :: IO ()
 t0002 = do
-  let x = getAddrInfo
+  let x = getAddressInfo
           Nothing
           Nothing
-          mempty :: IO [AddrInfo INET STREAM TCP]
-  eui <- tryJust (\ex@(AddrInfoException _)-> if ex == eaiNONAME then Just () else Nothing)
+          mempty :: IO [AddressInfo INET STREAM TCP]
+  eui <- tryJust (\ex@(AddressInfoException _)-> if ex == eaiNONAME then Just () else Nothing)
                  (x `onException` p 0)
   when (eui /= Left ()) (e 1)
   where
@@ -51,16 +51,16 @@ t0002 = do
 --   but not in the first one.
 t0003 :: IO ()
 t0003 = do
-  x <- getAddrInfo
+  x <- getAddressInfo
           (Just "localhost")
           Nothing
           mempty 
-          `onException` p 0:: IO [AddrInfo INET6 STREAM TCP]
-  y <- getAddrInfo
+          `onException` p 0:: IO [AddressInfo INET6 STREAM TCP]
+  y <- getAddressInfo
           (Just "localhost")
           Nothing
           (aiALL `mappend` aiV4MAPPED)
-          `onException` p 1 :: IO [AddrInfo INET6 STREAM TCP]
+          `onException` p 1 :: IO [AddressInfo INET6 STREAM TCP]
   when (length x == length y) (e 2)
   where
     p i = print ("t0003." ++ show i)

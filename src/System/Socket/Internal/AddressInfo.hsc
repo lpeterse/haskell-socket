@@ -1,11 +1,11 @@
 {-# LANGUAGE DeriveDataTypeable, ScopedTypeVariables,
             StandaloneDeriving, FlexibleContexts, TypeFamilies,
             GeneralizedNewtypeDeriving #-}
-module System.Socket.Internal.AddrInfo (
-    AddrInfo (..)
-  , GetAddrInfo (..)
+module System.Socket.Internal.AddressInfo (
+    AddressInfo (..)
+  , GetAddressInfo (..)
   , GetNameInfo (..)
-  , AddrInfoException (..)
+  , AddressInfoException (..)
   , gaiStrerror
   , eaiAGAIN
   , eaiBADFLAGS
@@ -16,7 +16,7 @@ module System.Socket.Internal.AddrInfo (
   , eaiSOCKTYPE
   , eaiSERVICE
   , eaiSYSTEM
-  , AddrInfoFlags (..)
+  , AddressInfoFlags (..)
   , aiADDRCONFIG
   , aiALL
   , aiCANONNAME
@@ -59,117 +59,117 @@ import System.Socket.Internal.Platform
 #let alignment t = "%lu", (unsigned long)offsetof(struct {char x__; t (y__); }, y__)
 
 -------------------------------------------------------------------------------
--- AddrInfo
+-- AddressInfo
 -------------------------------------------------------------------------------
 
-data AddrInfo f t p
-   = AddrInfo
-     { addrInfoFlags :: AddrInfoFlags
+data AddressInfo f t p
+   = AddressInfo
+     { addrInfoFlags :: AddressInfoFlags
      , addrAddress   :: SockAddr f
      , addrCanonName :: Maybe BS.ByteString
      }
 
-deriving instance (Eq   (SockAddr f)) => Eq   (AddrInfo f t p)
-deriving instance (Show (SockAddr f)) => Show (AddrInfo f t p)
+deriving instance (Eq   (SockAddr f)) => Eq   (AddressInfo f t p)
+deriving instance (Show (SockAddr f)) => Show (AddressInfo f t p)
 
 -------------------------------------------------------------------------------
--- AddrInfoException
+-- AddressInfoException
 -------------------------------------------------------------------------------
 
 -- | Contains the error code that can be matched against. Use `gaiStrerror`
 --   to get a human readable explanation of the error (show`
 --   does this as well).
-newtype AddrInfoException
-      = AddrInfoException CInt
+newtype AddressInfoException
+      = AddressInfoException CInt
    deriving (Eq, Typeable)
 
-instance Show AddrInfoException where
-  show e = "AddrInfoException \"" ++ gaiStrerror e ++ "\""
+instance Show AddressInfoException where
+  show e = "AddressInfoException \"" ++ gaiStrerror e ++ "\""
 
-instance Exception AddrInfoException
+instance Exception AddressInfoException
 
 -- | A wrapper around @gai_strerror@.
-gaiStrerror :: AddrInfoException -> String
-gaiStrerror (AddrInfoException e) =
+gaiStrerror :: AddressInfoException -> String
+gaiStrerror (AddressInfoException e) =
   unsafePerformIO $ do
     msgPtr <- c_gai_strerror e
     peekCString msgPtr
 
--- | > AddrInfoException "Temporary failure in name resolution"
-eaiAGAIN    :: AddrInfoException
-eaiAGAIN     = AddrInfoException (#const EAI_AGAIN)
+-- | > AddressInfoException "Temporary failure in name resolution"
+eaiAGAIN    :: AddressInfoException
+eaiAGAIN     = AddressInfoException (#const EAI_AGAIN)
 
--- | > AddrInfoException "Bad value for ai_flags"
-eaiBADFLAGS :: AddrInfoException
-eaiBADFLAGS  = AddrInfoException (#const EAI_BADFLAGS)
+-- | > AddressInfoException "Bad value for ai_flags"
+eaiBADFLAGS :: AddressInfoException
+eaiBADFLAGS  = AddressInfoException (#const EAI_BADFLAGS)
 
--- | > AddrInfoException "Non-recoverable failure in name resolution"
-eaiFAIL     :: AddrInfoException
-eaiFAIL      = AddrInfoException (#const EAI_FAIL)
+-- | > AddressInfoException "Non-recoverable failure in name resolution"
+eaiFAIL     :: AddressInfoException
+eaiFAIL      = AddressInfoException (#const EAI_FAIL)
 
--- | > AddrInfoException "ai_family not supported"
-eaiFAMILY   :: AddrInfoException
-eaiFAMILY    = AddrInfoException (#const EAI_FAMILY)
+-- | > AddressInfoException "ai_family not supported"
+eaiFAMILY   :: AddressInfoException
+eaiFAMILY    = AddressInfoException (#const EAI_FAMILY)
 
--- | > AddrInfoException "Memory allocation failure"
-eaiMEMORY   :: AddrInfoException
-eaiMEMORY    = AddrInfoException (#const EAI_MEMORY)
+-- | > AddressInfoException "Memory allocation failure"
+eaiMEMORY   :: AddressInfoException
+eaiMEMORY    = AddressInfoException (#const EAI_MEMORY)
 
--- | > AddrInfoException "No such host is known"
-eaiNONAME   :: AddrInfoException
-eaiNONAME    = AddrInfoException (#const EAI_NONAME)
+-- | > AddressInfoException "No such host is known"
+eaiNONAME   :: AddressInfoException
+eaiNONAME    = AddressInfoException (#const EAI_NONAME)
 
--- | > AddrInfoException "Servname not supported for ai_socktype"
-eaiSERVICE  :: AddrInfoException
-eaiSERVICE   = AddrInfoException (#const EAI_SERVICE)
+-- | > AddressInfoException "Servname not supported for ai_socktype"
+eaiSERVICE  :: AddressInfoException
+eaiSERVICE   = AddressInfoException (#const EAI_SERVICE)
 
--- | > AddrInfoException "ai_socktype not supported"
-eaiSOCKTYPE :: AddrInfoException
-eaiSOCKTYPE  = AddrInfoException (#const EAI_SOCKTYPE)
+-- | > AddressInfoException "ai_socktype not supported"
+eaiSOCKTYPE :: AddressInfoException
+eaiSOCKTYPE  = AddressInfoException (#const EAI_SOCKTYPE)
 
--- | > AddrInfoException "System error"
-eaiSYSTEM   :: AddrInfoException
-eaiSYSTEM    = AddrInfoException (#const EAI_SYSTEM)
+-- | > AddressInfoException "System error"
+eaiSYSTEM   :: AddressInfoException
+eaiSYSTEM    = AddressInfoException (#const EAI_SYSTEM)
 
 
 -- | Use the `Data.Monoid.Monoid` instance to combine several flags:
 --
 --   > mconcat [aiADDRCONFIG, aiV4MAPPED]
-newtype AddrInfoFlags
-      = AddrInfoFlags CInt
+newtype AddressInfoFlags
+      = AddressInfoFlags CInt
       deriving (Eq, Show, Bits)
 
-instance Monoid AddrInfoFlags where
+instance Monoid AddressInfoFlags where
   mempty
-    = AddrInfoFlags 0
-  mappend (AddrInfoFlags a) (AddrInfoFlags b)
-    = AddrInfoFlags (a .|. b)
+    = AddressInfoFlags 0
+  mappend (AddressInfoFlags a) (AddressInfoFlags b)
+    = AddressInfoFlags (a .|. b)
 
-aiADDRCONFIG  :: AddrInfoFlags
-aiADDRCONFIG   = AddrInfoFlags (#const AI_ADDRCONFIG)
+aiADDRCONFIG  :: AddressInfoFlags
+aiADDRCONFIG   = AddressInfoFlags (#const AI_ADDRCONFIG)
 
 -- | Return both IPv4 (as mapped `SockAddrIn6`) and IPv6 addresses when
 -- `aiV4MAPPED` is set independent of whether IPv6 addresses exist for this
 --  name.
-aiALL         :: AddrInfoFlags
-aiALL          = AddrInfoFlags (#const AI_ALL)
+aiALL         :: AddressInfoFlags
+aiALL          = AddressInfoFlags (#const AI_ALL)
 
-aiCANONNAME   :: AddrInfoFlags
-aiCANONNAME    = AddrInfoFlags (#const AI_CANONNAME)
+aiCANONNAME   :: AddressInfoFlags
+aiCANONNAME    = AddressInfoFlags (#const AI_CANONNAME)
 
-aiNUMERICHOST :: AddrInfoFlags
-aiNUMERICHOST  = AddrInfoFlags (#const AI_NUMERICHOST)
+aiNUMERICHOST :: AddressInfoFlags
+aiNUMERICHOST  = AddressInfoFlags (#const AI_NUMERICHOST)
 
-aiNUMERICSERV :: AddrInfoFlags
-aiNUMERICSERV  = AddrInfoFlags (#const AI_NUMERICSERV)
+aiNUMERICSERV :: AddressInfoFlags
+aiNUMERICSERV  = AddressInfoFlags (#const AI_NUMERICSERV)
 
-aiPASSIVE     :: AddrInfoFlags
-aiPASSIVE      = AddrInfoFlags (#const AI_PASSIVE)
+aiPASSIVE     :: AddressInfoFlags
+aiPASSIVE      = AddressInfoFlags (#const AI_PASSIVE)
 
 -- | Return mapped IPv4 addresses if no IPv6 addresses could be found
 --   or if `aiALL` flag is set.
-aiV4MAPPED    :: AddrInfoFlags
-aiV4MAPPED     = AddrInfoFlags (#const AI_V4MAPPED)
+aiV4MAPPED    :: AddressInfoFlags
+aiV4MAPPED     = AddressInfoFlags (#const AI_V4MAPPED)
 
 -- | Use the `Data.Monoid.Monoid` instance to combine several flags:
 --
@@ -204,10 +204,10 @@ niNUMERICHOST   = NameInfoFlags (#const NI_NUMERICHOST)
 niNUMERICSERV  :: NameInfoFlags
 niNUMERICSERV   = NameInfoFlags (#const NI_NUMERICSERV)
 
-class (Family f) => GetAddrInfo f where
+class (Family f) => GetAddressInfo f where
   -- | Maps names to addresses (i.e. by DNS lookup).
 --
---   The operation throws `AddrInfoException`s.
+--   The operation throws `AddressInfoException`s.
 --
 --   Contrary to the underlying @getaddrinfo@ operation this wrapper is
 --   typesafe and thus only returns records that match the address, type
@@ -218,22 +218,22 @@ class (Family f) => GetAddrInfo f where
 --   queries. If you want to connect to both IPv4 and IPV6 addresses use
 --   `aiV4MAPPED` and use IPv6-sockets.
 --
---   > > getAddrInfo (Just "www.haskell.org") (Just "80") aiV4MAPPED :: IO [AddrInfo INET6 STREAM TCP]
---   > [AddrInfo {addrInfoFlags = AddrInfoFlags 8, addrAddress = [2400:cb00:2048:0001:0000:0000:6ca2:cc3c]:80, addrCanonName = Nothing}]
---   > > getAddrInfo (Just "darcs.haskell.org") Nothing aiV4MAPPED :: IO [AddrInfo INET6 STREAM TCP]
---   > [AddrInfo {addrInfoFlags = AddrInfoFlags 8, addrAddress = [0000:0000:0000:0000:0000:ffff:17fd:e1ad]:0, addrCanonName = Nothing}]
---   > > getAddrInfo (Just "darcs.haskell.org") Nothing mempty :: IO [AddrInfo INET6 STREAM TCP]
---   > *** Exception: AddrInfoException "Name or service not known"
-  getAddrInfo :: (Type t, Protocol p) => Maybe BS.ByteString -> Maybe BS.ByteString -> AddrInfoFlags -> IO [AddrInfo f t p]
+--   > > getAddressInfo (Just "www.haskell.org") (Just "80") aiV4MAPPED :: IO [AddressInfo INET6 STREAM TCP]
+--   > [AddressInfo {addrInfoFlags = AddressInfoFlags 8, addrAddress = [2400:cb00:2048:0001:0000:0000:6ca2:cc3c]:80, addrCanonName = Nothing}]
+--   > > getAddressInfo (Just "darcs.haskell.org") Nothing aiV4MAPPED :: IO [AddressInfo INET6 STREAM TCP]
+--   > [AddressInfo {addrInfoFlags = AddressInfoFlags 8, addrAddress = [0000:0000:0000:0000:0000:ffff:17fd:e1ad]:0, addrCanonName = Nothing}]
+--   > > getAddressInfo (Just "darcs.haskell.org") Nothing mempty :: IO [AddressInfo INET6 STREAM TCP]
+--   > *** Exception: AddressInfoException "Name or service not known"
+  getAddressInfo :: (Type t, Protocol p) => Maybe BS.ByteString -> Maybe BS.ByteString -> AddressInfoFlags -> IO [AddressInfo f t p]
 
-instance GetAddrInfo INET where
-  getAddrInfo = getAddrInfo'
+instance GetAddressInfo INET where
+  getAddressInfo = getAddressInfo'
 
-instance GetAddrInfo INET6 where
-  getAddrInfo = getAddrInfo'
+instance GetAddressInfo INET6 where
+  getAddressInfo = getAddressInfo'
 
-getAddrInfo' :: forall f t p. (Family f, Type t, Protocol p) => Maybe BS.ByteString -> Maybe BS.ByteString -> AddrInfoFlags -> IO [AddrInfo f t p]
-getAddrInfo' mnode mservice (AddrInfoFlags flags) = do
+getAddressInfo' :: forall f t p. (Family f, Type t, Protocol p) => Maybe BS.ByteString -> Maybe BS.ByteString -> AddressInfoFlags -> IO [AddressInfo f t p]
+getAddressInfo' mnode mservice (AddressInfoFlags flags) = do
   alloca $ \resultPtrPtr-> do
     poke resultPtrPtr nullPtr
     allocaBytes (#size struct addrinfo) $ \addrInfoPtr-> do
@@ -252,25 +252,25 @@ getAddrInfo' mnode mservice (AddrInfoFlags flags) = do
             )
             (\e-> if e == 0 then do
                     resultPtr <- peek resultPtrPtr
-                    peekAddrInfos resultPtr
+                    peekAddressInfos resultPtr
                   else do
-                    throwIO (AddrInfoException e)
+                    throwIO (AddressInfoException e)
             )
   where
-    ai_flags     = (#ptr struct addrinfo, ai_flags)     :: Ptr (AddrInfo a t p) -> Ptr CInt
-    ai_family    = (#ptr struct addrinfo, ai_family)    :: Ptr (AddrInfo a t p) -> Ptr CInt
-    ai_socktype  = (#ptr struct addrinfo, ai_socktype)  :: Ptr (AddrInfo a t p) -> Ptr CInt
-    ai_protocol  = (#ptr struct addrinfo, ai_protocol)  :: Ptr (AddrInfo a t p) -> Ptr CInt
-    ai_addr      = (#ptr struct addrinfo, ai_addr)      :: Ptr (AddrInfo a t p) -> Ptr (Ptr a)
-    ai_canonname = (#ptr struct addrinfo, ai_canonname) :: Ptr (AddrInfo a t p) -> Ptr CString
-    ai_next      = (#ptr struct addrinfo, ai_next)      :: Ptr (AddrInfo a t p) -> Ptr (Ptr (AddrInfo a t p))
+    ai_flags     = (#ptr struct addrinfo, ai_flags)     :: Ptr (AddressInfo a t p) -> Ptr CInt
+    ai_family    = (#ptr struct addrinfo, ai_family)    :: Ptr (AddressInfo a t p) -> Ptr CInt
+    ai_socktype  = (#ptr struct addrinfo, ai_socktype)  :: Ptr (AddressInfo a t p) -> Ptr CInt
+    ai_protocol  = (#ptr struct addrinfo, ai_protocol)  :: Ptr (AddressInfo a t p) -> Ptr CInt
+    ai_addr      = (#ptr struct addrinfo, ai_addr)      :: Ptr (AddressInfo a t p) -> Ptr (Ptr a)
+    ai_canonname = (#ptr struct addrinfo, ai_canonname) :: Ptr (AddressInfo a t p) -> Ptr CString
+    ai_next      = (#ptr struct addrinfo, ai_next)      :: Ptr (AddressInfo a t p) -> Ptr (Ptr (AddressInfo a t p))
     fnode = case mnode of
       Just node    -> BS.useAsCString node
       Nothing      -> \f-> f nullPtr
     fservice = case mservice of
       Just service -> BS.useAsCString service
       Nothing      -> \f-> f nullPtr
-    peekAddrInfos ptr = 
+    peekAddressInfos ptr = 
       if ptr == nullPtr
         then return []
         else do
@@ -280,12 +280,12 @@ getAddrInfo' mnode mservice (AddrInfoFlags flags) = do
                       if cnPtr == nullPtr
                         then return Nothing
                         else BS.packCString cnPtr >>= return . Just
-          as    <- peek (ai_next ptr) >>= peekAddrInfos
-          return ((AddrInfo (AddrInfoFlags flag) addr cname):as)
+          as    <- peek (ai_next ptr) >>= peekAddressInfos
+          return ((AddressInfo (AddressInfoFlags flag) addr cname):as)
 
 -- | Maps addresss to readable host- and service names.
 --
---   The operation throws `AddrInfoException`s.
+--   The operation throws `AddressInfoException`s.
 --
 --   > > getNameInfo (SockAddrIn 80 inaddrLOOPBACK) mempty
 --   > ("localhost.localdomain","http")
@@ -313,4 +313,4 @@ getNameInfo' addr (NameInfoFlags flags) =
           serv <- BS.packCString servPtr
           return (host,serv)
         else do
-          throwIO (AddrInfoException e)
+          throwIO (AddressInfoException e)

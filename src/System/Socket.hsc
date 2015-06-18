@@ -55,9 +55,9 @@
 -----------------------------------------------------------------------------
 module System.Socket (
   -- * Name Resolution
-    AddrInfo (..)
-  -- ** getAddrInfo
-  , GetAddrInfo (..)
+    AddressInfo (..)
+  -- ** getAddressInfo
+  , GetAddressInfo (..)
   -- ** getNameInfo
   , GetNameInfo (..)
   -- * Operations
@@ -113,8 +113,8 @@ module System.Socket (
   -- * Exceptions
   -- ** SocketException
   , module System.Socket.Internal.Exception
-  -- ** AddrInfoException
-  , AddrInfoException (..)
+  -- ** AddressInfoException
+  , AddressInfoException (..)
   , gaiStrerror
   , eaiAGAIN
   , eaiBADFLAGS
@@ -139,8 +139,8 @@ module System.Socket (
   , msgNOSIGNAL
   , msgOOB
   , msgWAITALL
-  -- ** AddrInfoFlags
-  , AddrInfoFlags (..)
+  -- ** AddressInfoFlags
+  , AddressInfoFlags (..)
   , aiADDRCONFIG
   , aiALL
   , aiCANONNAME
@@ -183,7 +183,7 @@ import System.Socket.Unsafe
 import System.Socket.Internal.Socket
 import System.Socket.Internal.Exception
 import System.Socket.Internal.Msg
-import System.Socket.Internal.AddrInfo
+import System.Socket.Internal.AddressInfo
 import System.Socket.Internal.Platform
 
 import System.Socket.Family
@@ -585,7 +585,7 @@ recvAll sock maxLen flags = collect 0 mempty
 
 -- | Looks up a name and executes an supplied action with a connected socket.
 --
--- - The addresses returned by `getAddrInfo` are tried in sequence until a
+-- - The addresses returned by `getAddressInfo` are tried in sequence until a
 --   connection has been established or all have been tried.
 -- - If `connect` fails on all addresses the exception that occured on the
 --   last connection attempt is thrown.
@@ -594,24 +594,24 @@ recvAll sock maxLen flags = collect 0 mempty
 -- - If the address family is `INET6`, `IPV6_V6ONLY` is set to `False` which
 --   means the other end may be both IPv4 or IPv6.
 -- - All sockets created by this operation get closed automatically.
--- - This operation throws `AddrInfoException`s, `SocketException`s and all
+-- - This operation throws `AddressInfoException`s, `SocketException`s and all
 --   exceptions that that the supplied action might throw.
 --
 -- > withConnectedSocket "wwww.haskell.org" "80" (aiALL `mappend` aiV4MAPPED) $ \sock-> do
 -- >   let _ = sock :: Socket INET6 STREAM TCP
 -- >   doSomethingWithSocket sock
 withConnectedSocket :: forall f t p a.
-                 ( GetAddrInfo f, Type t, Protocol p)
+                 ( GetAddressInfo f, Type t, Protocol p)
                 => BS.ByteString
                 -> BS.ByteString
-                -> AddrInfoFlags
+                -> AddressInfoFlags
                 -> (Socket f t p -> IO a)
                 -> IO a
 withConnectedSocket host serv flags action = do
-  addrs <- getAddrInfo (Just host) (Just serv) flags :: IO [AddrInfo f t p]
+  addrs <- getAddressInfo (Just host) (Just serv) flags :: IO [AddressInfo f t p]
   tryAddrs addrs
   where
-    tryAddrs :: [AddrInfo f t p] -> IO a
+    tryAddrs :: [AddressInfo f t p] -> IO a
     tryAddrs [] = do
       -- This should not happen.
       throwIO eaiNONAME

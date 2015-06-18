@@ -48,11 +48,11 @@ data SockAddrIn
 --   exactly as found within an IP packet (big endian if you insist
 --   on interpreting it as a number).
 --
---   Another hint: Use `System.Socket.getAddrInfo` for parsing and suppress
+--   Another hint: Use `System.Socket.getAddressInfo` for parsing and suppress
 --   nameserver lookups:
 --
---   > > getAddrInfo (Just "127.0.0.1") Nothing aiNUMERICHOST :: IO [AddrInfo SockAddrIn STREAM TCP]
---   > [AddrInfo {addrInfoFlags = AddrInfoFlags 4, addrAddress = "127.0.0.1:0", addrCanonName = Nothing}]
+--   > > getAddressInfo (Just "127.0.0.1") Nothing aiNUMERICHOST :: IO [AddressInfo SockAddrIn STREAM TCP]
+--   > [AddressInfo {addrInfoFlags = AddressInfoFlags 4, addrAddress = "127.0.0.1:0", addrCanonName = Nothing}]
 newtype AddrIn
       = AddrIn BS.ByteString
       deriving (Eq)
