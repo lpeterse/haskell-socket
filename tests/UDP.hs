@@ -13,8 +13,8 @@ import System.Exit
 
 main :: IO ()
 main = do 
-  test "Inet"  (undefined :: Socket Inet  DGRAM  UDP)  localhost
-  test "Inet6" (undefined :: Socket Inet6 DGRAM  UDP)  localhost6
+  test "Inet"  (undefined :: Socket Inet  Datagram  UDP)  localhost
+  test "Inet6" (undefined :: Socket Inet6 Datagram  UDP)  localhost6
 
 -- Test stateless sockets (i.e. UDP).
 test :: (Family f, Type t, Protocol p) => String -> Socket f t p -> SocketAddress f -> IO ()

@@ -26,7 +26,7 @@ module System.Socket.Internal.AddressInfo (
   , aiV4MAPPED
   , NameInfoFlags (..)
   , niNAMEREQD
-  , niDGRAM
+  , niDatagram
   , niNOFQDN
   , niNUMERICHOST
   , niNUMERICSERV
@@ -189,8 +189,8 @@ niNAMEREQD     :: NameInfoFlags
 niNAMEREQD      = NameInfoFlags (#const NI_NAMEREQD)
 
 -- | Service is datagram based (UDP) rather than stream based (TCP).
-niDGRAM        :: NameInfoFlags
-niDGRAM         = NameInfoFlags (#const NI_DGRAM)
+niDatagram        :: NameInfoFlags
+niDatagram         = NameInfoFlags (#const NI_DGRAM)
 
 -- | Return only the hostname part of the fully qualified domain name for local hosts.
 niNOFQDN       :: NameInfoFlags
@@ -218,11 +218,11 @@ class (Family f) => GetAddressInfo f where
 --   queries. If you want to connect to both IPv4 and IPV6 addresses use
 --   `aiV4MAPPED` and use IPv6-sockets.
 --
---   > > getAddressInfo (Just "www.haskell.org") (Just "80") aiV4MAPPED :: IO [AddressInfo Inet6 STREAM TCP]
+--   > > getAddressInfo (Just "www.haskell.org") (Just "80") aiV4MAPPED :: IO [AddressInfo Inet6 Stream TCP]
 --   > [AddressInfo {addrInfoFlags = AddressInfoFlags 8, addrAddress = [2400:cb00:2048:0001:0000:0000:6ca2:cc3c]:80, addrCanonName = Nothing}]
---   > > getAddressInfo (Just "darcs.haskell.org") Nothing aiV4MAPPED :: IO [AddressInfo Inet6 STREAM TCP]
+--   > > getAddressInfo (Just "darcs.haskell.org") Nothing aiV4MAPPED :: IO [AddressInfo Inet6 Stream TCP]
 --   > [AddressInfo {addrInfoFlags = AddressInfoFlags 8, addrAddress = [0000:0000:0000:0000:0000:ffff:17fd:e1ad]:0, addrCanonName = Nothing}]
---   > > getAddressInfo (Just "darcs.haskell.org") Nothing mempty :: IO [AddressInfo Inet6 STREAM TCP]
+--   > > getAddressInfo (Just "darcs.haskell.org") Nothing mempty :: IO [AddressInfo Inet6 Stream TCP]
 --   > *** Exception: AddressInfoException "Name or service not known"
   getAddressInfo :: (Type t, Protocol p) => Maybe BS.ByteString -> Maybe BS.ByteString -> AddressInfoFlags -> IO [AddressInfo f t p]
 

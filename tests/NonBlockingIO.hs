@@ -26,7 +26,7 @@ main = do
 --   environment.
 t0001 :: IO ()
 t0001 = do
-  s <- socket                             `onException` e 0 :: IO (Socket Inet STREAM TCP)
+  s <- socket                             `onException` e 0 :: IO (Socket Inet Stream TCP)
   setSockOpt s (SO_REUSEADDR True)        `onException` e 1
   bind s (SocketAddressInet 8080 inaddrLOOPBACK) `onException` e 2
   listen s 5                              `onException` e 3

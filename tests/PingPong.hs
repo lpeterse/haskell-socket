@@ -17,8 +17,8 @@ main = do
 
 t0001 :: IO ()
 t0001 = do
-  server <- socket                        `onException` e 0 :: IO (Socket Inet STREAM TCP)
-  client <- socket                        `onException` e 1 :: IO (Socket Inet STREAM TCP)
+  server <- socket                        `onException` e 0 :: IO (Socket Inet Stream TCP)
+  client <- socket                        `onException` e 1 :: IO (Socket Inet Stream TCP)
   setSockOpt server (SO_REUSEADDR True)   `onException` e 2
   bind server addr                        `onException` e 3
   listen server 5                         `onException` e 4

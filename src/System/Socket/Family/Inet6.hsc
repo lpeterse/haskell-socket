@@ -58,7 +58,7 @@ newtype Inet6Port
 --   Another hint: Use `System.Socket.getAddressInfo` for parsing and suppress
 --   nameserver lookups:
 --
---   > > getAddressInfo (Just "::1") Nothing aiNUMERICHOST :: IO [AddressInfo SocketAddressInet6 STREAM TCP]
+--   > > getAddressInfo (Just "::1") Nothing aiNUMERICHOST :: IO [AddressInfo SocketAddressInet6 Stream TCP]
 --   > [AddressInfo {addrInfoFlags = AddressInfoFlags 4, addrAddress = [0000:0000:0000:0000:0000:0000:0000:0001]:0, addrCanonName = Nothing}]
 newtype Inet6Address
       = Inet6Address BS.ByteString

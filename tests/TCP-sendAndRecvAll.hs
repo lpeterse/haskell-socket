@@ -16,8 +16,8 @@ import System.Socket.Family.Inet
 main :: IO ()
 main =
   bracket
-      ( do  server <- socket `onException` print "E01" :: IO (Socket Inet STREAM TCP)
-            client <- socket `onException` print "E02" :: IO (Socket Inet STREAM TCP)
+      ( do  server <- socket `onException` print "E01" :: IO (Socket Inet Stream TCP)
+            client <- socket `onException` print "E02" :: IO (Socket Inet Stream TCP)
             return (server, client)
       )
       (\(server,client)-> do

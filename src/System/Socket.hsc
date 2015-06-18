@@ -24,7 +24,7 @@
 -- >
 -- > main :: IO ()
 -- > main = do
--- >   s <- socket :: IO (Socket Inet STREAM TCP)
+-- >   s <- socket :: IO (Socket Inet Stream TCP)
 -- >   setSockOpt s (SO_REUSEADDR True)
 -- >   bind s (SocketAddressInet 8080 inaddrLOOPBACK)
 -- >   listen s 5
@@ -48,7 +48,7 @@
 -- > main :: IO ()
 -- > main = do
 -- >   withConnectedSocket "www.haskell.org" "80" (aiALL `mappend` aiV4MAPPED) $ \sock-> do
--- >     let _ = sock :: Socket Inet6 STREAM TCP
+-- >     let _ = sock :: Socket Inet6 Stream TCP
 -- >     sendAll sock "GET / HTTP/1.0\r\nHost: www.haskell.org\r\n\r\n" mempty
 -- >     x <- receiveAll sock (1024*1024*1024) mempty
 -- >     B.putStr x
@@ -94,14 +94,14 @@ module System.Socket (
   , Inet6
   -- ** Types
   , Type (..)
-  -- *** DGRAM
-  , DGRAM
-  -- *** RAW
-  , RAW
-    -- *** SEQPACKET
-  , SEQPACKET
-  -- *** STREAM
-  , STREAM
+  -- *** Datagram
+  , Datagram
+  -- *** Raw
+  , Raw
+    -- *** SequentialPacket
+  , SequentialPacket
+  -- *** Stream
+  , Stream
   -- ** Protocols
   , Protocol  (..)
   -- *** UDP
@@ -149,7 +149,7 @@ module System.Socket (
   -- ** NameInfoFlags
   , NameInfoFlags (..)
   , niNAMEREQD
-  , niDGRAM
+  , niDatagram
   , niNOFQDN
   , niNUMERICHOST
   , niNUMERICSERV
@@ -189,10 +189,10 @@ import System.Socket.Family.Inet
 import System.Socket.Family.Inet6
 
 import System.Socket.Type
-import System.Socket.Type.DGRAM
-import System.Socket.Type.RAW
-import System.Socket.Type.SEQPACKET
-import System.Socket.Type.STREAM
+import System.Socket.Type.Datagram
+import System.Socket.Type.Raw
+import System.Socket.Type.SequentialPacket
+import System.Socket.Type.Stream
 
 import System.Socket.Protocol
 import System.Socket.Protocol.UDP
@@ -208,9 +208,9 @@ import System.Socket.Protocol.TCP
 --   associated type families). Examples:
 --
 --   > -- create a IPv4-UDP-datagram socket
---   > sock <- socket :: IO (Socket Inet DGRAM UDP)
+--   > sock <- socket :: IO (Socket Inet Datagram UDP)
 --   > -- create a IPv6-TCP-streaming socket
---   > sock6 <- socket :: IO (Socket Inet6 STREAM TCP)
+--   > sock6 <- socket :: IO (Socket Inet6 Stream TCP)
 --
 --     - This operation sets up a finalizer that automatically closes the socket
 --       when the garbage collection decides to collect it. This is just a
@@ -221,7 +221,7 @@ import System.Socket.Protocol.TCP
 --       socket descriptor on exception or regular termination of your
 --       computation:
 --
---       > result <- bracket (socket :: IO (Socket Inet6 STREAM TCP)) close $ \sock-> do
+--       > result <- bracket (socket :: IO (Socket Inet6 Stream TCP)) close $ \sock-> do
 --       >   somethingWith sock -- your computation here
 --       >   return somethingelse
 --
@@ -434,8 +434,8 @@ accept s@(Socket mfd) = accept'
 --
 --   - Calling `send` on a `close`d socket throws @EBADF@ even if the former
 --     file descriptor has been reassigned.
---   - The operation returns the number of bytes sent. On @DGRAM@ and
---     @SEQPACKET@ sockets certain assurances on atomicity exist and @EAGAIN@ or
+--   - The operation returns the number of bytes sent. On @Datagram@ and
+--     @SequentialPacket@ sockets certain assurances on atomicity exist and @EAGAIN@ or
 --     @EWOULDBLOCK@ are returned until the whole message would fit
 --     into the send buffer. 
 --   - The flag @MSG_NOSIGNAL@ is set to supress signals which are pointless.
@@ -544,7 +544,7 @@ close (Socket mfd) = do
 
 -- | Like `send`, but operates on lazy `Data.ByteString.Lazy.ByteString`s and 
 --   continues until all data has been sent or an exception occured.
-sendAll ::Socket f STREAM p -> LBS.ByteString -> MsgFlags -> IO ()
+sendAll ::Socket f Stream p -> LBS.ByteString -> MsgFlags -> IO ()
 sendAll s lbs flags =
   LBS.foldlChunks
     (\x bs-> x >> sendAll' bs
@@ -565,7 +565,7 @@ sendAll s lbs flags =
 --     If the returned `Data.ByteString.Lazy.ByteString`s length is lower or
 --     eqal than the limit, the data has not been truncated and the
 --     transmission is complete.
-receiveAll :: Socket f STREAM p -> Int64 -> MsgFlags -> IO LBS.ByteString
+receiveAll :: Socket f Stream p -> Int64 -> MsgFlags -> IO LBS.ByteString
 receiveAll sock maxLen flags = collect 0 mempty
   where
     collect len accum
@@ -596,7 +596,7 @@ receiveAll sock maxLen flags = collect 0 mempty
 --   exceptions that that the supplied action might throw.
 --
 -- > withConnectedSocket "wwww.haskell.org" "80" (aiALL `mappend` aiV4MAPPED) $ \sock-> do
--- >   let _ = sock :: Socket Inet6 STREAM TCP
+-- >   let _ = sock :: Socket Inet6 Stream TCP
 -- >   doSomethingWithSocket sock
 withConnectedSocket :: forall f t p a.
                  ( GetAddressInfo f, Type t, Protocol p)

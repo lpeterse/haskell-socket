@@ -21,8 +21,8 @@ t0001 :: IO ()
 t0001 = 
   bracket
     ( do
-        server <- socket                              `onException` p 0 :: IO (Socket Inet6 DGRAM UDP)
-        client <- socket                              `onException` p 1 :: IO (Socket Inet  DGRAM UDP)
+        server <- socket                              `onException` p 0 :: IO (Socket Inet6 Datagram UDP)
+        client <- socket                              `onException` p 1 :: IO (Socket Inet  Datagram UDP)
         return (server, client)
     )
     (\(server,client)-> do
@@ -51,8 +51,8 @@ t0002 :: IO ()
 t0002 = 
   bracket
     ( do
-        server <- socket                              `onException` p 0 :: IO (Socket Inet6 DGRAM UDP)
-        client <- socket                              `onException` p 1 :: IO (Socket Inet  DGRAM UDP)
+        server <- socket                              `onException` p 0 :: IO (Socket Inet6 Datagram UDP)
+        client <- socket                              `onException` p 1 :: IO (Socket Inet  Datagram UDP)
         return (server, client)
     )
     (\(server,client)-> do
