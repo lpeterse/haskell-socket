@@ -65,12 +65,12 @@ import System.Socket.Internal.Platform
 data AddressInfo f t p
    = AddressInfo
      { flags         :: AddressInfoFlags
-     , address       :: SockAddr f
+     , address       :: SocketAddress f
      , canonicalName :: Maybe BS.ByteString
      }
 
-deriving instance (Eq   (SockAddr f)) => Eq   (AddressInfo f t p)
-deriving instance (Show (SockAddr f)) => Show (AddressInfo f t p)
+deriving instance (Eq   (SocketAddress f)) => Eq   (AddressInfo f t p)
+deriving instance (Show (SocketAddress f)) => Show (AddressInfo f t p)
 
 -------------------------------------------------------------------------------
 -- AddressInfoException
@@ -148,7 +148,7 @@ instance Monoid AddressInfoFlags where
 aiADDRCONFIG  :: AddressInfoFlags
 aiADDRCONFIG   = AddressInfoFlags (#const AI_ADDRCONFIG)
 
--- | Return both IPv4 (as mapped `SockAddrIn6`) and IPv6 addresses when
+-- | Return both IPv4 (as mapped `SocketAddressIn6`) and IPv6 addresses when
 -- `aiV4MAPPED` is set independent of whether IPv6 addresses exist for this
 --  name.
 aiALL         :: AddressInfoFlags
@@ -287,10 +287,10 @@ getAddressInfo' mnode mservice (AddressInfoFlags flags) = do
 --
 --   The operation throws `AddressInfoException`s.
 --
---   > > getNameInfo (SockAddrIn 80 inaddrLOOPBACK) mempty
+--   > > getNameInfo (SocketAddressIn 80 inaddrLOOPBACK) mempty
 --   > ("localhost.localdomain","http")
 class (Family f) => GetNameInfo f where
-  getNameInfo :: SockAddr f -> NameInfoFlags -> IO (BS.ByteString, BS.ByteString)
+  getNameInfo :: SocketAddress f -> NameInfoFlags -> IO (BS.ByteString, BS.ByteString)
 
 instance GetNameInfo INET where
   getNameInfo = getNameInfo'

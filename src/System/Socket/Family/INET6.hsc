@@ -3,7 +3,7 @@ module System.Socket.Family.INET6
   ( INET6
     -- * Addresses
   , AddrIn6 ()
-  , SockAddrIn6 (..)
+  , SocketAddressIn6 (..)
     -- ** Special Address Constants
   , in6addrANY
   , in6addrLOOPBACK
@@ -31,11 +31,11 @@ import System.Socket.Internal.Platform
 data INET6
 
 instance Family INET6 where
-  type SockAddr INET6 = SockAddrIn6
+  type SocketAddress INET6 = SocketAddressIn6
   familyNumber _ = (#const AF_INET6)
 
-data SockAddrIn6
-   = SockAddrIn6
+data SocketAddressIn6
+   = SocketAddressIn6
      { sin6Port      :: Word16
      , sin6Flowinfo  :: Word32
      , sin6Addr      :: AddrIn6
@@ -51,7 +51,7 @@ data SockAddrIn6
 --   Another hint: Use `System.Socket.getAddressInfo` for parsing and suppress
 --   nameserver lookups:
 --
---   > > getAddressInfo (Just "::1") Nothing aiNUMERICHOST :: IO [AddressInfo SockAddrIn6 STREAM TCP]
+--   > > getAddressInfo (Just "::1") Nothing aiNUMERICHOST :: IO [AddressInfo SocketAddressIn6 STREAM TCP]
 --   > [AddressInfo {addrInfoFlags = AddressInfoFlags 4, addrAddress = [0000:0000:0000:0000:0000:0000:0000:0001]:0, addrCanonName = Nothing}]
 newtype AddrIn6
       = AddrIn6 BS.ByteString
@@ -65,8 +65,8 @@ in6addrANY       = AddrIn6 (BS.pack [0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0])
 in6addrLOOPBACK :: AddrIn6
 in6addrLOOPBACK  = AddrIn6 (BS.pack [0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,1])
 
-instance Show SockAddrIn6 where
-  show (SockAddrIn6 p _ addr _) =
+instance Show SocketAddressIn6 where
+  show (SocketAddressIn6 p _ addr _) =
     "[" ++ show addr ++ "]:" ++ show p
 
 instance Show AddrIn6 where
@@ -106,7 +106,7 @@ instance Storable AddrIn6 where
     BS.unsafeUseAsCString a $ \aPtr-> do
       copyBytes ptr (castPtr aPtr) (min 16 $ BS.length a)
 
-instance Storable SockAddrIn6 where
+instance Storable SocketAddressIn6 where
   sizeOf    _ = (#size struct sockaddr_in6)
   alignment _ = (#alignment struct sockaddr_in6)
   peek ptr    = do
@@ -115,13 +115,13 @@ instance Storable SockAddrIn6 where
     pl  <- peekByteOff       (sin6_port     ptr)  1  :: IO Word8
     a   <- peek              (sin6_addr     ptr)     :: IO AddrIn6
     s   <- peek              (sin6_scope_id ptr)     :: IO Word32
-    return (SockAddrIn6 (fromIntegral ph * 256 + fromIntegral pl) f a s)
+    return (SocketAddressIn6 (fromIntegral ph * 256 + fromIntegral pl) f a s)
     where
       sin6_flowinfo = (#ptr struct sockaddr_in6, sin6_flowinfo)
       sin6_scope_id = (#ptr struct sockaddr_in6, sin6_scope_id)
       sin6_port     = (#ptr struct sockaddr_in6, sin6_port)
       sin6_addr     = (#ptr struct in6_addr, s6_addr) . (#ptr struct sockaddr_in6, sin6_addr)
-  poke ptr (SockAddrIn6 p f a s) = do
+  poke ptr (SocketAddressIn6 p f a s) = do
     c_memset ptr 0 (#const sizeof(struct sockaddr_in6))
     poke        (sin6_family   ptr) ((#const AF_INET6) :: Word16)
     poke        (sin6_flowinfo ptr) f

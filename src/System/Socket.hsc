@@ -26,7 +26,7 @@
 -- > main = do
 -- >   s <- socket :: IO (Socket INET STREAM TCP)
 -- >   setSockOpt s (SO_REUSEADDR True)
--- >   bind s (SockAddrIn 8080 inaddrLOOPBACK)
+-- >   bind s (SocketAddressIn 8080 inaddrLOOPBACK)
 -- >   listen s 5
 -- >   forever $ do
 -- >     (peer,addr) <- accept s
@@ -90,10 +90,10 @@ module System.Socket (
   , Family (..)
   -- *** INET
   , INET
-  , SockAddrIn (..)
+  , SocketAddressIn (..)
   -- *** INET6
   , INET6
-  , SockAddrIn6 (..)
+  , SocketAddressIn6 (..)
   -- ** Types
   , Type (..)
   -- *** DGRAM
@@ -273,7 +273,7 @@ socket = socket'
 --     failed. It should be closed then.
 --   - Also see [these considerations](http://cr.yp.to/docs/connect.html) on
 --     the problems with connecting non-blocking sockets.
-connect :: Family f => Socket f t p -> SockAddr f -> IO ()
+connect :: Family f => Socket f t p -> SocketAddress f -> IO ()
 connect (Socket mfd) addr = do
   alloca $ \addrPtr-> do
     poke addrPtr addr
@@ -347,7 +347,7 @@ connect (Socket mfd) addr = do
 --     [argued here](http://stackoverflow.com/a/14485305).
 --   - This operation throws `SocketException`s. Consult your @man@ page for
 --     details and specific @errno@s.
-bind :: (Family f) => Socket f t p -> SockAddr f -> IO ()
+bind :: (Family f) => Socket f t p -> SocketAddress f -> IO ()
 bind (Socket mfd) addr = do
   alloca $ \addrPtr-> do
     poke addrPtr addr
@@ -390,15 +390,15 @@ listen (Socket ms) backlog = do
 --     details and specific @errno@s.
 --   - This operation catches @EAGAIN@, @EWOULDBLOCK@ and @EINTR@ internally
 --     and retries automatically.
-accept :: (Family f) => Socket f t p -> IO (Socket f t p, SockAddr f)
+accept :: (Family f) => Socket f t p -> IO (Socket f t p, SocketAddress f)
 accept s@(Socket mfd) = accept'
   where
-    accept' :: forall f t p. (Family f) => IO (Socket f t p, SockAddr f)
+    accept' :: forall f t p. (Family f) => IO (Socket f t p, SocketAddress f)
     accept' = do
       -- Allocate local (!) memory for the address.
       alloca $ \addrPtr-> do
         alloca $ \addrPtrLen-> do
-          poke addrPtrLen (fromIntegral $ sizeOf (undefined :: SockAddr f))
+          poke addrPtrLen (fromIntegral $ sizeOf (undefined :: SocketAddress f))
           ( fix $ \again iteration-> do
               -- We mask asynchronous exceptions during this critical section.
               ews <- withMVarMasked mfd $ \fd-> do
@@ -420,7 +420,7 @@ accept s@(Socket mfd) = accept'
                       c_get_last_socket_error >>= throwIO
                     else do
                       -- This peek operation might be a little expensive, but I don't see an alternative.
-                      addr <- peek addrPtr :: IO (SockAddr f)
+                      addr <- peek addrPtr :: IO (SocketAddress f)
                       -- newMVar is guaranteed to be not interruptible.
                       mft <- newMVar ft
                       -- Register a finalizer on the new socket.
@@ -453,7 +453,7 @@ send s bs flags = do
   return (fromIntegral bytesSent)
 
 -- | Like `send`, but allows for specifying a destination address.
-sendTo ::(Family f) => Socket f t p -> BS.ByteString -> MsgFlags -> SockAddr f -> IO Int
+sendTo ::(Family f) => Socket f t p -> BS.ByteString -> MsgFlags -> SocketAddress f -> IO Int
 sendTo s bs flags addr = do
   bytesSent <- alloca $ \addrPtr-> do
     poke addrPtr addr
@@ -482,14 +482,14 @@ receive s bufSize flags =
     )
 
 -- | Like `receive`, but additionally yields the peer address.
-receiveFrom :: (Family f) => Socket f t p -> Int -> MsgFlags -> IO (BS.ByteString, SockAddr f)
+receiveFrom :: (Family f) => Socket f t p -> Int -> MsgFlags -> IO (BS.ByteString, SocketAddress f)
 receiveFrom = receiveFrom'
   where
-    receiveFrom' :: forall f t p. (Family f) => Socket f t p -> Int -> MsgFlags -> IO (BS.ByteString, SockAddr f)
+    receiveFrom' :: forall f t p. (Family f) => Socket f t p -> Int -> MsgFlags -> IO (BS.ByteString, SocketAddress f)
     receiveFrom' s bufSize flags = do
       alloca $ \addrPtr-> do
         alloca $ \addrSizePtr-> do
-          poke addrSizePtr (fromIntegral $ sizeOf (undefined :: SockAddr f))
+          poke addrSizePtr (fromIntegral $ sizeOf (undefined :: SocketAddress f))
           bracketOnError
             ( mallocBytes bufSize )
             (\bufPtr-> free bufPtr )

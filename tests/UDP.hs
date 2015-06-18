@@ -17,7 +17,7 @@ main = do
   test "INET6" (undefined :: Socket INET6 DGRAM  UDP)  localhost6
 
 -- Test stateless sockets (i.e. UDP).
-test :: (Family f, Type t, Protocol p) => String -> Socket f t p -> SockAddr f -> IO ()
+test :: (Family f, Type t, Protocol p) => String -> Socket f t p -> SocketAddress f -> IO ()
 test inet dummy addr = do 
   server <- socket `asTypeOf` return dummy                   `onException` p 1
   client <- socket `asTypeOf` return dummy                   `onException` p 2
@@ -47,16 +47,16 @@ test inet dummy addr = do
     e i        = error (inet ++ ": " ++ show i)
     p i        = print (inet ++ ": " ++ show i)
 
-localhost :: SockAddrIn
+localhost :: SocketAddressIn
 localhost =
-  SockAddrIn
+  SocketAddressIn
   { sinPort      = 7777
   , sinAddr      = inaddrLOOPBACK
   }
 
-localhost6 :: SockAddrIn6
+localhost6 :: SocketAddressIn6
 localhost6 =
-  SockAddrIn6
+  SocketAddressIn6
   { sin6Port     = 7777
   , sin6Addr     = in6addrLOOPBACK
   , sin6Flowinfo = 0

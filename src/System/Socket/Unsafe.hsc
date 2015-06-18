@@ -43,7 +43,7 @@ unsafeSend :: Socket a t p -> Ptr a -> CSize -> MsgFlags -> IO CInt
 unsafeSend s bufPtr bufSize flags = do
   tryWaitAndRetry s socketWaitWrite' (\fd-> c_send fd bufPtr bufSize (flags `mappend` msgNOSIGNAL) )
 
-unsafeSendTo :: Socket f t p -> Ptr b -> CSize -> MsgFlags -> Ptr (SockAddr f) -> CInt -> IO CInt
+unsafeSendTo :: Socket f t p -> Ptr b -> CSize -> MsgFlags -> Ptr (SocketAddress f) -> CInt -> IO CInt
 unsafeSendTo s bufPtr bufSize flags addrPtr addrSize = do
   tryWaitAndRetry s socketWaitWrite' (\fd-> c_sendto fd bufPtr (fromIntegral bufSize) (flags `mappend` msgNOSIGNAL) addrPtr addrSize)
 
@@ -51,7 +51,7 @@ unsafeReceive :: Socket a t p -> Ptr b -> CSize -> MsgFlags -> IO CInt
 unsafeReceive s bufPtr bufSize flags =
   tryWaitAndRetry s socketWaitRead' (\fd-> c_recv fd bufPtr bufSize flags)
 
-unsafeReceiveFrom :: Socket f t p -> Ptr b -> CSize -> MsgFlags -> Ptr (SockAddr f) -> Ptr CInt -> IO CInt
+unsafeReceiveFrom :: Socket f t p -> Ptr b -> CSize -> MsgFlags -> Ptr (SocketAddress f) -> Ptr CInt -> IO CInt
 unsafeReceiveFrom s bufPtr bufSize flags addrPtr addrSizePtr = do
   tryWaitAndRetry s socketWaitRead' (\fd-> c_recvfrom fd bufPtr bufSize flags addrPtr addrSizePtr)
 

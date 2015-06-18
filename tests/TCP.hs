@@ -17,7 +17,7 @@ main = do
   test "test0001.02" $ test0001 (undefined :: Socket INET6 STREAM TCP)  localhost6
 
 -- Test send and receive on connection oriented sockets (i.e. TCP).
-test0001 :: (Family f, Type t, Protocol p) => Socket f t p -> SockAddr f -> IO (Either String String)
+test0001 :: (Family f, Type t, Protocol p) => Socket f t p -> SocketAddress f -> IO (Either String String)
 test0001 dummy addr =
   bracket
       ( do  server <- socket `asTypeOf` return dummy  `onException` print "E01"
@@ -48,16 +48,16 @@ test0001 dummy addr =
     helloWorld = "Hello world!"
 
 
-localhost :: SockAddrIn
+localhost :: SocketAddressIn
 localhost =
-  SockAddrIn
+  SocketAddressIn
   { sinPort      = 7777
   , sinAddr      = inaddrLOOPBACK
   }
 
-localhost6 :: SockAddrIn6
+localhost6 :: SocketAddressIn6
 localhost6 =
-  SockAddrIn6
+  SocketAddressIn6
   { sin6Port     = 7777
   , sin6Addr     = in6addrLOOPBACK
   , sin6Flowinfo = 0
