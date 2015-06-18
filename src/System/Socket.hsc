@@ -113,16 +113,15 @@ module System.Socket (
   , module System.Socket.Internal.Exception
   -- ** AddressInfoException
   , AddressInfoException (..)
-  , gaiStrerror
-  , eaiAGAIN
-  , eaiBADFLAGS
-  , eaiFAIL
-  , eaiFAMILY
-  , eaiMEMORY
-  , eaiNONAME
-  , eaiSOCKTYPE
-  , eaiSERVICE
-  , eaiSYSTEM
+  , eaiAgain
+  , eaiBadFlags
+  , eaiFail
+  , eaiFamily
+  , eaiMemory
+  , eaiNoName
+  , eaiSocketType
+  , eaiService
+  , eaiSystem
   -- * Socket Options
   -- ** getSockOpt
   , GetSockOpt (..)
@@ -612,7 +611,7 @@ withConnectedSocket host serv flags action = do
     tryAddrs :: [AddressInfo f t p] -> IO a
     tryAddrs [] = do
       -- This should not happen.
-      throwIO eaiNONAME
+      throwIO eaiNoName
     tryAddrs (addr:addrs) = do
       eith <- bracket
         ( socket )

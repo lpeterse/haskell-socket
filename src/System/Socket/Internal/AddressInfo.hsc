@@ -6,16 +6,16 @@ module System.Socket.Internal.AddressInfo (
   , GetAddressInfo (..)
   , GetNameInfo (..)
   , AddressInfoException (..)
-  , gaiStrerror
-  , eaiAGAIN
-  , eaiBADFLAGS
-  , eaiFAIL
-  , eaiFAMILY
-  , eaiMEMORY
-  , eaiNONAME
-  , eaiSOCKTYPE
-  , eaiSERVICE
-  , eaiSYSTEM
+  --, gaiStrerror
+  , eaiAgain
+  , eaiBadFlags
+  , eaiFail
+  , eaiFamily
+  , eaiMemory
+  , eaiNoName
+  , eaiSocketType
+  , eaiService
+  , eaiSystem
   , AddressInfoFlags (..)
   , aiADDRCONFIG
   , aiALL
@@ -76,9 +76,8 @@ deriving instance (Show (SocketAddress f)) => Show (AddressInfo f t p)
 -- AddressInfoException
 -------------------------------------------------------------------------------
 
--- | Contains the error code that can be matched against. Use `gaiStrerror`
---   to get a human readable explanation of the error (show`
---   does this as well).
+-- | Contains the error code that can be matched against. Use `show`
+--   to get a human readable explanation of the error.
 newtype AddressInfoException
       = AddressInfoException CInt
    deriving (Eq, Typeable)
@@ -96,40 +95,40 @@ gaiStrerror (AddressInfoException e) =
     peekCString msgPtr
 
 -- | > AddressInfoException "Temporary failure in name resolution"
-eaiAGAIN    :: AddressInfoException
-eaiAGAIN     = AddressInfoException (#const EAI_AGAIN)
+eaiAgain    :: AddressInfoException
+eaiAgain     = AddressInfoException (#const EAI_AGAIN)
 
 -- | > AddressInfoException "Bad value for ai_flags"
-eaiBADFLAGS :: AddressInfoException
-eaiBADFLAGS  = AddressInfoException (#const EAI_BADFLAGS)
+eaiBadFlags :: AddressInfoException
+eaiBadFlags  = AddressInfoException (#const EAI_BADFLAGS)
 
 -- | > AddressInfoException "Non-recoverable failure in name resolution"
-eaiFAIL     :: AddressInfoException
-eaiFAIL      = AddressInfoException (#const EAI_FAIL)
+eaiFail     :: AddressInfoException
+eaiFail      = AddressInfoException (#const EAI_FAIL)
 
 -- | > AddressInfoException "ai_family not supported"
-eaiFAMILY   :: AddressInfoException
-eaiFAMILY    = AddressInfoException (#const EAI_FAMILY)
+eaiFamily   :: AddressInfoException
+eaiFamily    = AddressInfoException (#const EAI_FAMILY)
 
 -- | > AddressInfoException "Memory allocation failure"
-eaiMEMORY   :: AddressInfoException
-eaiMEMORY    = AddressInfoException (#const EAI_MEMORY)
+eaiMemory   :: AddressInfoException
+eaiMemory    = AddressInfoException (#const EAI_MEMORY)
 
 -- | > AddressInfoException "No such host is known"
-eaiNONAME   :: AddressInfoException
-eaiNONAME    = AddressInfoException (#const EAI_NONAME)
+eaiNoName   :: AddressInfoException
+eaiNoName    = AddressInfoException (#const EAI_NONAME)
 
 -- | > AddressInfoException "Servname not supported for ai_socktype"
-eaiSERVICE  :: AddressInfoException
-eaiSERVICE   = AddressInfoException (#const EAI_SERVICE)
+eaiService  :: AddressInfoException
+eaiService   = AddressInfoException (#const EAI_SERVICE)
 
 -- | > AddressInfoException "ai_socktype not supported"
-eaiSOCKTYPE :: AddressInfoException
-eaiSOCKTYPE  = AddressInfoException (#const EAI_SOCKTYPE)
+eaiSocketType :: AddressInfoException
+eaiSocketType  = AddressInfoException (#const EAI_SOCKTYPE)
 
 -- | > AddressInfoException "System error"
-eaiSYSTEM   :: AddressInfoException
-eaiSYSTEM    = AddressInfoException (#const EAI_SYSTEM)
+eaiSystem   :: AddressInfoException
+eaiSystem    = AddressInfoException (#const EAI_SYSTEM)
 
 
 -- | Use the `Data.Monoid.Monoid` instance to combine several flags:

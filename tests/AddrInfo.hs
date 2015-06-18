@@ -38,7 +38,7 @@ t0002 = do
           Nothing
           Nothing
           mempty :: IO [AddressInfo Inet Stream TCP]
-  eui <- tryJust (\ex@(AddressInfoException _)-> if ex == eaiNONAME then Just () else Nothing)
+  eui <- tryJust (\ex@(AddressInfoException _)-> if ex == eaiNoName then Just () else Nothing)
                  (x `onException` p 0)
   when (eui /= Left ()) (e 1)
   where
