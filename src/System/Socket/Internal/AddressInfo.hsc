@@ -25,11 +25,11 @@ module System.Socket.Internal.AddressInfo (
   , aiPASSIVE
   , aiV4MAPPED
   , NameInfoFlags (..)
-  , niNAMEREQD
+  , niNameRequired
   , niDatagram
-  , niNOFQDN
-  , niNUMERICHOST
-  , niNUMERICSERV
+  , niNoFullyQualifiedDomainName
+  , niNumericHost
+  , niNumericService
   ) where
 
 import Control.Exception
@@ -172,7 +172,7 @@ aiV4MAPPED     = AddressInfoFlags (#const AI_V4MAPPED)
 
 -- | Use the `Data.Monoid.Monoid` instance to combine several flags:
 --
---   > mconcat [niNAMEREQD, niNOFQDN]
+--   > mconcat [niNameRequired, niNoFullyQualifiedDomainName]
 newtype NameInfoFlags
       = NameInfoFlags CInt
       deriving (Eq, Show, Bits)
@@ -183,25 +183,25 @@ instance Monoid NameInfoFlags where
   mappend (NameInfoFlags a) (NameInfoFlags b)
     = NameInfoFlags (a .|. b)
 
--- | Throw an exception if the hostname cannot be determined.
-niNAMEREQD     :: NameInfoFlags
-niNAMEREQD      = NameInfoFlags (#const NI_NAMEREQD)
+-- | @NI_NAMEREQD@: Throw an exception if the hostname cannot be determined.
+niNameRequired     :: NameInfoFlags
+niNameRequired      = NameInfoFlags (#const NI_NAMEREQD)
 
--- | Service is datagram based (UDP) rather than stream based (TCP).
+-- | @NI_DGRAM@: Service is datagram based (UDP) rather than stream based (TCP).
 niDatagram        :: NameInfoFlags
 niDatagram         = NameInfoFlags (#const NI_DGRAM)
 
--- | Return only the hostname part of the fully qualified domain name for local hosts.
-niNOFQDN       :: NameInfoFlags
-niNOFQDN        = NameInfoFlags (#const NI_NOFQDN)
+-- | @NI_NOFQDN@: Return only the hostname part of the fully qualified domain name for local hosts.
+niNoFullyQualifiedDomainName       :: NameInfoFlags
+niNoFullyQualifiedDomainName        = NameInfoFlags (#const NI_NOFQDN)
 
--- | Return the numeric form of the host address.
-niNUMERICHOST  :: NameInfoFlags
-niNUMERICHOST   = NameInfoFlags (#const NI_NUMERICHOST)
+-- | @NI_NUMERICHOST@: Return the numeric form of the host address.
+niNumericHost  :: NameInfoFlags
+niNumericHost   = NameInfoFlags (#const NI_NUMERICHOST)
 
--- | Return the numeric form of the service address.
-niNUMERICSERV  :: NameInfoFlags
-niNUMERICSERV   = NameInfoFlags (#const NI_NUMERICSERV)
+-- | @NI_NUMERICSERV@: Return the numeric form of the service address.
+niNumericService  :: NameInfoFlags
+niNumericService   = NameInfoFlags (#const NI_NUMERICSERV)
 
 class (Family f) => GetAddressInfo f where
   -- | Maps names to addresses (i.e. by DNS lookup).

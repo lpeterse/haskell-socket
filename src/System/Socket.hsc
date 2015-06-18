@@ -149,11 +149,11 @@ module System.Socket (
   , aiV4MAPPED
   -- ** NameInfoFlags
   , NameInfoFlags (..)
-  , niNAMEREQD
+  , niNameRequired
   , niDatagram
-  , niNOFQDN
-  , niNUMERICHOST
-  , niNUMERICSERV
+  , niNoFullyQualifiedDomainName
+  , niNumericHost
+  , niNumericService
   ) where
 
 import Control.Exception
