@@ -588,7 +588,7 @@ receiveAll sock maxLen flags = collect 0 mempty
 --   last connection attempt is thrown.
 -- - The supplied action is executed at most once with the first established
 --   connection.
--- - If the address family is `Inet6`, `IPV6_V6ONLY` is set to `False` which
+-- - If the address family is `Inet6`, `V6Only` is set to `False` which
 --   means the other end may be both IPv4 or IPv6.
 -- - All sockets created by this operation get closed automatically.
 -- - This operation throws `AddressInfoException`s, `SocketException`s and all
@@ -634,4 +634,4 @@ withConnectedSocket host serv flags action = do
 
     configureSocketSpecific sock = do
       when (familyNumber (undefined :: f) == familyNumber (undefined :: Inet6)) $ do
-        setSockOpt sock (IPV6_V6ONLY False)
+        setSockOpt sock (V6Only False)

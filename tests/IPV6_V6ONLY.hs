@@ -8,8 +8,8 @@ import Control.Exception
 import Control.Concurrent
 import Control.Concurrent.Async
 import System.Socket
-import System.Socket.Family.Inet
-import System.Socket.Family.Inet6
+import System.Socket.Family.Inet  as Inet
+import System.Socket.Family.Inet6 as Inet6
 import System.Exit
 
 main :: IO ()
@@ -30,12 +30,12 @@ t0001 =
         close client                                  `onException` p 3
     )
     (\(server,client)-> do
-        setSockOpt server (IPV6_V6ONLY True)          `onException` p 4
-        bind server (SocketAddressInet6 7777 (Inet6FlowInfo 0) any (Inet6ScopeId 0)) `onException` p 5
+        setSockOpt server (V6Only True)                     `onException` p 4
+        bind server (SocketAddressInet6 7777 Inet6.any 0 0) `onException` p 5
 
         threadDelay 1000000 -- wait for the listening socket being set up
-        sendTo client "PING" mempty (SocketAddressInet 7777 inetAddressLoopback)
-                                                      `onException` p 6
+        sendTo client "PING" mempty (SocketAddressInet 7777 Inet.loopback)
+                                                            `onException` p 6
         eith <- race
           ( receiveFrom server 4096 mempty `onException` p 7 >> return () )
           ( threadDelay 1000000 )
@@ -60,11 +60,11 @@ t0002 =
         close client                                  `onException` p 3
     )
     (\(server,client)-> do
-        setSockOpt server (IPV6_V6ONLY False)         `onException` p 4
-        bind server (SocketAddressInet6 7778 (Inet6FlowInfo 0) any (Inet6ScopeId 0)) `onException` p 5
+        setSockOpt server (V6Only False)              `onException` p 4
+        bind server (SocketAddressInet6 7778 Inet6.any 0 0) `onException` p 5
 
         threadDelay 1000000 -- wait for the listening socket being set up
-        sendTo client "PING" mempty (SocketAddressInet 7778 inetAddressLoopback)
+        sendTo client "PING" mempty (SocketAddressInet 7778 Inet.loopback)
                                                       `onException` p 6
         eith <- race
           ( receiveFrom server 4096 mempty `onException` p 7 >> return ())

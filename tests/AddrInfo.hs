@@ -6,7 +6,7 @@ import Data.Monoid
 import Control.Monad
 import Control.Exception
 import System.Socket
-import System.Socket.Family.Inet
+import System.Socket.Family.Inet as Inet
 import System.Exit
 
 main :: IO ()
@@ -27,7 +27,7 @@ t0001 = do
   when (canonicalName ai /= Nothing) (e 2)
   let sa = socketAddress ai
   when (port    sa /= 80) (e 3)
-  when (address sa /= inetAddressLoopback) (e 4)
+  when (address sa /= Inet.loopback) (e 4)
   where
     p i = print ("t0001." ++ show i)
     e i = error ("t0001." ++ show i)

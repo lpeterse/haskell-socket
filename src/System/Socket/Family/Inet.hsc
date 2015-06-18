@@ -1,10 +1,11 @@
 {-# LANGUAGE TypeFamilies, GeneralizedNewtypeDeriving #-}
 module System.Socket.Family.Inet
   ( Inet
+  -- * Addresses
   , SocketAddressInet (..)
   , InetPort (..)
   , InetAddress ()
-  -- ** Special Addresses
+  -- ** Special Address Constants
   , System.Socket.Family.Inet.any
   , broadcast
   , none
@@ -12,6 +13,7 @@ module System.Socket.Family.Inet
   , unspecificGroup
   , allHostsGroup
   , maxLocalGroup
+  -- * Socket Options
   ) where
 
 import Data.Word

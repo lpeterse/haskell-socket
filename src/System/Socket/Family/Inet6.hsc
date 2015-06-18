@@ -2,16 +2,17 @@
 module System.Socket.Family.Inet6
   ( Inet6
     -- * Addresses
+  , SocketAddressInet6 (..)
   , Inet6Port (..)
   , Inet6Address ()
   , Inet6FlowInfo (..)
   , Inet6ScopeId (..)
-  , SocketAddressInet6 (..)
     -- ** Special Address Constants
   , System.Socket.Family.Inet6.any
   , loopback
   -- * Socket Options
-  , IPV6_V6ONLY (..)
+  -- ** V6Only
+  , V6Only (..)
   ) where
 
 import Data.Word
@@ -40,8 +41,8 @@ instance Family Inet6 where
 data SocketAddressInet6
    = SocketAddressInet6
      { port      :: Inet6Port
-     , flowInfo  :: Inet6FlowInfo
      , address   :: Inet6Address
+     , flowInfo  :: Inet6FlowInfo
      , scopeId   :: Inet6ScopeId
      } deriving (Eq)
 
@@ -81,7 +82,7 @@ loopback :: Inet6Address
 loopback  = Inet6Address (BS.pack [0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,1])
 
 instance Show SocketAddressInet6 where
-  show (SocketAddressInet6 p _ addr _) =
+  show (SocketAddressInet6 p addr _ _) =
     "[" ++ show addr ++ "]:" ++ show p
 
 instance Show Inet6Address where
@@ -130,13 +131,13 @@ instance Storable SocketAddressInet6 where
     pl  <- peekByteOff       (sin6_port     ptr)  1  :: IO Word8
     a   <- peek              (sin6_addr     ptr)     :: IO Inet6Address
     s   <- peek              (sin6_scope_id ptr)     :: IO Word32
-    return (SocketAddressInet6 (Inet6Port $ fromIntegral ph * 256 + fromIntegral pl) (Inet6FlowInfo f) a (Inet6ScopeId s))
+    return (SocketAddressInet6 (Inet6Port $ fromIntegral ph * 256 + fromIntegral pl) a (Inet6FlowInfo f) (Inet6ScopeId s))
     where
       sin6_flowinfo = (#ptr struct sockaddr_in6, sin6_flowinfo)
       sin6_scope_id = (#ptr struct sockaddr_in6, sin6_scope_id)
       sin6_port     = (#ptr struct sockaddr_in6, sin6_port)
       sin6_addr     = (#ptr struct in6_addr, s6_addr) . (#ptr struct sockaddr_in6, sin6_addr)
-  poke ptr (SocketAddressInet6 (Inet6Port p) (Inet6FlowInfo f) a (Inet6ScopeId s)) = do
+  poke ptr (SocketAddressInet6 (Inet6Port p) a (Inet6FlowInfo f) (Inet6ScopeId s)) = do
     c_memset ptr 0 (#const sizeof(struct sockaddr_in6))
     poke        (sin6_family   ptr) ((#const AF_INET6) :: Word16)
     poke        (sin6_flowinfo ptr) f
@@ -155,14 +156,15 @@ instance Storable SocketAddressInet6 where
 -- Address family specific socket options
 -------------------------------------------------------------------------------
 
-data IPV6_V6ONLY
-   = IPV6_V6ONLY Bool
+-- | @IPV6_V6ONLY@
+data V6Only
+   = V6Only Bool
    deriving (Eq, Ord, Show)
 
-instance GetSockOpt IPV6_V6ONLY where
+instance GetSockOpt V6Only where
   getSockOpt s =
-    IPV6_V6ONLY <$> getSockOptBool s (#const IPPROTO_IPV6) (#const IPV6_V6ONLY)
+    V6Only <$> getSockOptBool s (#const IPPROTO_IPV6) (#const IPV6_V6ONLY)
 
-instance SetSockOpt IPV6_V6ONLY where
-  setSockOpt s (IPV6_V6ONLY o) =
+instance SetSockOpt V6Only where
+  setSockOpt s (V6Only o) =
     setSockOptBool s (#const IPPROTO_IPV6) (#const IPV6_V6ONLY) o
