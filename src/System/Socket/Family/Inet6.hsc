@@ -1,8 +1,11 @@
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeFamilies, GeneralizedNewtypeDeriving #-}
 module System.Socket.Family.Inet6
   ( Inet6
     -- * Addresses
-  , AddrIn6 ()
+  , Inet6Port (..)
+  , Inet6Address ()
+  , Inet6FlowInfo (..)
+  , Inet6ScopeId (..)
   , SocketAddressInet6 (..)
     -- ** Special Address Constants
   , in6addrANY
@@ -36,11 +39,15 @@ instance Family Inet6 where
 
 data SocketAddressInet6
    = SocketAddressInet6
-     { sin6Port      :: Word16
-     , sin6Flowinfo  :: Word32
-     , sin6Addr      :: AddrIn6
-     , sin6ScopeId   :: Word32
+     { port      :: Inet6Port
+     , flowInfo  :: Inet6FlowInfo
+     , address   :: Inet6Address
+     , scopeId   :: Inet6ScopeId
      } deriving (Eq)
+
+newtype Inet6Port
+      = Inet6Port Word16
+      deriving (Eq, Ord, Show, Num)
 
 -- | To avoid errors with endianess it was decided to keep this type abstract.
 --
@@ -53,24 +60,32 @@ data SocketAddressInet6
 --
 --   > > getAddressInfo (Just "::1") Nothing aiNUMERICHOST :: IO [AddressInfo SocketAddressInet6 STREAM TCP]
 --   > [AddressInfo {addrInfoFlags = AddressInfoFlags 4, addrAddress = [0000:0000:0000:0000:0000:0000:0000:0001]:0, addrCanonName = Nothing}]
-newtype AddrIn6
-      = AddrIn6 BS.ByteString
+newtype Inet6Address
+      = Inet6Address BS.ByteString
       deriving (Eq)
 
+newtype Inet6FlowInfo
+      = Inet6FlowInfo Word32
+      deriving (Eq, Ord, Show, Num)
+
+newtype Inet6ScopeId
+      = Inet6ScopeId Word32
+      deriving (Eq, Ord, Show, Num)
+
 -- | @::@
-in6addrANY      :: AddrIn6
-in6addrANY       = AddrIn6 (BS.pack [0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0])
+in6addrANY      :: Inet6Address
+in6addrANY       = Inet6Address (BS.pack [0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0])
 
 -- | @::1@
-in6addrLOOPBACK :: AddrIn6
-in6addrLOOPBACK  = AddrIn6 (BS.pack [0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,1])
+in6addrLOOPBACK :: Inet6Address
+in6addrLOOPBACK  = Inet6Address (BS.pack [0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,1])
 
 instance Show SocketAddressInet6 where
   show (SocketAddressInet6 p _ addr _) =
     "[" ++ show addr ++ "]:" ++ show p
 
-instance Show AddrIn6 where
-  show (AddrIn6 addr) = tail $ t $ BS.unpack addr
+instance Show Inet6Address where
+  show (Inet6Address addr) = tail $ t $ BS.unpack addr
     where
       t []       = []
       t [x]      = g x 0 []
@@ -97,12 +112,12 @@ instance Show AddrIn6 where
       h 15 = 'f'
       h  _ = '_'
 
-instance Storable AddrIn6 where
+instance Storable Inet6Address where
   sizeOf   _  = 16
   alignment _ = 16
   peek ptr    =
-    AddrIn6 <$> BS.packCStringLen (castPtr ptr, 16)
-  poke ptr (AddrIn6 a) =
+    Inet6Address <$> BS.packCStringLen (castPtr ptr, 16)
+  poke ptr (Inet6Address a) =
     BS.unsafeUseAsCString a $ \aPtr-> do
       copyBytes ptr (castPtr aPtr) (min 16 $ BS.length a)
 
@@ -113,15 +128,15 @@ instance Storable SocketAddressInet6 where
     f   <- peek              (sin6_flowinfo ptr)     :: IO Word32
     ph  <- peekByteOff       (sin6_port     ptr)  0  :: IO Word8
     pl  <- peekByteOff       (sin6_port     ptr)  1  :: IO Word8
-    a   <- peek              (sin6_addr     ptr)     :: IO AddrIn6
+    a   <- peek              (sin6_addr     ptr)     :: IO Inet6Address
     s   <- peek              (sin6_scope_id ptr)     :: IO Word32
-    return (SocketAddressInet6 (fromIntegral ph * 256 + fromIntegral pl) f a s)
+    return (SocketAddressInet6 (Inet6Port $ fromIntegral ph * 256 + fromIntegral pl) (Inet6FlowInfo f) a (Inet6ScopeId s))
     where
       sin6_flowinfo = (#ptr struct sockaddr_in6, sin6_flowinfo)
       sin6_scope_id = (#ptr struct sockaddr_in6, sin6_scope_id)
       sin6_port     = (#ptr struct sockaddr_in6, sin6_port)
       sin6_addr     = (#ptr struct in6_addr, s6_addr) . (#ptr struct sockaddr_in6, sin6_addr)
-  poke ptr (SocketAddressInet6 p f a s) = do
+  poke ptr (SocketAddressInet6 (Inet6Port p) (Inet6FlowInfo f) a (Inet6ScopeId s)) = do
     c_memset ptr 0 (#const sizeof(struct sockaddr_in6))
     poke        (sin6_family   ptr) ((#const AF_INET6) :: Word16)
     poke        (sin6_flowinfo ptr) f

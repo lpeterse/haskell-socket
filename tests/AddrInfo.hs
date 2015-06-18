@@ -25,9 +25,9 @@ t0001 = do
   when (length ais /= 1) (e 1)
   let [ai] = ais
   when (canonicalName ai /= Nothing) (e 2)
-  let addr = address ai
-  when (sinPort addr /= 80) (e 3)
-  when (sinAddr addr /= inaddrLOOPBACK) (e 4)
+  let sa = socketAddress ai
+  when (port    sa /= 80) (e 3)
+  when (address sa /= inaddrLOOPBACK) (e 4)
   where
     p i = print ("t0001." ++ show i)
     e i = error ("t0001." ++ show i)

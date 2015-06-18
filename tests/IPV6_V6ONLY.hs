@@ -31,7 +31,7 @@ t0001 =
     )
     (\(server,client)-> do
         setSockOpt server (IPV6_V6ONLY True)          `onException` p 4
-        bind server (SocketAddressInet6 7777 0 in6addrANY 0) `onException` p 5
+        bind server (SocketAddressInet6 7777 (Inet6FlowInfo 0) in6addrANY (Inet6ScopeId 0)) `onException` p 5
 
         threadDelay 1000000 -- wait for the listening socket being set up
         sendTo client "PING" mempty (SocketAddressInet 7777 inaddrLOOPBACK)
@@ -61,7 +61,7 @@ t0002 =
     )
     (\(server,client)-> do
         setSockOpt server (IPV6_V6ONLY False)         `onException` p 4
-        bind server (SocketAddressInet6 7778 0 in6addrANY 0) `onException` p 5
+        bind server (SocketAddressInet6 7778 (Inet6FlowInfo 0) in6addrANY (Inet6ScopeId 0)) `onException` p 5
 
         threadDelay 1000000 -- wait for the listening socket being set up
         sendTo client "PING" mempty (SocketAddressInet 7778 inaddrLOOPBACK)

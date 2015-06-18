@@ -65,7 +65,7 @@ import System.Socket.Internal.Platform
 data AddressInfo f t p
    = AddressInfo
      { flags         :: AddressInfoFlags
-     , address       :: SocketAddress f
+     , socketAddress :: SocketAddress f
      , canonicalName :: Maybe BS.ByteString
      }
 

@@ -7,8 +7,8 @@ import Control.Exception
 import Control.Concurrent
 import Control.Concurrent.Async
 import System.Socket
-import System.Socket.Family.Inet
-import System.Socket.Family.Inet6
+import System.Socket.Family.Inet  as Inet
+import System.Socket.Family.Inet6 as Inet6
 import System.Exit
 
 main :: IO ()
@@ -47,21 +47,20 @@ test0001 dummy addr =
   where
     helloWorld = "Hello world!"
 
-
 localhost :: SocketAddressInet
 localhost =
   SocketAddressInet
-  { sinPort      = 7777
-  , sinAddr      = inaddrLOOPBACK
+  { Inet.port     = 7777
+  , Inet.address  = inaddrLOOPBACK
   }
 
 localhost6 :: SocketAddressInet6
 localhost6 =
   SocketAddressInet6
-  { sin6Port     = 7777
-  , sin6Addr     = in6addrLOOPBACK
-  , sin6Flowinfo = 0
-  , sin6ScopeId  = 0
+  { Inet6.port     = 7777
+  , Inet6.address  = in6addrLOOPBACK
+  , Inet6.flowInfo = 0
+  , Inet6.scopeId  = 0
   }
 
 test :: String -> IO (Either String String) -> IO ()

@@ -90,10 +90,8 @@ module System.Socket (
   , Family (..)
   -- *** Inet
   , Inet
-  , SocketAddressInet (..)
   -- *** Inet6
   , Inet6
-  , SocketAddressInet6 (..)
   -- ** Types
   , Type (..)
   -- *** DGRAM
@@ -621,7 +619,7 @@ withConnectedSocket host serv flags action = do
         ( close )
         ( \sock-> do
             configureSocketSpecific sock
-            connected <- try (connect sock $ address addr)
+            connected <- try (connect sock $ socketAddress addr)
             case connected of
               Left e  -> return (Left (e :: SocketException))
               Right _ -> Right <$> action sock
