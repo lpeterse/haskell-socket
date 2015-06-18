@@ -8,7 +8,7 @@ import Control.Exception
 import Control.Concurrent
 import Control.Concurrent.Async
 import System.Socket
-import System.Socket.Family.INET
+import System.Socket.Family.Inet
 import System.Exit
 
 main :: IO ()
@@ -17,8 +17,8 @@ main = do
 
 t0001 :: IO ()
 t0001 = do
-  server <- socket                        `onException` e 0 :: IO (Socket INET STREAM TCP)
-  client <- socket                        `onException` e 1 :: IO (Socket INET STREAM TCP)
+  server <- socket                        `onException` e 0 :: IO (Socket Inet STREAM TCP)
+  client <- socket                        `onException` e 1 :: IO (Socket Inet STREAM TCP)
   setSockOpt server (SO_REUSEADDR True)   `onException` e 2
   bind server addr                        `onException` e 3
   listen server 5                         `onException` e 4

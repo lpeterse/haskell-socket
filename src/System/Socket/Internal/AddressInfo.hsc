@@ -49,8 +49,8 @@ import Foreign.Marshal.Alloc
 import System.IO.Unsafe
 
 import System.Socket.Family
-import System.Socket.Family.INET
-import System.Socket.Family.INET6
+import System.Socket.Family.Inet
+import System.Socket.Family.Inet6
 import System.Socket.Type
 import System.Socket.Protocol
 import System.Socket.Internal.Platform
@@ -218,18 +218,18 @@ class (Family f) => GetAddressInfo f where
 --   queries. If you want to connect to both IPv4 and IPV6 addresses use
 --   `aiV4MAPPED` and use IPv6-sockets.
 --
---   > > getAddressInfo (Just "www.haskell.org") (Just "80") aiV4MAPPED :: IO [AddressInfo INET6 STREAM TCP]
+--   > > getAddressInfo (Just "www.haskell.org") (Just "80") aiV4MAPPED :: IO [AddressInfo Inet6 STREAM TCP]
 --   > [AddressInfo {addrInfoFlags = AddressInfoFlags 8, addrAddress = [2400:cb00:2048:0001:0000:0000:6ca2:cc3c]:80, addrCanonName = Nothing}]
---   > > getAddressInfo (Just "darcs.haskell.org") Nothing aiV4MAPPED :: IO [AddressInfo INET6 STREAM TCP]
+--   > > getAddressInfo (Just "darcs.haskell.org") Nothing aiV4MAPPED :: IO [AddressInfo Inet6 STREAM TCP]
 --   > [AddressInfo {addrInfoFlags = AddressInfoFlags 8, addrAddress = [0000:0000:0000:0000:0000:ffff:17fd:e1ad]:0, addrCanonName = Nothing}]
---   > > getAddressInfo (Just "darcs.haskell.org") Nothing mempty :: IO [AddressInfo INET6 STREAM TCP]
+--   > > getAddressInfo (Just "darcs.haskell.org") Nothing mempty :: IO [AddressInfo Inet6 STREAM TCP]
 --   > *** Exception: AddressInfoException "Name or service not known"
   getAddressInfo :: (Type t, Protocol p) => Maybe BS.ByteString -> Maybe BS.ByteString -> AddressInfoFlags -> IO [AddressInfo f t p]
 
-instance GetAddressInfo INET where
+instance GetAddressInfo Inet where
   getAddressInfo = getAddressInfo'
 
-instance GetAddressInfo INET6 where
+instance GetAddressInfo Inet6 where
   getAddressInfo = getAddressInfo'
 
 getAddressInfo' :: forall f t p. (Family f, Type t, Protocol p) => Maybe BS.ByteString -> Maybe BS.ByteString -> AddressInfoFlags -> IO [AddressInfo f t p]
@@ -292,10 +292,10 @@ getAddressInfo' mnode mservice (AddressInfoFlags flags) = do
 class (Family f) => GetNameInfo f where
   getNameInfo :: SocketAddress f -> NameInfoFlags -> IO (BS.ByteString, BS.ByteString)
 
-instance GetNameInfo INET where
+instance GetNameInfo Inet where
   getNameInfo = getNameInfo'
 
-instance GetNameInfo INET6 where
+instance GetNameInfo Inet6 where
   getNameInfo = getNameInfo'
 
 getNameInfo' :: Storable a => a -> NameInfoFlags -> IO (BS.ByteString, BS.ByteString)

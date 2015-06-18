@@ -7,14 +7,14 @@ import Control.Exception
 import Control.Concurrent
 import Control.Concurrent.Async
 import System.Socket
-import System.Socket.Family.INET
-import System.Socket.Family.INET6
+import System.Socket.Family.Inet
+import System.Socket.Family.Inet6
 import System.Exit
 
 main :: IO ()
 main = do 
-  test "INET"  (undefined :: Socket INET  DGRAM  UDP)  localhost
-  test "INET6" (undefined :: Socket INET6 DGRAM  UDP)  localhost6
+  test "Inet"  (undefined :: Socket Inet  DGRAM  UDP)  localhost
+  test "Inet6" (undefined :: Socket Inet6 DGRAM  UDP)  localhost6
 
 -- Test stateless sockets (i.e. UDP).
 test :: (Family f, Type t, Protocol p) => String -> Socket f t p -> SocketAddress f -> IO ()

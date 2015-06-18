@@ -7,14 +7,14 @@ import Control.Exception
 import Control.Concurrent
 import Control.Concurrent.Async
 import System.Socket
-import System.Socket.Family.INET
-import System.Socket.Family.INET6
+import System.Socket.Family.Inet
+import System.Socket.Family.Inet6
 import System.Exit
 
 main :: IO ()
 main = do 
-  test "test0001.01" $ test0001 (undefined :: Socket INET  STREAM TCP)  localhost
-  test "test0001.02" $ test0001 (undefined :: Socket INET6 STREAM TCP)  localhost6
+  test "test0001.01" $ test0001 (undefined :: Socket Inet  STREAM TCP)  localhost
+  test "test0001.02" $ test0001 (undefined :: Socket Inet6 STREAM TCP)  localhost6
 
 -- Test send and receive on connection oriented sockets (i.e. TCP).
 test0001 :: (Family f, Type t, Protocol p) => Socket f t p -> SocketAddress f -> IO (Either String String)

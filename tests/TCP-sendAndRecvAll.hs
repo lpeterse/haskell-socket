@@ -10,14 +10,14 @@ import Data.Monoid
 import qualified Data.ByteString.Lazy as LBS
 
 import System.Socket
-import System.Socket.Family.INET
+import System.Socket.Family.Inet
 
 -- | This tries to send and receive an extremely huge message (currently 128MB).
 main :: IO ()
 main =
   bracket
-      ( do  server <- socket `onException` print "E01" :: IO (Socket INET STREAM TCP)
-            client <- socket `onException` print "E02" :: IO (Socket INET STREAM TCP)
+      ( do  server <- socket `onException` print "E01" :: IO (Socket Inet STREAM TCP)
+            client <- socket `onException` print "E02" :: IO (Socket Inet STREAM TCP)
             return (server, client)
       )
       (\(server,client)-> do

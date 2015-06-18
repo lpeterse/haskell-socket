@@ -15,7 +15,7 @@
 -- > module Main where
 -- >
 -- > import System.Socket
--- > import System.Socket.Family.INET (inaddrLOOPBACK)
+-- > import System.Socket.Family.Inet (inaddrLOOPBACK)
 -- > import Data.Monoid
 -- > import Data.ByteString
 -- > import Control.Monad
@@ -24,7 +24,7 @@
 -- >
 -- > main :: IO ()
 -- > main = do
--- >   s <- socket :: IO (Socket INET STREAM TCP)
+-- >   s <- socket :: IO (Socket Inet STREAM TCP)
 -- >   setSockOpt s (SO_REUSEADDR True)
 -- >   bind s (SocketAddressIn 8080 inaddrLOOPBACK)
 -- >   listen s 5
@@ -34,7 +34,7 @@
 -- >       sendAll peer "Hello world!" mempty `finally` close peer
 --
 -- This downloads the [Haskell website](http://www.haskell.org) and shows how to
--- handle exceptions. Note the use of IPv4-mapped `INET6` addresses: This will work
+-- handle exceptions. Note the use of IPv4-mapped `Inet6` addresses: This will work
 -- even if you don't have IPv6 connectivity yet and is the preferred method
 -- when writing new applications.
 --
@@ -48,7 +48,7 @@
 -- > main :: IO ()
 -- > main = do
 -- >   withConnectedSocket "www.haskell.org" "80" (aiALL `mappend` aiV4MAPPED) $ \sock-> do
--- >     let _ = sock :: Socket INET6 STREAM TCP
+-- >     let _ = sock :: Socket Inet6 STREAM TCP
 -- >     sendAll sock "GET / HTTP/1.0\r\nHost: www.haskell.org\r\n\r\n" mempty
 -- >     x <- receiveAll sock (1024*1024*1024) mempty
 -- >     B.putStr x
@@ -88,11 +88,11 @@ module System.Socket (
   , Socket (..)
   -- ** Families
   , Family (..)
-  -- *** INET
-  , INET
+  -- *** Inet
+  , Inet
   , SocketAddressIn (..)
-  -- *** INET6
-  , INET6
+  -- *** Inet6
+  , Inet6
   , SocketAddressIn6 (..)
   -- ** Types
   , Type (..)
@@ -187,8 +187,8 @@ import System.Socket.Internal.AddressInfo
 import System.Socket.Internal.Platform
 
 import System.Socket.Family
-import System.Socket.Family.INET
-import System.Socket.Family.INET6
+import System.Socket.Family.Inet
+import System.Socket.Family.Inet6
 
 import System.Socket.Type
 import System.Socket.Type.DGRAM
@@ -210,9 +210,9 @@ import System.Socket.Protocol.TCP
 --   associated type families). Examples:
 --
 --   > -- create a IPv4-UDP-datagram socket
---   > sock <- socket :: IO (Socket INET DGRAM UDP)
+--   > sock <- socket :: IO (Socket Inet DGRAM UDP)
 --   > -- create a IPv6-TCP-streaming socket
---   > sock6 <- socket :: IO (Socket INET6 STREAM TCP)
+--   > sock6 <- socket :: IO (Socket Inet6 STREAM TCP)
 --
 --     - This operation sets up a finalizer that automatically closes the socket
 --       when the garbage collection decides to collect it. This is just a
@@ -223,7 +223,7 @@ import System.Socket.Protocol.TCP
 --       socket descriptor on exception or regular termination of your
 --       computation:
 --
---       > result <- bracket (socket :: IO (Socket INET6 STREAM TCP)) close $ \sock-> do
+--       > result <- bracket (socket :: IO (Socket Inet6 STREAM TCP)) close $ \sock-> do
 --       >   somethingWith sock -- your computation here
 --       >   return somethingelse
 --
@@ -591,14 +591,14 @@ receiveAll sock maxLen flags = collect 0 mempty
 --   last connection attempt is thrown.
 -- - The supplied action is executed at most once with the first established
 --   connection.
--- - If the address family is `INET6`, `IPV6_V6ONLY` is set to `False` which
+-- - If the address family is `Inet6`, `IPV6_V6ONLY` is set to `False` which
 --   means the other end may be both IPv4 or IPv6.
 -- - All sockets created by this operation get closed automatically.
 -- - This operation throws `AddressInfoException`s, `SocketException`s and all
 --   exceptions that that the supplied action might throw.
 --
 -- > withConnectedSocket "wwww.haskell.org" "80" (aiALL `mappend` aiV4MAPPED) $ \sock-> do
--- >   let _ = sock :: Socket INET6 STREAM TCP
+-- >   let _ = sock :: Socket Inet6 STREAM TCP
 -- >   doSomethingWithSocket sock
 withConnectedSocket :: forall f t p a.
                  ( GetAddressInfo f, Type t, Protocol p)
@@ -636,5 +636,5 @@ withConnectedSocket host serv flags action = do
           return a
 
     configureSocketSpecific sock = do
-      when (familyNumber (undefined :: f) == familyNumber (undefined :: INET6)) $ do
+      when (familyNumber (undefined :: f) == familyNumber (undefined :: Inet6)) $ do
         setSockOpt sock (IPV6_V6ONLY False)

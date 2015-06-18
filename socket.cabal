@@ -72,8 +72,8 @@ extra-source-files:  README.md
 library
   exposed-modules:     System.Socket
                      , System.Socket.Family
-                     , System.Socket.Family.INET
-                     , System.Socket.Family.INET6
+                     , System.Socket.Family.Inet
+                     , System.Socket.Family.Inet6
                      , System.Socket.Type
                      , System.Socket.Type.RAW
                      , System.Socket.Type.DGRAM

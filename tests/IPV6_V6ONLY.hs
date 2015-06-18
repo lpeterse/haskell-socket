@@ -8,8 +8,8 @@ import Control.Exception
 import Control.Concurrent
 import Control.Concurrent.Async
 import System.Socket
-import System.Socket.Family.INET
-import System.Socket.Family.INET6
+import System.Socket.Family.Inet
+import System.Socket.Family.Inet6
 import System.Exit
 
 main :: IO ()
@@ -21,8 +21,8 @@ t0001 :: IO ()
 t0001 = 
   bracket
     ( do
-        server <- socket                              `onException` p 0 :: IO (Socket INET6 DGRAM UDP)
-        client <- socket                              `onException` p 1 :: IO (Socket INET  DGRAM UDP)
+        server <- socket                              `onException` p 0 :: IO (Socket Inet6 DGRAM UDP)
+        client <- socket                              `onException` p 1 :: IO (Socket Inet  DGRAM UDP)
         return (server, client)
     )
     (\(server,client)-> do
@@ -51,8 +51,8 @@ t0002 :: IO ()
 t0002 = 
   bracket
     ( do
-        server <- socket                              `onException` p 0 :: IO (Socket INET6 DGRAM UDP)
-        client <- socket                              `onException` p 1 :: IO (Socket INET  DGRAM UDP)
+        server <- socket                              `onException` p 0 :: IO (Socket Inet6 DGRAM UDP)
+        client <- socket                              `onException` p 1 :: IO (Socket Inet  DGRAM UDP)
         return (server, client)
     )
     (\(server,client)-> do

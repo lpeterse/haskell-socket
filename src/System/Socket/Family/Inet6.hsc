@@ -1,6 +1,6 @@
 {-# LANGUAGE TypeFamilies #-}
-module System.Socket.Family.INET6
-  ( INET6
+module System.Socket.Family.Inet6
+  ( Inet6
     -- * Addresses
   , AddrIn6 ()
   , SocketAddressIn6 (..)
@@ -28,10 +28,10 @@ import System.Socket.Internal.Platform
 #include "hs_socket.h"
 #let alignment t = "%lu", (unsigned long)offsetof(struct {char x__; t (y__); }, y__)
 
-data INET6
+data Inet6
 
-instance Family INET6 where
-  type SocketAddress INET6 = SocketAddressIn6
+instance Family Inet6 where
+  type SocketAddress Inet6 = SocketAddressIn6
   familyNumber _ = (#const AF_INET6)
 
 data SocketAddressIn6

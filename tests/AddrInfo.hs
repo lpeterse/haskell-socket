@@ -6,7 +6,7 @@ import Data.Monoid
 import Control.Monad
 import Control.Exception
 import System.Socket
-import System.Socket.Family.INET
+import System.Socket.Family.Inet
 import System.Exit
 
 main :: IO ()
@@ -21,7 +21,7 @@ t0001 = do
           (Just "127.0.0.1")
           (Just "http")
           aiNUMERICHOST 
-          `onException` p 0 :: IO [AddressInfo INET STREAM TCP]
+          `onException` p 0 :: IO [AddressInfo Inet STREAM TCP]
   when (length ais /= 1) (e 1)
   let [ai] = ais
   when (canonicalName ai /= Nothing) (e 2)
@@ -37,7 +37,7 @@ t0002 = do
   let x = getAddressInfo
           Nothing
           Nothing
-          mempty :: IO [AddressInfo INET STREAM TCP]
+          mempty :: IO [AddressInfo Inet STREAM TCP]
   eui <- tryJust (\ex@(AddressInfoException _)-> if ex == eaiNONAME then Just () else Nothing)
                  (x `onException` p 0)
   when (eui /= Left ()) (e 1)
@@ -55,12 +55,12 @@ t0003 = do
           (Just "localhost")
           Nothing
           mempty 
-          `onException` p 0:: IO [AddressInfo INET6 STREAM TCP]
+          `onException` p 0:: IO [AddressInfo Inet6 STREAM TCP]
   y <- getAddressInfo
           (Just "localhost")
           Nothing
           (aiALL `mappend` aiV4MAPPED)
-          `onException` p 1 :: IO [AddressInfo INET6 STREAM TCP]
+          `onException` p 1 :: IO [AddressInfo Inet6 STREAM TCP]
   when (length x == length y) (e 2)
   where
     p i = print ("t0003." ++ show i)
