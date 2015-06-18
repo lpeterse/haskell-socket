@@ -29,7 +29,7 @@ test0001 dummy addr =
             close client                              `onException` print "E04"
       )
       (\(server,client)-> do
-            setSockOpt server (SO_REUSEADDR True)     `onException` print "E05"
+            setSocketOption server (ReuseAddress True)     `onException` print "E05"
             bind server addr                          `onException` print "E06"
             listen server 5                           `onException` print "E07"
             serverRecv <- async $ do

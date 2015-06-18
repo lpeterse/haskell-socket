@@ -161,10 +161,10 @@ data V6Only
    = V6Only Bool
    deriving (Eq, Ord, Show)
 
-instance GetSockOpt V6Only where
-  getSockOpt s =
-    V6Only <$> getSockOptBool s (#const IPPROTO_IPV6) (#const IPV6_V6ONLY)
+instance GetSocketOption V6Only where
+  getSocketOption s =
+    V6Only <$> getSocketOptionBool s (#const IPPROTO_IPV6) (#const IPV6_V6ONLY)
 
-instance SetSockOpt V6Only where
-  setSockOpt s (V6Only o) =
-    setSockOptBool s (#const IPPROTO_IPV6) (#const IPV6_V6ONLY) o
+instance SetSocketOption V6Only where
+  setSocketOption s (V6Only o) =
+    setSocketOptionBool s (#const IPPROTO_IPV6) (#const IPV6_V6ONLY) o

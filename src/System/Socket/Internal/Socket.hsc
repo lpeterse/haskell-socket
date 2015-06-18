@@ -1,11 +1,11 @@
 module System.Socket.Internal.Socket (
     Socket (..)
-  , GetSockOpt (..)
-  , getSockOptBool
-  , SetSockOpt (..)
-  , setSockOptBool
-  , SO_ERROR (..)
-  , SO_REUSEADDR (..)
+  , GetSocketOption (..)
+  , getSocketOptionBool
+  , SetSocketOption (..)
+  , setSocketOptionBool
+  , Error (..)
+  , ReuseAddress (..)
   ) where
 
 import Control.Concurrent.MVar
@@ -49,38 +49,40 @@ import System.Socket.Internal.Exception
 newtype Socket f t p
       = Socket (MVar Fd)
 
-class GetSockOpt o where
-  getSockOpt :: Socket f t p -> IO o
+class GetSocketOption o where
+  getSocketOption :: Socket f t p -> IO o
 
-class SetSockOpt o where
-  setSockOpt :: Socket f t p -> o -> IO ()
+class SetSocketOption o where
+  setSocketOption :: Socket f t p -> o -> IO ()
 
-data SO_ERROR
-   = SO_ERROR SocketException
+-- | @SO_ERROR@
+data Error
+   = Error SocketException
    deriving (Eq, Ord, Show)
 
-instance GetSockOpt SO_ERROR where
-  getSockOpt s =
-    SO_ERROR . SocketException <$> getSockOptCInt s (#const SOL_SOCKET) (#const SO_ERROR)
+instance GetSocketOption Error where
+  getSocketOption s =
+    Error . SocketException <$> getSocketOptionCInt s (#const SOL_SOCKET) (#const SO_ERROR)
 
-data SO_REUSEADDR
-   = SO_REUSEADDR Bool
+-- | @SO_REUSEADDR@
+data ReuseAddress
+   = ReuseAddress Bool
    deriving (Eq, Ord, Show)
 
-instance GetSockOpt SO_REUSEADDR where
-  getSockOpt s =
-    SO_REUSEADDR <$> getSockOptBool s (#const SOL_SOCKET) (#const SO_REUSEADDR)
+instance GetSocketOption ReuseAddress where
+  getSocketOption s =
+    ReuseAddress <$> getSocketOptionBool s (#const SOL_SOCKET) (#const SO_REUSEADDR)
 
-instance SetSockOpt SO_REUSEADDR where
-  setSockOpt s (SO_REUSEADDR o) =
-    setSockOptBool s (#const SOL_SOCKET) (#const SO_REUSEADDR) o
+instance SetSocketOption ReuseAddress where
+  setSocketOption s (ReuseAddress o) =
+    setSocketOptionBool s (#const SOL_SOCKET) (#const SO_REUSEADDR) o
 
 -------------------------------------------------------------------------------
 -- Unsafe helpers
 -------------------------------------------------------------------------------
 
-setSockOptBool :: Socket f t p -> CInt -> CInt -> Bool -> IO ()
-setSockOptBool (Socket mfd) level name value = do
+setSocketOptionBool :: Socket f t p -> CInt -> CInt -> Bool -> IO ()
+setSocketOptionBool (Socket mfd) level name value = do
   withMVar mfd $ \fd->
     alloca $ \vPtr-> do
         if value
@@ -92,8 +94,8 @@ setSockOptBool (Socket mfd) level name value = do
         when (i < 0) $ do
           c_get_last_socket_error >>= throwIO
 
-getSockOptBool :: Socket f t p -> CInt -> CInt -> IO Bool
-getSockOptBool (Socket mfd) level name = do
+getSocketOptionBool :: Socket f t p -> CInt -> CInt -> IO Bool
+getSocketOptionBool (Socket mfd) level name = do
   withMVar mfd $ \fd->
     alloca $ \vPtr-> do
       alloca $ \lPtr-> do
@@ -106,8 +108,8 @@ getSockOptBool (Socket mfd) level name = do
           v <- peek vPtr
           return (v == 1)
 
-setSockOptInt :: Socket f t p -> CInt -> CInt -> Int -> IO ()
-setSockOptInt (Socket mfd) level name value = do
+setSocketOptionInt :: Socket f t p -> CInt -> CInt -> Int -> IO ()
+setSocketOptionInt (Socket mfd) level name value = do
   withMVar mfd $ \fd->
     alloca $ \vPtr-> do
         poke vPtr (fromIntegral value :: CInt)
@@ -117,8 +119,8 @@ setSockOptInt (Socket mfd) level name value = do
         when (i < 0) $ do
           c_get_last_socket_error >>= throwIO
 
-getSockOptInt :: Socket f t p -> CInt -> CInt -> IO Int
-getSockOptInt (Socket mfd) level name = do
+getSocketOptionInt :: Socket f t p -> CInt -> CInt -> IO Int
+getSocketOptionInt (Socket mfd) level name = do
   withMVar mfd $ \fd->
     alloca $ \vPtr-> do
       alloca $ \lPtr-> do
@@ -131,8 +133,8 @@ getSockOptInt (Socket mfd) level name = do
           v <- peek vPtr
           return (fromIntegral v)
 
-setSockOptCInt :: Socket f t p -> CInt -> CInt -> CInt -> IO ()
-setSockOptCInt (Socket mfd) level name value = do
+setSocketOptionCInt :: Socket f t p -> CInt -> CInt -> CInt -> IO ()
+setSocketOptionCInt (Socket mfd) level name value = do
   withMVar mfd $ \fd->
     alloca $ \vPtr-> do
         poke vPtr value
@@ -142,8 +144,8 @@ setSockOptCInt (Socket mfd) level name value = do
         when (i < 0) $ do
           c_get_last_socket_error >>= throwIO
 
-getSockOptCInt :: Socket f t p -> CInt -> CInt -> IO CInt
-getSockOptCInt (Socket mfd) level name = do
+getSocketOptionCInt :: Socket f t p -> CInt -> CInt -> IO CInt
+getSocketOptionCInt (Socket mfd) level name = do
   withMVar mfd $ \fd->
     alloca $ \vPtr-> do
       alloca $ \lPtr-> do

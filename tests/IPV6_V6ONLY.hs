@@ -30,7 +30,7 @@ t0001 =
         close client                                  `onException` p 3
     )
     (\(server,client)-> do
-        setSockOpt server (V6Only True)                     `onException` p 4
+        setSocketOption server (V6Only True)                     `onException` p 4
         bind server (SocketAddressInet6 7777 Inet6.any 0 0) `onException` p 5
 
         threadDelay 1000000 -- wait for the listening socket being set up
@@ -60,7 +60,7 @@ t0002 =
         close client                                  `onException` p 3
     )
     (\(server,client)-> do
-        setSockOpt server (V6Only False)              `onException` p 4
+        setSocketOption server (V6Only False)              `onException` p 4
         bind server (SocketAddressInet6 7778 Inet6.any 0 0) `onException` p 5
 
         threadDelay 1000000 -- wait for the listening socket being set up

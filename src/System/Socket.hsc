@@ -15,7 +15,7 @@
 -- > module Main where
 -- >
 -- > import System.Socket
--- > import System.Socket.Family.Inet (loopback)
+-- > import System.Socket.Family.Inet as Inet
 -- > import Data.Monoid
 -- > import Data.ByteString
 -- > import Control.Monad
@@ -25,13 +25,15 @@
 -- > main :: IO ()
 -- > main = do
 -- >   s <- socket :: IO (Socket Inet Stream TCP)
--- >   setSockOpt s (SO_REUSEADDR True)
--- >   bind s (SocketAddressInet 8080 loopback)
+-- >   setSocketOption s (ReuseAddress True)
+-- >   bind s addr
 -- >   listen s 5
 -- >   forever $ do
--- >     (peer,addr) <- accept s
+-- >     (peer,_) <- accept s
 -- >     forkIO $ do
 -- >       sendAll peer "Hello world!" mempty `finally` close peer
+-- >   where
+-- >     addr = SocketAddressInet 8080 Inet.loopback
 --
 -- This downloads the [Haskell website](http://www.haskell.org) and shows how to
 -- handle exceptions. Note the use of IPv4-mapped `Inet6` addresses: This will work
@@ -123,12 +125,12 @@ module System.Socket (
   , eaiService
   , eaiSystem
   -- * Socket Options
-  -- ** getSockOpt
-  , GetSockOpt (..)
-  -- ** setSockOpt
-  , SetSockOpt (..)
-  , SO_ERROR (..)
-  , SO_REUSEADDR (..)
+  -- ** getSocketOption
+  , GetSocketOption (..)
+  -- ** setSocketOption
+  , SetSocketOption (..)
+  , Error (..)
+  , ReuseAddress (..)
   -- * Flags
   -- ** MsgFlags
   , MsgFlags (..)
@@ -558,7 +560,7 @@ sendAll s lbs flags =
 --   the connection) or given buffer limit has been exceeded or an
 --   exception occured.
 --
---   - The `Int` parameter is a soft limit on how many bytes to receive.
+--   - The `Data.Int.Int64` parameter is a soft limit on how many bytes to receive.
 --     Collection is stopped if the limit has been exceeded. The result might
 --     be up to one internal buffer size longer than the given limit.
 --     If the returned `Data.ByteString.Lazy.ByteString`s length is lower or
@@ -634,4 +636,4 @@ withConnectedSocket host serv flags action = do
 
     configureSocketSpecific sock = do
       when (familyNumber (undefined :: f) == familyNumber (undefined :: Inet6)) $ do
-        setSockOpt sock (V6Only False)
+        setSocketOption sock (V6Only False)
