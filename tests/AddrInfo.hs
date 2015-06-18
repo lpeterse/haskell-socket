@@ -27,7 +27,7 @@ t0001 = do
   when (canonicalName ai /= Nothing) (e 2)
   let sa = socketAddress ai
   when (port    sa /= 80) (e 3)
-  when (address sa /= inaddrLOOPBACK) (e 4)
+  when (address sa /= inetAddressLoopback) (e 4)
   where
     p i = print ("t0001." ++ show i)
     e i = error ("t0001." ++ show i)

@@ -15,7 +15,7 @@
 -- > module Main where
 -- >
 -- > import System.Socket
--- > import System.Socket.Family.Inet (inaddrLOOPBACK)
+-- > import System.Socket.Family.Inet (loopback)
 -- > import Data.Monoid
 -- > import Data.ByteString
 -- > import Control.Monad
@@ -26,7 +26,7 @@
 -- > main = do
 -- >   s <- socket :: IO (Socket Inet Stream TCP)
 -- >   setSockOpt s (SO_REUSEADDR True)
--- >   bind s (SocketAddressInet 8080 inaddrLOOPBACK)
+-- >   bind s (SocketAddressInet 8080 loopback)
 -- >   listen s 5
 -- >   forever $ do
 -- >     (peer,addr) <- accept s

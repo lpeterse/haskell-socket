@@ -286,7 +286,7 @@ getAddressInfo' mnode mservice (AddressInfoFlags flags) = do
 --
 --   The operation throws `AddressInfoException`s.
 --
---   > > getNameInfo (SocketAddressInet 80 inaddrLOOPBACK) mempty
+--   > > getNameInfo (SocketAddressInet 80 loopback) mempty
 --   > ("localhost.localdomain","http")
 class (Family f) => GetNameInfo f where
   getNameInfo :: SocketAddress f -> NameInfoFlags -> IO (BS.ByteString, BS.ByteString)

@@ -8,8 +8,8 @@ module System.Socket.Family.Inet6
   , Inet6ScopeId (..)
   , SocketAddressInet6 (..)
     -- ** Special Address Constants
-  , in6addrANY
-  , in6addrLOOPBACK
+  , System.Socket.Family.Inet6.any
+  , loopback
   -- * Socket Options
   , IPV6_V6ONLY (..)
   ) where
@@ -73,12 +73,12 @@ newtype Inet6ScopeId
       deriving (Eq, Ord, Show, Num)
 
 -- | @::@
-in6addrANY      :: Inet6Address
-in6addrANY       = Inet6Address (BS.pack [0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0])
+any      :: Inet6Address
+any       = Inet6Address (BS.pack [0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0])
 
 -- | @::1@
-in6addrLOOPBACK :: Inet6Address
-in6addrLOOPBACK  = Inet6Address (BS.pack [0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,1])
+loopback :: Inet6Address
+loopback  = Inet6Address (BS.pack [0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,1])
 
 instance Show SocketAddressInet6 where
   show (SocketAddressInet6 p _ addr _) =

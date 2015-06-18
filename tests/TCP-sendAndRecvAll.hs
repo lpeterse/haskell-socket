@@ -10,7 +10,7 @@ import Data.Monoid
 import qualified Data.ByteString.Lazy as LBS
 
 import System.Socket
-import System.Socket.Family.Inet
+import System.Socket.Family.Inet as Inet
 
 -- | This tries to send and receive an extremely huge message (currently 128MB).
 main :: IO ()
@@ -42,4 +42,4 @@ main =
   where
     msgSize       = 128*1024*1024 + 1 :: Int64
     msg           = LBS.replicate msgSize 23
-    addr          = SocketAddressInet 7777 inaddrLOOPBACK
+    addr          = SocketAddressInet 7777 Inet.loopback

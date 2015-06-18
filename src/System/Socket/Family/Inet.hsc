@@ -4,14 +4,14 @@ module System.Socket.Family.Inet
   , SocketAddressInet (..)
   , InetPort (..)
   , InetAddress ()
-  , inaddrANY
-  , inaddrBROADCAST
-  , inaddrNONE
-  , inaddrLOOPBACK
-  , inaddrUNSPEC_GROUP
-  , inaddrALLHOSTS_GROUP
-  , inaddrALLRTS_GROUP
-  , inaddrMAXLOCAL_GROUP
+  -- ** Special Addresses
+  , System.Socket.Family.Inet.any
+  , broadcast
+  , none
+  , loopback
+  , unspecificGroup
+  , allHostsGroup
+  , maxLocalGroup
   ) where
 
 import Data.Word
@@ -63,36 +63,32 @@ newtype InetAddress
       deriving (Eq)
 
 -- | @0.0.0.0@
-inaddrANY             :: InetAddress
-inaddrANY              = InetAddress $ BS.pack [  0,  0,  0,  0]
+any             :: InetAddress
+any              = InetAddress $ BS.pack [  0,  0,  0,  0]
 
 -- | @255.255.255.255@
-inaddrBROADCAST       :: InetAddress
-inaddrBROADCAST        = InetAddress $ BS.pack [255,255,255,255]
+broadcast       :: InetAddress
+broadcast        = InetAddress $ BS.pack [255,255,255,255]
 
 -- | @255.255.255.255@
-inaddrNONE            :: InetAddress
-inaddrNONE             = InetAddress $ BS.pack [255,255,255,255]
+none            :: InetAddress
+none             = InetAddress $ BS.pack [255,255,255,255]
 
 -- | @127.0.0.1@
-inaddrLOOPBACK        :: InetAddress
-inaddrLOOPBACK         = InetAddress $ BS.pack [127,  0,  0,  1]
+loopback        :: InetAddress
+loopback         = InetAddress $ BS.pack [127,  0,  0,  1]
 
 -- | @224.0.0.0@
-inaddrUNSPEC_GROUP    :: InetAddress
-inaddrUNSPEC_GROUP     = InetAddress $ BS.pack [224,  0,  0,  0]
+unspecificGroup    :: InetAddress
+unspecificGroup     = InetAddress $ BS.pack [224,  0,  0,  0]
 
 -- | @224.0.0.1@
-inaddrALLHOSTS_GROUP  :: InetAddress
-inaddrALLHOSTS_GROUP   = InetAddress $ BS.pack [224,  0,  0,  1]
-
--- | @224.0.0.2@
-inaddrALLRTS_GROUP    :: InetAddress
-inaddrALLRTS_GROUP     = InetAddress $ BS.pack [224,  0,  0,  2]
+allHostsGroup  :: InetAddress
+allHostsGroup   = InetAddress $ BS.pack [224,  0,  0,  1]
 
 -- | @224.0.0.255@
-inaddrMAXLOCAL_GROUP  :: InetAddress
-inaddrMAXLOCAL_GROUP   = InetAddress $ BS.pack [224,  0,  0,255]
+maxLocalGroup  :: InetAddress
+maxLocalGroup   = InetAddress $ BS.pack [224,  0,  0,255]
 
 instance Show SocketAddressInet where
   show (SocketAddressInet p a) =
