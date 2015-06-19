@@ -85,7 +85,7 @@ library
                      , System.Socket.Unsafe
   other-modules:       System.Socket.Internal.Socket
                      , System.Socket.Internal.Exception
-                     , System.Socket.Internal.Msg
+                     , System.Socket.Internal.Message
                      , System.Socket.Internal.AddressInfo
                      , System.Socket.Internal.Platform
   build-depends:       base >= 4.7 && < 5

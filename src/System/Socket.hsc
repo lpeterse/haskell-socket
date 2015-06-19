@@ -132,12 +132,12 @@ module System.Socket (
   , Error (..)
   , ReuseAddress (..)
   -- * Flags
-  -- ** MsgFlags
-  , MsgFlags (..)
-  , msgEOR
-  , msgNOSIGNAL
-  , msgOOB
-  , msgWAITALL
+  -- ** MessageFlags
+  , MessageFlags (..)
+  , msgEndOfRecord
+  , msgNoSignal
+  , msgOutOfBand
+  , msgWaitAll
   -- ** AddressInfoFlags
   , AddressInfoFlags (..)
   , aiADDRCONFIG
@@ -181,7 +181,7 @@ import System.Socket.Unsafe
 
 import System.Socket.Internal.Socket
 import System.Socket.Internal.Exception
-import System.Socket.Internal.Msg
+import System.Socket.Internal.Message
 import System.Socket.Internal.AddressInfo
 import System.Socket.Internal.Platform
 
@@ -445,14 +445,14 @@ accept s@(Socket mfd) = accept'
 --   - @EAGAIN@, @EWOULDBLOCK@ and @EINTR@ and handled internally and won't
 --     be thrown. For performance reasons the operation first tries a write
 --     on the socket and then waits when it got @EAGAIN@ or @EWOULDBLOCK@.
-send :: Socket f t p -> BS.ByteString -> MsgFlags -> IO Int
+send :: Socket f t p -> BS.ByteString -> MessageFlags -> IO Int
 send s bs flags = do
   bytesSent <- BS.unsafeUseAsCStringLen bs $ \(bufPtr,bufSize)->
     unsafeSend s (castPtr bufPtr) (fromIntegral bufSize) flags
   return (fromIntegral bytesSent)
 
 -- | Like `send`, but allows for specifying a destination address.
-sendTo ::(Family f) => Socket f t p -> BS.ByteString -> MsgFlags -> SocketAddress f -> IO Int
+sendTo ::(Family f) => Socket f t p -> BS.ByteString -> MessageFlags -> SocketAddress f -> IO Int
 sendTo s bs flags addr = do
   bytesSent <- alloca $ \addrPtr-> do
     poke addrPtr addr
@@ -470,7 +470,7 @@ sendTo s bs flags addr = do
 --   - @EAGAIN@, @EWOULDBLOCK@ and @EINTR@ and handled internally and won't be thrown.
 --     For performance reasons the operation first tries a read
 --     on the socket and then waits when it got @EAGAIN@ or @EWOULDBLOCK@.
-receive :: Socket f t p -> Int -> MsgFlags -> IO BS.ByteString
+receive :: Socket f t p -> Int -> MessageFlags -> IO BS.ByteString
 receive s bufSize flags =
   bracketOnError
     ( mallocBytes bufSize )
@@ -481,10 +481,10 @@ receive s bufSize flags =
     )
 
 -- | Like `receive`, but additionally yields the peer address.
-receiveFrom :: (Family f) => Socket f t p -> Int -> MsgFlags -> IO (BS.ByteString, SocketAddress f)
+receiveFrom :: (Family f) => Socket f t p -> Int -> MessageFlags -> IO (BS.ByteString, SocketAddress f)
 receiveFrom = receiveFrom'
   where
-    receiveFrom' :: forall f t p. (Family f) => Socket f t p -> Int -> MsgFlags -> IO (BS.ByteString, SocketAddress f)
+    receiveFrom' :: forall f t p. (Family f) => Socket f t p -> Int -> MessageFlags -> IO (BS.ByteString, SocketAddress f)
     receiveFrom' s bufSize flags = do
       alloca $ \addrPtr-> do
         alloca $ \addrSizePtr-> do
@@ -545,7 +545,7 @@ close (Socket mfd) = do
 
 -- | Like `send`, but operates on lazy `Data.ByteString.Lazy.ByteString`s and 
 --   continues until all data has been sent or an exception occured.
-sendAll ::Socket f Stream p -> LBS.ByteString -> MsgFlags -> IO ()
+sendAll ::Socket f Stream p -> LBS.ByteString -> MessageFlags -> IO ()
 sendAll s lbs flags =
   LBS.foldlChunks
     (\x bs-> x >> sendAll' bs
@@ -566,7 +566,7 @@ sendAll s lbs flags =
 --     If the returned `Data.ByteString.Lazy.ByteString`s length is lower or
 --     eqal than the limit, the data has not been truncated and the
 --     transmission is complete.
-receiveAll :: Socket f Stream p -> Int64 -> MsgFlags -> IO LBS.ByteString
+receiveAll :: Socket f Stream p -> Int64 -> MessageFlags -> IO LBS.ByteString
 receiveAll sock maxLen flags = collect 0 mempty
   where
     collect len accum

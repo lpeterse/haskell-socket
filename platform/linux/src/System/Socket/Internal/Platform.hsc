@@ -8,7 +8,7 @@ import GHC.Conc (threadWaitReadSTM, threadWaitWriteSTM, atomically)
 
 import System.Posix.Types ( Fd(..) )
 
-import System.Socket.Internal.Msg
+import System.Socket.Internal.Message
 import System.Socket.Internal.Exception
 
 socketWaitWrite' :: Fd -> Int -> IO (IO ())
@@ -41,16 +41,16 @@ foreign import ccall unsafe "listen"
   c_listen  :: Fd -> CInt -> IO CInt
 
 foreign import ccall unsafe "send"
-  c_send    :: Fd -> Ptr a -> CSize -> MsgFlags -> IO CSSize
+  c_send    :: Fd -> Ptr a -> CSize -> MessageFlags -> IO CSSize
 
 foreign import ccall unsafe "sendto"
-  c_sendto  :: Fd -> Ptr a -> CSize -> MsgFlags -> Ptr b -> CInt -> IO CSSize
+  c_sendto  :: Fd -> Ptr a -> CSize -> MessageFlags -> Ptr b -> CInt -> IO CSSize
 
 foreign import ccall unsafe "recv"
-  c_recv    :: Fd -> Ptr a -> CSize -> MsgFlags -> IO CSSize
+  c_recv    :: Fd -> Ptr a -> CSize -> MessageFlags -> IO CSSize
 
 foreign import ccall unsafe "recvfrom"
-  c_recvfrom :: Fd -> Ptr a -> CSize -> MsgFlags -> Ptr b -> Ptr CInt -> IO CSSize
+  c_recvfrom :: Fd -> Ptr a -> CSize -> MessageFlags -> Ptr b -> Ptr CInt -> IO CSSize
 
 foreign import ccall unsafe "getsockopt"
   c_getsockopt  :: Fd -> CInt -> CInt -> Ptr a -> Ptr CInt -> IO CInt
