@@ -61,14 +61,14 @@ tryWaitAndRetry (Socket mfd) getWaitAction action = loop 0
     loop iteration = do
       ewr <- withMVar mfd $ \fd-> do
           when (fd < 0) $ do
-            throwIO eBADF
+            throwIO eBadFileDescriptor
           fix $ \retry-> do
             i <- action fd
             if (i < 0) then do
               e <- c_get_last_socket_error
-              if e == eWOULDBLOCK || e == eAGAIN then do
+              if e == eWouldBlock || e == eAgain then do
                 getWaitAction fd iteration >>= return . Left
-              else if e == eINTR
+              else if e == eInterrupted
                 then retry
                 else throwIO e
             else do

@@ -263,7 +263,7 @@ socket = socket'
 
 -- | Connects to an remote address.
 --
---   - Calling `connect` on a `close`d socket throws @EBADF@ even if the former file descriptor has been reassigned.
+--   - Calling `connect` on a `close`d socket throws `eBadFileDescriptor` even if the former file descriptor has been reassigned.
 --   - This operation returns as soon as a connection has been established (as
 --     if the socket were blocking). The connection attempt has either failed or
 --     succeeded after this operation threw an exception or returned.
@@ -278,13 +278,13 @@ connect (Socket mfd) addr = do
     poke addrPtr addr
     let addrLen = fromIntegral (sizeOf addr)
     mwait <- withMVar mfd $ \fd-> do
-      when (fd < 0) (throwIO eBADF)
+      when (fd < 0) (throwIO eBadFileDescriptor)
       -- The actual connection attempt.
       i <- c_connect fd addrPtr addrLen
       -- On non-blocking sockets we expect to get EINPROGRESS or EWOULDBLOCK.
       if i < 0 then do
         e <- c_get_last_socket_error
-        if e == eINPROGRESS || e == eWOULDBLOCK || e == eINTR then do
+        if e == eInProgress || e == eWouldBlock || e == eInterrupted then do
           -- The manpage says that in this case the connection
           -- shall be established asynchronously and one is
           -- supposed to wait.
@@ -311,18 +311,18 @@ connect (Socket mfd) addr = do
               i <- c_connect fd addrPtr addrLen
               if i < 0 then do
                 e <- c_get_last_socket_error
-                if e == eISCONN then do
+                if e == eIsConnected then do
                   -- This is what we want. The connection is established.
                   return Nothing
-                else if e == eALREADY then do
+                else if e == eAlready then do
                   -- The previous connection attempt is still pending.
                   Just <$> socketWaitWrite' fd iteration
                 else do
                   -- The previous connection failed (results in EINPROGRESS or
                   -- EWOULBLOCK here) or something else is wrong.
-                  -- We throw eTIMEDOUT here as we don't know and will never
+                  -- We throw eTimedOut here as we don't know and will never
                   -- know the exact reason (better suggestions appreciated).
-                  throwIO eTIMEDOUT
+                  throwIO eTimedOut
               else do
                 -- This means the last connection attempt succeeded immediately.
                 -- Linux does this when connecting to the same address when the
@@ -338,8 +338,8 @@ connect (Socket mfd) addr = do
 
 -- | Bind a socket to an address.
 --
---   - Calling `bind` on a `close`d socket throws @EBADF@ even if the former file descriptor has been reassigned.
---   - It is assumed that `c_bind` never blocks and therefore @EINPROGRESS@, @EALREADY@ and @EINTR@ don't occur.
+--   - Calling `bind` on a `close`d socket throws `eBadFileDescriptor` even if the former file descriptor has been reassigned.
+--   - It is assumed that `c_bind` never blocks and therefore @EINPROGRESS@, @EALREADY@ and `eInterrupted` don't occur.
 --     This assumption is supported by the fact that the Linux manpage doesn't mention any of these errors,
 --     the Posix manpage doesn't mention the last one and even MacOS' implementation will never
 --     fail with any of these when the socket is configured non-blocking as
@@ -359,7 +359,7 @@ bind (Socket mfd) addr = do
 -- | Starts listening and queueing connection requests on a connection-mode
 --   socket.
 --
---   - Calling `listen` on a `close`d socket throws @EBADF@ even if the former
+--   - Calling `listen` on a `close`d socket throws `eBadFileDescriptor` even if the former
 --     file descriptor has been reassigned.
 --   - The second parameter is called /backlog/ and sets a limit on how many
 --     unaccepted connections the socket implementation shall queue. A value
@@ -377,7 +377,7 @@ listen (Socket ms) backlog = do
 
 -- | Accept a new connection.
 --
---   - Calling `accept` on a `close`d socket throws @EBADF@ even if the former
+--   - Calling `accept` on a `close`d socket throws `eBadFileDescriptor` even if the former
 --     file descriptor has been reassigned.
 --   - This operation configures the new socket non-blocking (TODO: use `accept4` if available).
 --   - This operation sets up a finalizer for the new socket that automatically
@@ -387,7 +387,7 @@ listen (Socket ms) backlog = do
 --     manually `close` the socket when it's no longer needed.
 --   - This operation throws `SocketException`s. Consult your @man@ page for
 --     details and specific @errno@s.
---   - This operation catches @EAGAIN@, @EWOULDBLOCK@ and @EINTR@ internally
+--   - This operation catches `eAgain`, `eWouldBlock` and `eInterrupted` internally
 --     and retries automatically.
 accept :: (Family f) => Socket f t p -> IO (Socket f t p, SocketAddress f)
 accept s@(Socket mfd) = accept'
@@ -405,10 +405,10 @@ accept s@(Socket mfd) = accept'
                   ft <- c_accept fd addrPtr addrPtrLen
                   if ft < 0 then do
                     e <- c_get_last_socket_error
-                    if e == eWOULDBLOCK || e == eAGAIN
+                    if e == eWouldBlock || e == eAgain
                       then do
                         socketWaitRead' fd iteration >>= return . Left
-                      else if e == eINTR
+                      else if e == eInterrupted
                         -- On EINTR it is good practice to just retry.
                         then retry
                         else throwIO e
@@ -433,18 +433,18 @@ accept s@(Socket mfd) = accept'
 
 -- | Send a message on a connected socket.
 --
---   - Calling `send` on a `close`d socket throws @EBADF@ even if the former
+--   - Calling `send` on a `close`d socket throws `eBadFileDescriptor` even if the former
 --     file descriptor has been reassigned.
 --   - The operation returns the number of bytes sent. On @Datagram@ and
---     @SequentialPacket@ sockets certain assurances on atomicity exist and @EAGAIN@ or
---     @EWOULDBLOCK@ are returned until the whole message would fit
+--     @SequentialPacket@ sockets certain assurances on atomicity exist and `eAgain` or
+--     `eWouldBlock` are returned until the whole message would fit
 --     into the send buffer. 
 --   - The flag @MSG_NOSIGNAL@ is set to supress signals which are pointless.
 --   - This operation throws `SocketException`s. Consult @man 3p send@ for
 --     details and specific @errno@s.
---   - @EAGAIN@, @EWOULDBLOCK@ and @EINTR@ and handled internally and won't
+--   - `eAgain`, `eWouldBlock` and `eInterrupted` and handled internally and won't
 --     be thrown. For performance reasons the operation first tries a write
---     on the socket and then waits when it got @EAGAIN@ or @EWOULDBLOCK@.
+--     on the socket and then waits when it got `eAgain` or `eWouldBlock`.
 send :: Socket f t p -> BS.ByteString -> MessageFlags -> IO Int
 send s bs flags = do
   bytesSent <- BS.unsafeUseAsCStringLen bs $ \(bufPtr,bufSize)->
@@ -462,14 +462,14 @@ sendTo s bs flags addr = do
 
 -- | Receive a message on a connected socket.
 --
---   - Calling `receive` on a `close`d socket throws @EBADF@ even if the former file descriptor has been reassigned.
+--   - Calling `receive` on a `close`d socket throws `eBadFileDescriptor` even if the former file descriptor has been reassigned.
 --   - The operation takes a buffer size in bytes a first parameter which
 --     limits the maximum length of the returned `Data.ByteString.ByteString`.
 --   - This operation throws `SocketException`s. Consult @man 3p receive@ for
 --     details and specific @errno@s.
---   - @EAGAIN@, @EWOULDBLOCK@ and @EINTR@ and handled internally and won't be thrown.
+--   - `eAgain`, `eWouldBlock` and `eInterrupted` and handled internally and won't be thrown.
 --     For performance reasons the operation first tries a read
---     on the socket and then waits when it got @EAGAIN@ or @EWOULDBLOCK@.
+--     on the socket and then waits when it got `eAgain` or `eWouldBlock`.
 receive :: Socket f t p -> Int -> MessageFlags -> IO BS.ByteString
 receive s bufSize flags =
   bracketOnError
@@ -506,12 +506,12 @@ receiveFrom = receiveFrom'
 --   - This operation does not block.
 --   - This operation wakes up all threads that are currently blocking on this
 --     socket. All other threads are guaranteed not to block on operations on this socket in the future.
---     Threads that perform operations other than `close` on this socket will fail with @EBADF@
+--     Threads that perform operations other than `close` on this socket will fail with `eBadFileDescriptor`
 --     after the socket has been closed (`close` replaces the 
 --     `System.Posix.Types.Fd` in the `Control.Concurrent.MVar.MVar` with @-1@
 --     to reliably avoid use-after-free situations).
 --   - This operation potentially throws `SocketException`s (only @EIO@ is
---     documented). @EINTR@ is catched internally and retried automatically, so won't be thrown.
+--     documented). `eInterrupted` is catched internally and retried automatically, so won't be thrown.
 close :: Socket f t p -> IO ()
 close (Socket mfd) = do
   modifyMVarMasked_ mfd $ \fd-> do
@@ -530,7 +530,7 @@ close (Socket mfd) = do
             i <- c_close fd
             if i < 0 then do
               e <- c_get_last_socket_error
-              if e == eINTR 
+              if e == eInterrupted 
                 then retry
                 else throwIO e
             else return ()

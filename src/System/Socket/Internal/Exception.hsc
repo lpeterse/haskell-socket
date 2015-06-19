@@ -15,60 +15,60 @@ instance Exception SocketException
 
 instance Show SocketException where
   show e@(SocketException i)
-    | e == eOK             = "eOK"
-    | e == eINTR           = "eINTR"
-    | e == eAGAIN          = "eAGAIN"
-    | e == eWOULDBLOCK     = "eWOULDBLOCK"
-    | e == eBADF           = "eBADF"
-    | e == eINPROGRESS     = "eINPROGRESS"
-    | e == ePROTONOSUPPORT = "ePROTONOSUPPORT"
-    | e == eINVAL          = "eINVAL"
-    | e == eCONNREFUSED    = "eCONNREFUSED"
-    | e == eNETUNREACH     = "eNETUNREACH"
-    | e == eNOTCONN        = "eNOTCONN"
-    | e == eALREADY        = "eALREADY"
-    | e == eISCONN         = "eISCONN"
-    | e == eTIMEDOUT       = "eTIMEDOUT"
-    | otherwise            = "SocketException " ++ show i
+    | e == eOk                   = "eOk"
+    | e == eInterrupted            = "eInterrupted"
+    | e == eAgain                = "eAgain"
+    | e == eWouldBlock           = "eWouldBlock"
+    | e == eBadFileDescriptor    = "eBadFileDescriptor"
+    | e == eInProgress           = "eInProgress"
+    | e == eProtocolNotSupported = "eProtocolNotSupported"
+    | e == eInvalid              = "eInvalid"
+    | e == eConnectionRefused    = "eConnectionRefused"
+    | e == eNetworkUnreachable   = "eNetworkUnreachable"
+    | e == eNotConnected         = "eNotConnected"
+    | e == eAlready              = "eAlready"
+    | e == eIsConnected          = "eIsConnected"
+    | e == eTimedOut             = "eTimedOut"
+    | otherwise                  = "SocketException " ++ show i
 
-eOK             :: SocketException
-eOK              = SocketException (#const SEOK)
+eOk                       :: SocketException
+eOk                        = SocketException (#const SEOK)
 
-eINTR           :: SocketException
-eINTR            = SocketException (#const SEINTR)
+eInterrupted              :: SocketException
+eInterrupted               = SocketException (#const SEINTR)
 
-eAGAIN          :: SocketException
-eAGAIN           = SocketException (#const SEAGAIN)
+eAgain                    :: SocketException
+eAgain                     = SocketException (#const SEAGAIN)
 
-eWOULDBLOCK     :: SocketException
-eWOULDBLOCK      = SocketException (#const SEWOULDBLOCK)
+eWouldBlock               :: SocketException
+eWouldBlock                = SocketException (#const SEWOULDBLOCK)
 
-eBADF           :: SocketException
-eBADF            = SocketException (#const SEBADF)
+eBadFileDescriptor        :: SocketException
+eBadFileDescriptor         = SocketException (#const SEBADF)
 
-eINPROGRESS     :: SocketException
-eINPROGRESS      = SocketException (#const SEINPROGRESS)
+eInProgress               :: SocketException
+eInProgress                = SocketException (#const SEINPROGRESS)
 
-ePROTONOSUPPORT :: SocketException
-ePROTONOSUPPORT  = SocketException (#const SEPROTONOSUPPORT)
+eProtocolNotSupported     :: SocketException
+eProtocolNotSupported      = SocketException (#const SEPROTONOSUPPORT)
 
-eINVAL          :: SocketException
-eINVAL           = SocketException (#const SEINVAL)
+eInvalid                  :: SocketException
+eInvalid                   = SocketException (#const SEINVAL)
 
-eCONNREFUSED    :: SocketException
-eCONNREFUSED     = SocketException (#const SECONNREFUSED)
+eConnectionRefused        :: SocketException
+eConnectionRefused         = SocketException (#const SECONNREFUSED)
 
-eNETUNREACH     :: SocketException
-eNETUNREACH      = SocketException (#const SENETUNREACH)
+eNetworkUnreachable       :: SocketException
+eNetworkUnreachable        = SocketException (#const SENETUNREACH)
 
-eNOTCONN        :: SocketException
-eNOTCONN         = SocketException (#const SENOTCONN)
+eNotConnected             :: SocketException
+eNotConnected              = SocketException (#const SENOTCONN)
 
-eALREADY        :: SocketException
-eALREADY         = SocketException (#const SEALREADY)
+eAlready                  :: SocketException
+eAlready                   = SocketException (#const SEALREADY)
 
-eISCONN         :: SocketException
-eISCONN          = SocketException (#const SEISCONN)
+eIsConnected              :: SocketException
+eIsConnected               = SocketException (#const SEISCONN)
 
-eTIMEDOUT       :: SocketException
-eTIMEDOUT        = SocketException (#const SETIMEDOUT)
+eTimedOut                 :: SocketException
+eTimedOut                  = SocketException (#const SETIMEDOUT)
