@@ -223,9 +223,15 @@ class (Family f) => GetAddressInfo f where
 --   `aiV4Mapped` and use IPv6-sockets.
 --
 --   > > getAddressInfo (Just "www.haskell.org") (Just "80") aiV4Mapped :: IO [AddressInfo Inet6 Stream TCP]
---   > [AddressInfo {addrInfoFlags = AddressInfoFlags 8, addrAddress = [2400:cb00:2048:0001:0000:0000:6ca2:cc3c]:80, addrCanonName = Nothing}]
+--   > [AddressInfo {
+--   >    addressInfoFlags = AddressInfoFlags 8,
+--   >    socketAddress    = SocketAddressInet6 {address = 2400:cb00:2048:0001:0000:0000:6ca2:cc3c, port = 80, flowInfo = mempty, scopeId = 0},
+--   >    canonicalName    = Nothing }]
 --   > > getAddressInfo (Just "darcs.haskell.org") Nothing aiV4Mapped :: IO [AddressInfo Inet6 Stream TCP]
---   > [AddressInfo {addrInfoFlags = AddressInfoFlags 8, addrAddress = [0000:0000:0000:0000:0000:ffff:17fd:e1ad]:0, addrCanonName = Nothing}]
+--   > [AddressInfo {
+--   >    addressInfoFlags = AddressInfoFlags 8, 
+--   >    socketAddress    = SocketAddressInet6 {address = 0000:0000:0000:0000:0000:ffff:17fd:e1ad, port = 0, flowInfo = mempty, scopeId = 0},
+--   >    canonicalName    = Nothing }]
 --   > > getAddressInfo (Just "darcs.haskell.org") Nothing mempty :: IO [AddressInfo Inet6 Stream TCP]
 --   > *** Exception: AddressInfoException "Name or service not known"
   getAddressInfo :: (Type t, Protocol p) => Maybe BS.ByteString -> Maybe BS.ByteString -> AddressInfoFlags -> IO [AddressInfo f t p]

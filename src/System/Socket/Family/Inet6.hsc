@@ -17,6 +17,8 @@ module System.Socket.Family.Inet6
   , V6Only (..)
   ) where
 
+import Data.Bits
+import Data.Monoid
 import Data.Word
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Unsafe as BS
@@ -40,6 +42,9 @@ instance Family Inet6 where
   type SocketAddress Inet6 = SocketAddressInet6
   familyNumber _ = (#const AF_INET6)
 
+-- | Example:
+--
+--  > SocketAddressInet6 loopback 8080 mempty 0
 data SocketAddressInet6
    = SocketAddressInet6
      { address   :: Address
@@ -65,18 +70,31 @@ instance Show Port where
 --   nameserver lookups:
 --
 --   > > getAddressInfo (Just "::1") Nothing aiNumericHost :: IO [AddressInfo SocketAddressInet6 Stream TCP]
---   > [AddressInfo {addressInfoFlags = AddressInfoFlags 4, socketAddress = SocketAddressInet6 {port = 0, address = 0000:0000:0000:0000:0000:0000:0000:0001, flowInfo = FlowInfo 0, scopeId = ScopeId 0}, canonicalName = Nothing}]
+--   > [AddressInfo {
+--   >    addressInfoFlags = AddressInfoFlags 4, 
+--   >    socketAddress    = SocketAddressInet6 {address = 0000:0000:0000:0000:0000:0000:0000:0001, port = 0, flowInfo = mempty, scopeId = 0},
+--   >    canonicalName    = Nothing }]
 newtype Address
       = Address BS.ByteString
       deriving (Eq)
 
 newtype FlowInfo
       = FlowInfo Word32
-      deriving (Eq, Ord, Show, Num)
+      deriving (Eq, Ord, Bits)
+
+instance Show FlowInfo where
+  show (FlowInfo i) = show i
+
+instance Monoid FlowInfo where
+  mempty  = FlowInfo 0
+  mappend = (.|.)
 
 newtype ScopeId
       = ScopeId Word32
-      deriving (Eq, Ord, Show, Num)
+      deriving (Eq, Ord, Num)
+
+instance Show ScopeId where
+  show (ScopeId i) = show i
 
 -- | @::@
 any      :: Address

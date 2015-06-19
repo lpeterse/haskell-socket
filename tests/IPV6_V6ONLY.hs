@@ -31,7 +31,7 @@ t0001 =
     )
     (\(server,client)-> do
         setSocketOption server (V6Only True)                `onException` p 4
-        bind server (SocketAddressInet6 Inet6.any 7777 0 0) `onException` p 5
+        bind server (SocketAddressInet6 Inet6.any 7777 mempty 0) `onException` p 5
 
         threadDelay 1000000 -- wait for the listening socket being set up
         sendTo client "PING" mempty (SocketAddressInet Inet.loopback 7777)
@@ -61,7 +61,7 @@ t0002 =
     )
     (\(server,client)-> do
         setSocketOption server (V6Only False)              `onException` p 4
-        bind server (SocketAddressInet6 Inet6.any 7778 0 0) `onException` p 5
+        bind server (SocketAddressInet6 Inet6.any 7778 mempty 0) `onException` p 5
 
         threadDelay 1000000 -- wait for the listening socket being set up
         sendTo client "PING" mempty (SocketAddressInet Inet.loopback 7778) `onException` p 6

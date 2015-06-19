@@ -59,7 +59,7 @@ localhost6 =
   SocketAddressInet6
   { Inet6.port     = 7777
   , Inet6.address  = Inet6.loopback
-  , Inet6.flowInfo = 0
+  , Inet6.flowInfo = mempty
   , Inet6.scopeId  = 0
   }
 
