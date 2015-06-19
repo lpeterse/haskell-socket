@@ -192,7 +192,7 @@ instance Monoid NameInfoFlags where
 niNameRequired     :: NameInfoFlags
 niNameRequired      = NameInfoFlags (#const NI_NAMEREQD)
 
--- | @NI_DGRAM@: Service is datagram based (UDP) rather than stream based (TCP).
+-- | @NI_DGRAM@: Service is datagram based (i.e. `System.Socket.Protocol.UDP.UDP`) rather than stream based (i.e. `System.Socket.Protocol.TCP.TCP`).
 niDatagram        :: NameInfoFlags
 niDatagram         = NameInfoFlags (#const NI_DGRAM)
 

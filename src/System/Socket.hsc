@@ -35,8 +35,8 @@
 -- >   where
 -- >     addr = SocketAddressInet Inet.loopback 8080
 --
--- This downloads the [Haskell website](http://www.haskell.org) and shows how to
--- handle exceptions. Note the use of IPv4-mapped `Inet6` addresses: This will work
+-- This downloads the [Haskell website](http://www.haskell.org) and prints it to stdout.
+-- Note the use of IPv4-mapped `Inet6` addresses: This will work
 -- even if you don't have IPv6 connectivity yet and is the preferred method
 -- when writing new applications.
 --
@@ -339,7 +339,7 @@ connect (Socket mfd) addr = do
 -- | Bind a socket to an address.
 --
 --   - Calling `bind` on a `close`d socket throws `eBadFileDescriptor` even if the former file descriptor has been reassigned.
---   - It is assumed that `c_bind` never blocks and therefore @EINPROGRESS@, @EALREADY@ and `eInterrupted` don't occur.
+--   - It is assumed that `c_bind` never blocks and therefore `eInProgress`, `eAlready` and `eInterrupted` don't occur.
 --     This assumption is supported by the fact that the Linux manpage doesn't mention any of these errors,
 --     the Posix manpage doesn't mention the last one and even MacOS' implementation will never
 --     fail with any of these when the socket is configured non-blocking as
@@ -435,11 +435,11 @@ accept s@(Socket mfd) = accept'
 --
 --   - Calling `send` on a `close`d socket throws `eBadFileDescriptor` even if the former
 --     file descriptor has been reassigned.
---   - The operation returns the number of bytes sent. On @Datagram@ and
---     @SequentialPacket@ sockets certain assurances on atomicity exist and `eAgain` or
+--   - The operation returns the number of bytes sent. On `Datagram` and
+--     `SequentialPacket` sockets certain assurances on atomicity exist and `eAgain` or
 --     `eWouldBlock` are returned until the whole message would fit
 --     into the send buffer. 
---   - The flag @MSG_NOSIGNAL@ is set to supress signals which are pointless.
+--   - The flag `msgNoSignal` is set to supress signals which are pointless.
 --   - This operation throws `SocketException`s. Consult @man 3p send@ for
 --     details and specific @errno@s.
 --   - `eAgain`, `eWouldBlock` and `eInterrupted` and handled internally and won't
