@@ -3,10 +3,10 @@ module System.Socket.Family.Inet6
   ( Inet6
     -- * Addresses
   , SocketAddressInet6 (..)
-  , Inet6Port (..)
-  , Inet6Address ()
-  , Inet6FlowInfo (..)
-  , Inet6ScopeId (..)
+  , Port (..)
+  , Address ()
+  , FlowInfo (..)
+  , ScopeId (..)
     -- ** Special Address Constants
   , System.Socket.Family.Inet6.any
   , loopback
@@ -40,15 +40,18 @@ instance Family Inet6 where
 
 data SocketAddressInet6
    = SocketAddressInet6
-     { port      :: Inet6Port
-     , address   :: Inet6Address
-     , flowInfo  :: Inet6FlowInfo
-     , scopeId   :: Inet6ScopeId
-     } deriving (Eq)
+     { port      :: Port
+     , address   :: Address
+     , flowInfo  :: FlowInfo
+     , scopeId   :: ScopeId
+     } deriving (Eq, Show)
 
-newtype Inet6Port
-      = Inet6Port Word16
-      deriving (Eq, Ord, Show, Num)
+newtype Port
+      = Port Word16
+      deriving (Eq, Ord, Num)
+
+instance Show Port where
+  show (Port p) = show p
 
 -- | To avoid errors with endianess it was decided to keep this type abstract.
 --
@@ -60,33 +63,29 @@ newtype Inet6Port
 --   nameserver lookups:
 --
 --   > > getAddressInfo (Just "::1") Nothing aiNUMERICHOST :: IO [AddressInfo SocketAddressInet6 Stream TCP]
---   > [AddressInfo {addrInfoFlags = AddressInfoFlags 4, addrAddress = [0000:0000:0000:0000:0000:0000:0000:0001]:0, addrCanonName = Nothing}]
-newtype Inet6Address
-      = Inet6Address BS.ByteString
+--   > [AddressInfo {addressInfoFlags = AddressInfoFlags 4, socketAddress = SocketAddressInet6 {port = 0, address = 0000:0000:0000:0000:0000:0000:0000:0001, flowInfo = FlowInfo 0, scopeId = ScopeId 0}, canonicalName = Nothing}]
+newtype Address
+      = Address BS.ByteString
       deriving (Eq)
 
-newtype Inet6FlowInfo
-      = Inet6FlowInfo Word32
+newtype FlowInfo
+      = FlowInfo Word32
       deriving (Eq, Ord, Show, Num)
 
-newtype Inet6ScopeId
-      = Inet6ScopeId Word32
+newtype ScopeId
+      = ScopeId Word32
       deriving (Eq, Ord, Show, Num)
 
 -- | @::@
-any      :: Inet6Address
-any       = Inet6Address (BS.pack [0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0])
+any      :: Address
+any       = Address (BS.pack [0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0])
 
 -- | @::1@
-loopback :: Inet6Address
-loopback  = Inet6Address (BS.pack [0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,1])
+loopback :: Address
+loopback  = Address (BS.pack [0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,1])
 
-instance Show SocketAddressInet6 where
-  show (SocketAddressInet6 p addr _ _) =
-    "[" ++ show addr ++ "]:" ++ show p
-
-instance Show Inet6Address where
-  show (Inet6Address addr) = tail $ t $ BS.unpack addr
+instance Show Address where
+  show (Address addr) = tail $ t $ BS.unpack addr
     where
       t []       = []
       t [x]      = g x 0 []
@@ -113,12 +112,12 @@ instance Show Inet6Address where
       h 15 = 'f'
       h  _ = '_'
 
-instance Storable Inet6Address where
+instance Storable Address where
   sizeOf   _  = 16
   alignment _ = 16
   peek ptr    =
-    Inet6Address <$> BS.packCStringLen (castPtr ptr, 16)
-  poke ptr (Inet6Address a) =
+    Address <$> BS.packCStringLen (castPtr ptr, 16)
+  poke ptr (Address a) =
     BS.unsafeUseAsCString a $ \aPtr-> do
       copyBytes ptr (castPtr aPtr) (min 16 $ BS.length a)
 
@@ -129,15 +128,15 @@ instance Storable SocketAddressInet6 where
     f   <- peek              (sin6_flowinfo ptr)     :: IO Word32
     ph  <- peekByteOff       (sin6_port     ptr)  0  :: IO Word8
     pl  <- peekByteOff       (sin6_port     ptr)  1  :: IO Word8
-    a   <- peek              (sin6_addr     ptr)     :: IO Inet6Address
+    a   <- peek              (sin6_addr     ptr)     :: IO Address
     s   <- peek              (sin6_scope_id ptr)     :: IO Word32
-    return (SocketAddressInet6 (Inet6Port $ fromIntegral ph * 256 + fromIntegral pl) a (Inet6FlowInfo f) (Inet6ScopeId s))
+    return (SocketAddressInet6 (Port $ fromIntegral ph * 256 + fromIntegral pl) a (FlowInfo f) (ScopeId s))
     where
       sin6_flowinfo = (#ptr struct sockaddr_in6, sin6_flowinfo)
       sin6_scope_id = (#ptr struct sockaddr_in6, sin6_scope_id)
       sin6_port     = (#ptr struct sockaddr_in6, sin6_port)
       sin6_addr     = (#ptr struct in6_addr, s6_addr) . (#ptr struct sockaddr_in6, sin6_addr)
-  poke ptr (SocketAddressInet6 (Inet6Port p) a (Inet6FlowInfo f) (Inet6ScopeId s)) = do
+  poke ptr (SocketAddressInet6 (Port p) a (FlowInfo f) (ScopeId s)) = do
     c_memset ptr 0 (#const sizeof(struct sockaddr_in6))
     poke        (sin6_family   ptr) ((#const AF_INET6) :: Word16)
     poke        (sin6_flowinfo ptr) f

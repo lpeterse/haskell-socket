@@ -64,9 +64,9 @@ import System.Socket.Internal.Platform
 
 data AddressInfo f t p
    = AddressInfo
-     { flags         :: AddressInfoFlags
-     , socketAddress :: SocketAddress f
-     , canonicalName :: Maybe BS.ByteString
+     { addressInfoFlags :: AddressInfoFlags
+     , socketAddress    :: SocketAddress f
+     , canonicalName    :: Maybe BS.ByteString
      }
 
 deriving instance (Eq   (SocketAddress f)) => Eq   (AddressInfo f t p)

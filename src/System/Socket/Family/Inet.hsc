@@ -3,8 +3,8 @@ module System.Socket.Family.Inet
   ( Inet
   -- * Addresses
   , SocketAddressInet (..)
-  , InetPort (..)
-  , InetAddress ()
+  , Port (..)
+  , Address ()
   -- ** Special Address Constants
   , System.Socket.Family.Inet.any
   , broadcast
@@ -41,13 +41,16 @@ instance Family Inet where
 
 data SocketAddressInet
    = SocketAddressInet
-     { port      :: InetPort
-     , address   :: InetAddress
-     } deriving (Eq)
+     { port      :: Port
+     , address   :: Address
+     } deriving (Eq, Show)
 
-newtype InetPort
-      = InetPort Word16
-      deriving (Eq, Ord, Show, Num)
+newtype Port
+      = Port Word16
+      deriving (Eq, Ord, Num)
+
+instance Show Port where
+  show (Port p) = show p
 
 -- | To avoid errors with endianess it was decided to keep this type abstract.
 --
@@ -58,54 +61,50 @@ newtype InetPort
 --   Another hint: Use `System.Socket.getAddressInfo` for parsing and suppress
 --   nameserver lookups:
 --
---   > > getAddressInfo (Just "127.0.0.1") Nothing aiNUMERICHOST :: IO [AddressInfo SocketAddressInet Stream TCP]
---   > [AddressInfo {addrInfoFlags = AddressInfoFlags 4, addrAddress = "127.0.0.1:0", addrCanonName = Nothing}]
-newtype InetAddress
-      = InetAddress BS.ByteString
+--   > > getAddressInfo (Just "127.0.0.1") Nothing aiNUMERICHOST :: IO [AddressInfo Inet Stream TCP]
+--   > [AddressInfo {addressInfoFlags = AddressInfoFlags 4, socketAddress = SocketAddressInet {port = 0, address = 127.0.0.1}, canonicalName = Nothing}]
+newtype Address
+      = Address BS.ByteString
       deriving (Eq)
 
 -- | @0.0.0.0@
-any             :: InetAddress
-any              = InetAddress $ BS.pack [  0,  0,  0,  0]
+any             :: Address
+any              = Address $ BS.pack [  0,  0,  0,  0]
 
 -- | @255.255.255.255@
-broadcast       :: InetAddress
-broadcast        = InetAddress $ BS.pack [255,255,255,255]
+broadcast       :: Address
+broadcast        = Address $ BS.pack [255,255,255,255]
 
 -- | @255.255.255.255@
-none            :: InetAddress
-none             = InetAddress $ BS.pack [255,255,255,255]
+none            :: Address
+none             = Address $ BS.pack [255,255,255,255]
 
 -- | @127.0.0.1@
-loopback        :: InetAddress
-loopback         = InetAddress $ BS.pack [127,  0,  0,  1]
+loopback        :: Address
+loopback         = Address $ BS.pack [127,  0,  0,  1]
 
 -- | @224.0.0.0@
-unspecificGroup    :: InetAddress
-unspecificGroup     = InetAddress $ BS.pack [224,  0,  0,  0]
+unspecificGroup    :: Address
+unspecificGroup     = Address $ BS.pack [224,  0,  0,  0]
 
 -- | @224.0.0.1@
-allHostsGroup  :: InetAddress
-allHostsGroup   = InetAddress $ BS.pack [224,  0,  0,  1]
+allHostsGroup  :: Address
+allHostsGroup   = Address $ BS.pack [224,  0,  0,  1]
 
 -- | @224.0.0.255@
-maxLocalGroup  :: InetAddress
-maxLocalGroup   = InetAddress $ BS.pack [224,  0,  0,255]
+maxLocalGroup  :: Address
+maxLocalGroup   = Address $ BS.pack [224,  0,  0,255]
 
-instance Show SocketAddressInet where
-  show (SocketAddressInet p a) =
-    show a ++ ":" ++ show p
-
-instance Show InetAddress where
-  show (InetAddress a) =
+instance Show Address where
+  show (Address a) =
     concat $ intersperse "." $ map show $ BS.unpack a
 
-instance Storable InetAddress where
+instance Storable Address where
   sizeOf   _  = (#size      uint32_t)
   alignment _ = (#alignment uint32_t)
   peek ptr    =
-    InetAddress <$> BS.packCStringLen (castPtr ptr, 4)
-  poke ptr (InetAddress a) =
+    Address <$> BS.packCStringLen (castPtr ptr, 4)
+  poke ptr (Address a) =
     BS.unsafeUseAsCString a $ \aPtr-> do
       copyBytes ptr (castPtr aPtr) (min 4 $ BS.length a)
 
@@ -115,12 +114,12 @@ instance Storable SocketAddressInet where
   peek ptr    = do
     ph  <- peekByteOff (sin_port ptr)  0 :: IO Word8
     pl  <- peekByteOff (sin_port ptr)  1 :: IO Word8
-    a   <- peek        (sin_addr ptr)    :: IO InetAddress
-    return (SocketAddressInet (InetPort $ fromIntegral ph * 256 + fromIntegral pl) a)
+    a   <- peek        (sin_addr ptr)    :: IO Address
+    return (SocketAddressInet (Port $ fromIntegral ph * 256 + fromIntegral pl) a)
     where
       sin_port     = (#ptr struct sockaddr_in, sin_port)
       sin_addr     = (#ptr struct in_addr, s_addr) . (#ptr struct sockaddr_in, sin_addr)
-  poke ptr (SocketAddressInet (InetPort p) a) = do
+  poke ptr (SocketAddressInet (Port p) a) = do
     c_memset ptr 0 (#const sizeof(struct sockaddr_in))
     poke        (sin_family   ptr) ((#const AF_INET) :: Word16)
     pokeByteOff (sin_port     ptr)  0 (fromIntegral $ rem (quot p 256) 256 :: Word8)
