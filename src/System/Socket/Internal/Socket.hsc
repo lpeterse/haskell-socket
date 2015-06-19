@@ -2,8 +2,12 @@ module System.Socket.Internal.Socket (
     Socket (..)
   , GetSocketOption (..)
   , getSocketOptionBool
+  , getSocketOptionInt
+  , getSocketOptionCInt
   , SetSocketOption (..)
   , setSocketOptionBool
+  , setSocketOptionInt
+  , setSocketOptionCInt
   , Error (..)
   , ReuseAddress (..)
   ) where

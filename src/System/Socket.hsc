@@ -160,7 +160,6 @@ import Control.Exception
 import Control.Monad
 import Control.Applicative
 import Control.Concurrent
-import Control.Concurrent.MVar
 
 import Data.Function
 import Data.Monoid

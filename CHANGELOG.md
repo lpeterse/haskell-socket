@@ -1,3 +1,11 @@
+0.5.0.0 Lars Petersen <info@lars-petersen.net> 2015-06-19
+
+ * Introduced newtypes `Port`, `FlowInfo` and `ScopeId` in Inet6 family.
+ * Renamed nearly everything in response to very constructive criticism
+   by Bryan O'Sullivan. This is a breaking change (sorry about that).
+   I felt this was the last chance to get this straight before the library
+   gets widely adopted.
+   Additional kudos to @ignorantone and @whatsthepoint.
  * Issue #7: Typo in documentation of inaddrNONE and inaddrBROADCAST.
    Kudos to Michael Fox.
 

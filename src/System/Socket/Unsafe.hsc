@@ -14,25 +14,17 @@ module System.Socket.Unsafe (
 import Data.Function
 import Data.Monoid
 
-import qualified Data.ByteString as BS
-import qualified Data.ByteString.Unsafe as BS
-import qualified Data.ByteString.Lazy as LBS
-
 import Control.Monad
 import Control.Exception
 import Control.Concurrent.MVar
 
 import Foreign.C.Types
-import Foreign.C.String
 import Foreign.Ptr
-import Foreign.Marshal.Alloc
-import Foreign.Storable
 
 import System.Socket.Internal.Socket
 import System.Socket.Internal.Platform
 import System.Socket.Internal.Exception
 import System.Socket.Internal.Message
-import System.Socket.Internal.Platform
 import System.Socket.Family
 
 import System.Posix.Types (Fd)
