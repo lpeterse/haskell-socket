@@ -33,7 +33,7 @@
 -- >     forkIO $ do
 -- >       sendAll peer "Hello world!" mempty `finally` close peer
 -- >   where
--- >     addr = SocketAddressInet 8080 Inet.loopback
+-- >     addr = SocketAddressInet Inet.loopback 8080
 --
 -- This downloads the [Haskell website](http://www.haskell.org) and shows how to
 -- handle exceptions. Note the use of IPv4-mapped `Inet6` addresses: This will work
