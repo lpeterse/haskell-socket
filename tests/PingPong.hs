@@ -39,7 +39,7 @@ t0001 = do
   when (i < 10000) (e 16)
 
   where
-    addr = SocketAddressInet 8080 Inet.loopback
+    addr = SocketAddressInet Inet.loopback 8080
     e i  = print ("t0001." ++ show i)
     loop sock index = ( do
       ping <- receive sock 4096 mempty

@@ -3,16 +3,23 @@ module System.Socket.Family.Inet
   ( Inet
   -- * Addresses
   , SocketAddressInet (..)
-  , Port (..)
   , Address ()
+  , Port (..)
   -- ** Special Address Constants
-  , System.Socket.Family.Inet.any
-  , broadcast
-  , none
-  , loopback
-  , unspecificGroup
+  -- *** allHostsGroup
   , allHostsGroup
+  -- *** any
+  , System.Socket.Family.Inet.any
+  -- *** broadcast
+  , broadcast
+  -- *** loopback
+  , loopback
+  -- *** maxLocalGroup
   , maxLocalGroup
+  -- *** none
+  , none
+  -- *** unspecificGroup
+  , unspecificGroup
   -- * Socket Options
   ) where
 
@@ -41,8 +48,8 @@ instance Family Inet where
 
 data SocketAddressInet
    = SocketAddressInet
-     { port      :: Port
-     , address   :: Address
+     { address   :: Address
+     , port      :: Port
      } deriving (Eq, Show)
 
 newtype Port
@@ -61,8 +68,8 @@ instance Show Port where
 --   Another hint: Use `System.Socket.getAddressInfo` for parsing and suppress
 --   nameserver lookups:
 --
---   > > getAddressInfo (Just "127.0.0.1") Nothing aiNUMERICHOST :: IO [AddressInfo Inet Stream TCP]
---   > [AddressInfo {addressInfoFlags = AddressInfoFlags 4, socketAddress = SocketAddressInet {port = 0, address = 127.0.0.1}, canonicalName = Nothing}]
+--   > > getAddressInfo (Just "127.0.0.1") Nothing aiNumericHost :: IO [AddressInfo Inet Stream TCP]
+--   > [AddressInfo {addressInfoFlags = AddressInfoFlags 4, socketAddress = SocketAddressInet { address = 127.0.0.1, port = 0}, canonicalName = Nothing}]
 newtype Address
       = Address BS.ByteString
       deriving (Eq)
@@ -84,16 +91,16 @@ loopback        :: Address
 loopback         = Address $ BS.pack [127,  0,  0,  1]
 
 -- | @224.0.0.0@
-unspecificGroup    :: Address
-unspecificGroup     = Address $ BS.pack [224,  0,  0,  0]
+unspecificGroup :: Address
+unspecificGroup  = Address $ BS.pack [224,  0,  0,  0]
 
 -- | @224.0.0.1@
-allHostsGroup  :: Address
-allHostsGroup   = Address $ BS.pack [224,  0,  0,  1]
+allHostsGroup   :: Address
+allHostsGroup    = Address $ BS.pack [224,  0,  0,  1]
 
 -- | @224.0.0.255@
-maxLocalGroup  :: Address
-maxLocalGroup   = Address $ BS.pack [224,  0,  0,255]
+maxLocalGroup   :: Address
+maxLocalGroup    = Address $ BS.pack [224,  0,  0,255]
 
 instance Show Address where
   show (Address a) =
@@ -115,11 +122,11 @@ instance Storable SocketAddressInet where
     ph  <- peekByteOff (sin_port ptr)  0 :: IO Word8
     pl  <- peekByteOff (sin_port ptr)  1 :: IO Word8
     a   <- peek        (sin_addr ptr)    :: IO Address
-    return (SocketAddressInet (Port $ fromIntegral ph * 256 + fromIntegral pl) a)
+    return (SocketAddressInet a (Port $ fromIntegral ph * 256 + fromIntegral pl))
     where
       sin_port     = (#ptr struct sockaddr_in, sin_port)
       sin_addr     = (#ptr struct in_addr, s_addr) . (#ptr struct sockaddr_in, sin_addr)
-  poke ptr (SocketAddressInet (Port p) a) = do
+  poke ptr (SocketAddressInet a (Port p)) = do
     c_memset ptr 0 (#const sizeof(struct sockaddr_in))
     poke        (sin_family   ptr) ((#const AF_INET) :: Word16)
     pokeByteOff (sin_port     ptr)  0 (fromIntegral $ rem (quot p 256) 256 :: Word8)

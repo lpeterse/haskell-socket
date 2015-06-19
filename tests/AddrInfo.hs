@@ -20,7 +20,7 @@ t0001 = do
   ais <- getAddressInfo
           (Just "127.0.0.1")
           (Just "http")
-          aiNUMERICHOST 
+          aiNumericHost 
           `onException` p 0 :: IO [AddressInfo Inet Stream TCP]
   when (length ais /= 1) (e 1)
   let [ai] = ais
@@ -59,7 +59,7 @@ t0003 = do
   y <- getAddressInfo
           (Just "localhost")
           Nothing
-          (aiALL `mappend` aiV4MAPPED)
+          (aiAll `mappend` aiV4Mapped)
           `onException` p 1 :: IO [AddressInfo Inet6 Stream TCP]
   when (length x == length y) (e 2)
   where

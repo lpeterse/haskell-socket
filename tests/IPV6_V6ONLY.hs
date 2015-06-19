@@ -30,11 +30,11 @@ t0001 =
         close client                                  `onException` p 3
     )
     (\(server,client)-> do
-        setSocketOption server (V6Only True)                     `onException` p 4
-        bind server (SocketAddressInet6 7777 Inet6.any 0 0) `onException` p 5
+        setSocketOption server (V6Only True)                `onException` p 4
+        bind server (SocketAddressInet6 Inet6.any 7777 0 0) `onException` p 5
 
         threadDelay 1000000 -- wait for the listening socket being set up
-        sendTo client "PING" mempty (SocketAddressInet 7777 Inet.loopback)
+        sendTo client "PING" mempty (SocketAddressInet Inet.loopback 7777)
                                                             `onException` p 6
         eith <- race
           ( receiveFrom server 4096 mempty `onException` p 7 >> return () )
@@ -61,11 +61,10 @@ t0002 =
     )
     (\(server,client)-> do
         setSocketOption server (V6Only False)              `onException` p 4
-        bind server (SocketAddressInet6 7778 Inet6.any 0 0) `onException` p 5
+        bind server (SocketAddressInet6 Inet6.any 7778 0 0) `onException` p 5
 
         threadDelay 1000000 -- wait for the listening socket being set up
-        sendTo client "PING" mempty (SocketAddressInet 7778 Inet.loopback)
-                                                      `onException` p 6
+        sendTo client "PING" mempty (SocketAddressInet Inet.loopback 7778) `onException` p 6
         eith <- race
           ( receiveFrom server 4096 mempty `onException` p 7 >> return ())
           ( threadDelay 1000000 )

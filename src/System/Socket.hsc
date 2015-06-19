@@ -49,7 +49,7 @@
 -- > 
 -- > main :: IO ()
 -- > main = do
--- >   withConnectedSocket "www.haskell.org" "80" (aiALL `mappend` aiV4MAPPED) $ \sock-> do
+-- >   withConnectedSocket "www.haskell.org" "80" (aiAll `mappend` aiV4Mapped) $ \sock-> do
 -- >     let _ = sock :: Socket Inet6 Stream TCP
 -- >     sendAll sock "GET / HTTP/1.0\r\nHost: www.haskell.org\r\n\r\n" mempty
 -- >     x <- receiveAll sock (1024*1024*1024) mempty
@@ -140,13 +140,13 @@ module System.Socket (
   , msgWaitAll
   -- ** AddressInfoFlags
   , AddressInfoFlags (..)
-  , aiADDRCONFIG
-  , aiALL
-  , aiCANONNAME
-  , aiNUMERICHOST
-  , aiNUMERICSERV
-  , aiPASSIVE
-  , aiV4MAPPED
+  , aiAddressConfig
+  , aiAll
+  , aiCanonicalName
+  , aiNumericHost
+  , aiNumericService
+  , aiPassive
+  , aiV4Mapped
   -- ** NameInfoFlags
   , NameInfoFlags (..)
   , niNameRequired
@@ -596,7 +596,7 @@ receiveAll sock maxLen flags = collect 0 mempty
 -- - This operation throws `AddressInfoException`s, `SocketException`s and all
 --   exceptions that that the supplied action might throw.
 --
--- > withConnectedSocket "wwww.haskell.org" "80" (aiALL `mappend` aiV4MAPPED) $ \sock-> do
+-- > withConnectedSocket "wwww.haskell.org" "80" (aiAll `mappend` aiV4Mapped) $ \sock-> do
 -- >   let _ = sock :: Socket Inet6 Stream TCP
 -- >   doSomethingWithSocket sock
 withConnectedSocket :: forall f t p a.

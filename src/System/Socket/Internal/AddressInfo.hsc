@@ -17,13 +17,13 @@ module System.Socket.Internal.AddressInfo (
   , eaiService
   , eaiSystem
   , AddressInfoFlags (..)
-  , aiADDRCONFIG
-  , aiALL
-  , aiCANONNAME
-  , aiNUMERICHOST
-  , aiNUMERICSERV
-  , aiPASSIVE
-  , aiV4MAPPED
+  , aiAddressConfig
+  , aiAll
+  , aiCanonicalName
+  , aiNumericHost
+  , aiNumericService
+  , aiPassive
+  , aiV4Mapped
   , NameInfoFlags (..)
   , niNameRequired
   , niDatagram
@@ -133,7 +133,7 @@ eaiSystem    = AddressInfoException (#const EAI_SYSTEM)
 
 -- | Use the `Data.Monoid.Monoid` instance to combine several flags:
 --
---   > mconcat [aiADDRCONFIG, aiV4MAPPED]
+--   > mconcat [aiAddressConfig, aiV4Mapped]
 newtype AddressInfoFlags
       = AddressInfoFlags CInt
       deriving (Eq, Show, Bits)
@@ -144,31 +144,36 @@ instance Monoid AddressInfoFlags where
   mappend (AddressInfoFlags a) (AddressInfoFlags b)
     = AddressInfoFlags (a .|. b)
 
-aiADDRCONFIG  :: AddressInfoFlags
-aiADDRCONFIG   = AddressInfoFlags (#const AI_ADDRCONFIG)
+-- | @AI_ADDRCONFIG@:
+aiAddressConfig  :: AddressInfoFlags
+aiAddressConfig   = AddressInfoFlags (#const AI_ADDRCONFIG)
 
--- | Return both IPv4 (as mapped `SocketAddressInet6`) and IPv6 addresses when
--- `aiV4MAPPED` is set independent of whether IPv6 addresses exist for this
+-- | @AI_ALL@: Return both IPv4 (as mapped `SocketAddressInet6`) and IPv6 addresses when
+-- `aiV4Mapped` is set independent of whether IPv6 addresses exist for this
 --  name.
-aiALL         :: AddressInfoFlags
-aiALL          = AddressInfoFlags (#const AI_ALL)
+aiAll         :: AddressInfoFlags
+aiAll          = AddressInfoFlags (#const AI_ALL)
 
-aiCANONNAME   :: AddressInfoFlags
-aiCANONNAME    = AddressInfoFlags (#const AI_CANONNAME)
+-- | @AI_CANONNAME@:
+aiCanonicalName   :: AddressInfoFlags
+aiCanonicalName    = AddressInfoFlags (#const AI_CANONNAME)
 
-aiNUMERICHOST :: AddressInfoFlags
-aiNUMERICHOST  = AddressInfoFlags (#const AI_NUMERICHOST)
+-- | @AI_NUMERICHOST@:
+aiNumericHost :: AddressInfoFlags
+aiNumericHost  = AddressInfoFlags (#const AI_NUMERICHOST)
 
-aiNUMERICSERV :: AddressInfoFlags
-aiNUMERICSERV  = AddressInfoFlags (#const AI_NUMERICSERV)
+-- | @AI_NUMERICSERV@:
+aiNumericService :: AddressInfoFlags
+aiNumericService  = AddressInfoFlags (#const AI_NUMERICSERV)
 
-aiPASSIVE     :: AddressInfoFlags
-aiPASSIVE      = AddressInfoFlags (#const AI_PASSIVE)
+-- | @AI_PASSIVE@:
+aiPassive     :: AddressInfoFlags
+aiPassive      = AddressInfoFlags (#const AI_PASSIVE)
 
--- | Return mapped IPv4 addresses if no IPv6 addresses could be found
---   or if `aiALL` flag is set.
-aiV4MAPPED    :: AddressInfoFlags
-aiV4MAPPED     = AddressInfoFlags (#const AI_V4MAPPED)
+-- | @AI_V4MAPPED@: Return mapped IPv4 addresses if no IPv6 addresses could be found
+--   or if `aiAll` flag is set.
+aiV4Mapped    :: AddressInfoFlags
+aiV4Mapped     = AddressInfoFlags (#const AI_V4MAPPED)
 
 -- | Use the `Data.Monoid.Monoid` instance to combine several flags:
 --
@@ -215,11 +220,11 @@ class (Family f) => GetAddressInfo f where
 --
 --   If you need different types of records, you need to start several
 --   queries. If you want to connect to both IPv4 and IPV6 addresses use
---   `aiV4MAPPED` and use IPv6-sockets.
+--   `aiV4Mapped` and use IPv6-sockets.
 --
---   > > getAddressInfo (Just "www.haskell.org") (Just "80") aiV4MAPPED :: IO [AddressInfo Inet6 Stream TCP]
+--   > > getAddressInfo (Just "www.haskell.org") (Just "80") aiV4Mapped :: IO [AddressInfo Inet6 Stream TCP]
 --   > [AddressInfo {addrInfoFlags = AddressInfoFlags 8, addrAddress = [2400:cb00:2048:0001:0000:0000:6ca2:cc3c]:80, addrCanonName = Nothing}]
---   > > getAddressInfo (Just "darcs.haskell.org") Nothing aiV4MAPPED :: IO [AddressInfo Inet6 Stream TCP]
+--   > > getAddressInfo (Just "darcs.haskell.org") Nothing aiV4Mapped :: IO [AddressInfo Inet6 Stream TCP]
 --   > [AddressInfo {addrInfoFlags = AddressInfoFlags 8, addrAddress = [0000:0000:0000:0000:0000:ffff:17fd:e1ad]:0, addrCanonName = Nothing}]
 --   > > getAddressInfo (Just "darcs.haskell.org") Nothing mempty :: IO [AddressInfo Inet6 Stream TCP]
 --   > *** Exception: AddressInfoException "Name or service not known"
