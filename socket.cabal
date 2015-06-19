@@ -15,12 +15,12 @@ description:
       Examples for things that have been ripped out of this library are:
       Unix sockets, SCTP, vectored IO (for now).
   .
-    - Absolutely no conditional export.
+    - Absolutely no conditional exports.
   .
     - No `#ifdef` madness in the Haskell sources. The Haskell binding code
       uses the FFI to reference the platform's native networking functions.
-      If they are not Posix compliant (i.e. under Windows) an level of
-      indirection is introduced to write an Posix compliant equivalent in C
+      If they are not Posix compliant (i.e. on Windows) an level of
+      indirection is introduced to create an Posix compliant equivalent in C
       using whatever the plaform specific building blocks are.
   .
   /Platform Support/
