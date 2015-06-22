@@ -13,12 +13,12 @@ import System.Posix.Types ( Fd(..) )
 import System.Socket.Internal.Message
 import System.Socket.Internal.Exception
 
-socketWaitWrite' :: Fd -> Int -> IO (IO ())
-socketWaitWrite' _ iteration = do
+socketWaitWrite :: Fd -> Int -> IO (IO ())
+socketWaitWrite _ iteration = do
   return (threadDelay $ 1 `shiftL` min iteration 20)
 
-socketWaitRead' :: Fd -> Int -> IO (IO ())
-socketWaitRead'  _ iteration = do
+socketWaitRead :: Fd -> Int -> IO (IO ())
+socketWaitRead  _ iteration = do
   return (threadDelay $ 1 `shiftL` min iteration 20)
 
 type CSSize

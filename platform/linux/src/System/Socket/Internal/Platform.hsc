@@ -11,12 +11,21 @@ import System.Posix.Types ( Fd(..) )
 import System.Socket.Internal.Message
 import System.Socket.Internal.Exception
 
-socketWaitWrite' :: Fd -> Int -> IO (IO ())
-socketWaitWrite' fd _ = do
+socketWaitWrite :: Fd -> Int -> IO (IO ())
+socketWaitWrite fd _ = do
   threadWaitWriteSTM fd >>= return . atomically . fst
 
-socketWaitRead' :: Fd -> Int -> IO (IO ())
-socketWaitRead' fd _ = do
+-- | Blocks until a socket should be tried for reading.
+--
+-- > wait <- withMVar msock $ \sock-> do
+-- >   -- Register while holding a lock on the socket descriptor.
+-- >   socketWaitRead sock 0 
+-- > -- Do the waiting without keeping the socket descriptor locked.
+-- > wait
+socketWaitRead :: Fd   -- ^ Socket descriptor
+               -> Int  -- ^ How many times has it been tried unsuccessfully so far? (currently only relevant on Windows)
+               -> IO (IO ()) -- ^ The outer action registers the waiting, the inner does the actual wait.
+socketWaitRead fd _ = do
   threadWaitReadSTM fd >>= return . atomically . fst
 
 type CSSize
