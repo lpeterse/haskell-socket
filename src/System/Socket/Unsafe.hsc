@@ -14,6 +14,11 @@ module System.Socket.Unsafe (
   , socketWaitRead
   -- ** socketWaitWrite
   , socketWaitWrite
+  -- * Socket Options
+  -- ** unsafeGetSocketOption
+  , unsafeGetSocketOption
+  -- ** unsafeSetSocketOption
+  , unsafeSetSocketOption
   ) where
 
 import Data.Function

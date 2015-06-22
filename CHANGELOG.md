@@ -1,3 +1,4 @@
+ * Exposed `unsafeGetSocketOption` and `unsafeSetSocketOption`.
  * Exposed `socketWaitRead` and `socketWaitWrite` through `System.Socket.Unsafe`.
 
 0.5.0.0 Lars Petersen <info@lars-petersen.net> 2015-06-19

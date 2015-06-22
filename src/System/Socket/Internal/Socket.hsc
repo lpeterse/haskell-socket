@@ -1,13 +1,9 @@
 module System.Socket.Internal.Socket (
     Socket (..)
   , GetSocketOption (..)
-  , getSocketOptionBool
-  , getSocketOptionInt
-  , getSocketOptionCInt
+  , unsafeGetSocketOption
   , SetSocketOption (..)
-  , setSocketOptionBool
-  , setSocketOptionInt
-  , setSocketOptionCInt
+  , unsafeSetSocketOption
   , Error (..)
   , ReuseAddress (..)
   ) where
@@ -66,7 +62,7 @@ data Error
 
 instance GetSocketOption Error where
   getSocketOption s =
-    Error . SocketException <$> getSocketOptionCInt s (#const SOL_SOCKET) (#const SO_ERROR)
+    Error . SocketException <$> unsafeGetSocketOption s (#const SOL_SOCKET) (#const SO_ERROR)
 
 -- | @SO_REUSEADDR@
 data ReuseAddress
@@ -75,88 +71,37 @@ data ReuseAddress
 
 instance GetSocketOption ReuseAddress where
   getSocketOption s =
-    ReuseAddress <$> getSocketOptionBool s (#const SOL_SOCKET) (#const SO_REUSEADDR)
+    ReuseAddress . ((/=0) :: CInt -> Bool) <$> unsafeGetSocketOption s (#const SOL_SOCKET) (#const SO_REUSEADDR)
 
 instance SetSocketOption ReuseAddress where
   setSocketOption s (ReuseAddress o) =
-    setSocketOptionBool s (#const SOL_SOCKET) (#const SO_REUSEADDR) o
+    unsafeSetSocketOption s (#const SOL_SOCKET) (#const SO_REUSEADDR) (if o then 1 else 0 :: CInt)
 
 -------------------------------------------------------------------------------
 -- Unsafe helpers
 -------------------------------------------------------------------------------
 
-setSocketOptionBool :: Socket f t p -> CInt -> CInt -> Bool -> IO ()
-setSocketOptionBool (Socket mfd) level name value = do
-  withMVar mfd $ \fd->
-    alloca $ \vPtr-> do
-        if value
-          then poke vPtr 1
-          else poke vPtr 0
-        i <- c_setsockopt fd level name 
-                          (vPtr :: Ptr CInt)
-                          (fromIntegral $ sizeOf (undefined :: CInt))
-        when (i < 0) $ do
-          c_get_last_socket_error >>= throwIO
-
-getSocketOptionBool :: Socket f t p -> CInt -> CInt -> IO Bool
-getSocketOptionBool (Socket mfd) level name = do
-  withMVar mfd $ \fd->
-    alloca $ \vPtr-> do
-      alloca $ \lPtr-> do
-        i <- c_getsockopt fd level name 
-                          (vPtr :: Ptr CInt)
-                          (lPtr :: Ptr CInt)
-        if i < 0 then do
-          c_get_last_socket_error >>= throwIO
-        else do
-          v <- peek vPtr
-          return (v == 1)
-
-setSocketOptionInt :: Socket f t p -> CInt -> CInt -> Int -> IO ()
-setSocketOptionInt (Socket mfd) level name value = do
-  withMVar mfd $ \fd->
-    alloca $ \vPtr-> do
-        poke vPtr (fromIntegral value :: CInt)
-        i <- c_setsockopt fd level name 
-                          (vPtr :: Ptr CInt)
-                          (fromIntegral $ sizeOf (undefined :: CInt))
-        when (i < 0) $ do
-          c_get_last_socket_error >>= throwIO
-
-getSocketOptionInt :: Socket f t p -> CInt -> CInt -> IO Int
-getSocketOptionInt (Socket mfd) level name = do
-  withMVar mfd $ \fd->
-    alloca $ \vPtr-> do
-      alloca $ \lPtr-> do
-        i <- c_getsockopt fd level name
-                          (vPtr :: Ptr CInt)
-                          (lPtr :: Ptr CInt)
-        if i < 0 then do
-          c_get_last_socket_error >>= throwIO
-        else do
-          v <- peek vPtr
-          return (fromIntegral v)
-
-setSocketOptionCInt :: Socket f t p -> CInt -> CInt -> CInt -> IO ()
-setSocketOptionCInt (Socket mfd) level name value = do
+unsafeSetSocketOption :: Storable a => Socket f t p -> CInt -> CInt -> a -> IO ()
+unsafeSetSocketOption (Socket mfd) level name value = do
   withMVar mfd $ \fd->
     alloca $ \vPtr-> do
         poke vPtr value
         i <- c_setsockopt fd level name 
-                          (vPtr :: Ptr CInt)
-                          (fromIntegral $ sizeOf (undefined :: CInt))
+                          vPtr
+                          (fromIntegral $ sizeOf value)
         when (i < 0) $ do
           c_get_last_socket_error >>= throwIO
 
-getSocketOptionCInt :: Socket f t p -> CInt -> CInt -> IO CInt
-getSocketOptionCInt (Socket mfd) level name = do
+unsafeGetSocketOption :: Storable a => Socket f t p -> CInt -> CInt -> IO a
+unsafeGetSocketOption (Socket mfd) level name = do
+  u <- return undefined
   withMVar mfd $ \fd->
     alloca $ \vPtr-> do
       alloca $ \lPtr-> do
-        i <- c_getsockopt fd level name
-                          (vPtr :: Ptr CInt)
-                          (lPtr :: Ptr CInt)
+        poke lPtr (fromIntegral $ sizeOf u)
+        i <- c_getsockopt fd level name vPtr (lPtr :: Ptr CInt)
         if i < 0 then do
           c_get_last_socket_error >>= throwIO
         else do
-          peek vPtr
+          x <- peek vPtr
+          return (x `asTypeOf` u)

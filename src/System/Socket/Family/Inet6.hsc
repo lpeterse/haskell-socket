@@ -26,6 +26,7 @@ import qualified Data.ByteString.Unsafe as BS
 import Control.Applicative
 
 import Foreign.Ptr
+import Foreign.C.Types
 import Foreign.Storable
 import Foreign.Marshal.Utils
 
@@ -182,8 +183,8 @@ data V6Only
 
 instance GetSocketOption V6Only where
   getSocketOption s =
-    V6Only <$> getSocketOptionBool s (#const IPPROTO_IPV6) (#const IPV6_V6ONLY)
+    V6Only . ((/=0) :: CInt -> Bool) <$> unsafeGetSocketOption s (#const IPPROTO_IPV6) (#const IPV6_V6ONLY)
 
 instance SetSocketOption V6Only where
   setSocketOption s (V6Only o) =
-    setSocketOptionBool s (#const IPPROTO_IPV6) (#const IPV6_V6ONLY) o
+    unsafeSetSocketOption s (#const IPPROTO_IPV6) (#const IPV6_V6ONLY) (if o then 1 else 0 :: CInt)
