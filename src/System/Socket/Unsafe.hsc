@@ -1,24 +1,25 @@
 module System.Socket.Unsafe (
-  -- * tryWaitAndRetry
-    tryWaitAndRetry
   -- * unsafeSend
-  , unsafeSend
+    unsafeSend
   -- * unsafeSendTo
   , unsafeSendTo
   -- * unsafeReceive
   , unsafeReceive
   -- * unsafeReceiveFrom
   , unsafeReceiveFrom
-  -- * Waiting For Events
-  -- ** socketWaitRead
-  , socketWaitRead
-  -- ** socketWaitWrite
-  , socketWaitWrite
   -- * Socket Options
   -- ** unsafeGetSocketOption
   , unsafeGetSocketOption
   -- ** unsafeSetSocketOption
   , unsafeSetSocketOption
+  -- * Waiting For Events
+  -- ** socketWaitRead
+  , socketWaitRead
+  -- ** socketWaitWrite
+  , socketWaitWrite
+  -- * Other Helpers
+  -- ** tryWaitAndRetry
+  , tryWaitAndRetry
   ) where
 
 import Data.Function
