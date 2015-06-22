@@ -13,13 +13,13 @@ module System.Socket.Unsafe (
   -- ** unsafeSetSocketOption
   , unsafeSetSocketOption
   -- * Waiting For Events
-  -- ** socketWaitRead
-  , socketWaitRead
-  -- ** socketWaitWrite
-  , socketWaitWrite
+  -- ** unsafeSocketWaitRead
+  , unsafeSocketWaitRead
+  -- ** unsafeSocketWaitWrite
+  , unsafeSocketWaitWrite
   -- * Other Helpers
-  -- ** tryWaitAndRetry
-  , tryWaitAndRetry
+  -- ** tryWaitRetryLoop
+  , tryWaitRetryLoop
   ) where
 
 import Data.Function
@@ -44,22 +44,22 @@ import System.Posix.Types (Fd)
 
 unsafeSend :: Socket a t p -> Ptr a -> CSize -> MessageFlags -> IO CInt
 unsafeSend s bufPtr bufSize flags = do
-  tryWaitAndRetry s socketWaitWrite (\fd-> c_send fd bufPtr bufSize (flags `mappend` msgNoSignal) )
+  tryWaitRetryLoop s unsafeSocketWaitWrite (\fd-> c_send fd bufPtr bufSize (flags `mappend` msgNoSignal) )
 
 unsafeSendTo :: Socket f t p -> Ptr b -> CSize -> MessageFlags -> Ptr (SocketAddress f) -> CInt -> IO CInt
 unsafeSendTo s bufPtr bufSize flags addrPtr addrSize = do
-  tryWaitAndRetry s socketWaitWrite (\fd-> c_sendto fd bufPtr (fromIntegral bufSize) (flags `mappend` msgNoSignal) addrPtr addrSize)
+  tryWaitRetryLoop s unsafeSocketWaitWrite (\fd-> c_sendto fd bufPtr (fromIntegral bufSize) (flags `mappend` msgNoSignal) addrPtr addrSize)
 
 unsafeReceive :: Socket a t p -> Ptr b -> CSize -> MessageFlags -> IO CInt
 unsafeReceive s bufPtr bufSize flags =
-  tryWaitAndRetry s socketWaitRead (\fd-> c_recv fd bufPtr bufSize flags)
+  tryWaitRetryLoop s unsafeSocketWaitRead (\fd-> c_recv fd bufPtr bufSize flags)
 
 unsafeReceiveFrom :: Socket f t p -> Ptr b -> CSize -> MessageFlags -> Ptr (SocketAddress f) -> Ptr CInt -> IO CInt
 unsafeReceiveFrom s bufPtr bufSize flags addrPtr addrSizePtr = do
-  tryWaitAndRetry s socketWaitRead (\fd-> c_recvfrom fd bufPtr bufSize flags addrPtr addrSizePtr)
+  tryWaitRetryLoop s unsafeSocketWaitRead (\fd-> c_recvfrom fd bufPtr bufSize flags addrPtr addrSizePtr)
 
-tryWaitAndRetry :: Socket f t p -> (Fd -> Int-> IO (IO ())) -> (Fd -> IO CInt) -> IO CInt
-tryWaitAndRetry (Socket mfd) getWaitAction action = loop 0
+tryWaitRetryLoop :: Socket f t p -> (Fd -> Int-> IO (IO ())) -> (Fd -> IO CInt) -> IO CInt
+tryWaitRetryLoop (Socket mfd) getWaitAction action = loop 0
   where
     loop iteration = do
       ewr <- withMVar mfd $ \fd-> do

@@ -287,7 +287,7 @@ connect (Socket mfd) addr = do
           -- The manpage says that in this case the connection
           -- shall be established asynchronously and one is
           -- supposed to wait.
-          wait <- socketWaitWrite fd 0
+          wait <- unsafeSocketWaitWrite fd 0
           return (Just wait)
         else do
           throwIO e
@@ -315,7 +315,7 @@ connect (Socket mfd) addr = do
                   return Nothing
                 else if e == eAlready then do
                   -- The previous connection attempt is still pending.
-                  Just <$> socketWaitWrite fd iteration
+                  Just <$> unsafeSocketWaitWrite fd iteration
                 else do
                   -- The previous connection failed (results in EINPROGRESS or
                   -- EWOULBLOCK here) or something else is wrong.
@@ -325,7 +325,7 @@ connect (Socket mfd) addr = do
               else do
                 -- This means the last connection attempt succeeded immediately.
                 -- Linux does this when connecting to the same address when the
-                -- socketWaitWrite call signals writeability.
+                -- unsafeSocketWaitWrite call signals writeability.
                 return Nothing
             case mwait' of
               Nothing    -> do
@@ -406,7 +406,7 @@ accept s@(Socket mfd) = accept'
                     e <- c_get_last_socket_error
                     if e == eWouldBlock || e == eAgain
                       then do
-                        socketWaitRead fd iteration >>= return . Left
+                        unsafeSocketWaitRead fd iteration >>= return . Left
                       else if e == eInterrupted
                         -- On EINTR it is good practice to just retry.
                         then retry
