@@ -31,11 +31,11 @@
 -- >   forever $ do
 -- >     (peer,_) <- accept s
 -- >     forkIO $ do
--- >       sendAll peer "Hello world!" mempty `finally` close peer
+-- >       sendAll peer "Hello world!" msgNoSignal `finally` close peer
 -- >   where
 -- >     addr = SocketAddressInet Inet.loopback 8080
 --
--- This downloads the [Haskell website](http://www.haskell.org) and prints it to stdout.
+-- This downloads the Haskell website and prints it to stdout.
 -- Note the use of IPv4-mapped `Inet6` addresses: This will work
 -- even if you don't have IPv6 connectivity yet and is the preferred method
 -- when writing new applications.
@@ -51,7 +51,7 @@
 -- > main = do
 -- >   withConnectedSocket "www.haskell.org" "80" (aiAll `mappend` aiV4Mapped) $ \sock-> do
 -- >     let _ = sock :: Socket Inet6 Stream TCP
--- >     sendAll sock "GET / HTTP/1.0\r\nHost: www.haskell.org\r\n\r\n" mempty
+-- >     sendAll sock "GET / HTTP/1.0\r\nHost: www.haskell.org\r\n\r\n" msgNoSignal
 -- >     x <- receiveAll sock (1024*1024*1024) mempty
 -- >     B.putStr x
 -----------------------------------------------------------------------------
@@ -438,8 +438,6 @@ accept s@(Socket mfd) = accept'
 --     `SequentialPacket` sockets certain assurances on atomicity exist and `eAgain` or
 --     `eWouldBlock` are returned until the whole message would fit
 --     into the send buffer. 
---   - The flag `msgNoSignal` (if supported) is set automatically to suppress signals which are essentially
---     useless in multithreaded environments.
 --   - This operation throws `SocketException`s. Consult @man 3p send@ for
 --     details and specific @errno@s.
 --   - `eAgain`, `eWouldBlock` and `eInterrupted` and handled internally and won't
