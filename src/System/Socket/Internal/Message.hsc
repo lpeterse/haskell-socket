@@ -55,6 +55,28 @@ msgEndOfRecord      :: MessageFlags
 msgEndOfRecord       = MessageFlags (#const MSG_EOR)
 
 -- | @MSG_NOSIGNAL@
+--
+--   Suppresses the generation of @PIPE@ signals when writing to a socket
+--   that is no longer connected.
+--
+--   Although this flag is POSIX, it is not available on all platforms. Try
+--
+--   > msgNoSignal /= mempty
+--
+--   in order to check whether this flag is defined on a certain platform.
+--   It is safe to just use this constant even if it might not have effect
+--   on a certain target platform. The platform independence of this flag
+--   is therefore fulfilled to some extent.
+--
+--   Some more explanation on the platform specific behaviour:
+--
+--   - Linux defines and supports `MSG_NOSIGNAL` and properly suppresses
+--     the generation of broken pipe-related signals.
+--   - Windows does not define it, but does not generate signals either.
+--   - OSX does not define it, but generates @PIPE@ signals. The GHC runtime
+--     ignores them if you don't hook them explicitly. The
+--     non-portable socket option `SO_NOSIGPIPE` may be used disable signals
+--     on a per-socket basis.
 msgNoSignal         :: MessageFlags
 msgNoSignal          = MessageFlags (#const MSG_NOSIGNAL)
 

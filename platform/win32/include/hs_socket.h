@@ -125,3 +125,4 @@ int hs_get_last_socket_error(void);
 #define SEALREADY              WSAEALREADY
 #define SEISCONN               WSAEISCONN
 #define SETIMEDOUT             WSAETIMEDOUT
+#define SEPIPE                 WSAECONNABORTED

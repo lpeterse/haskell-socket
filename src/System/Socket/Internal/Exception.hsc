@@ -16,7 +16,7 @@ instance Exception SocketException
 instance Show SocketException where
   show e@(SocketException i)
     | e == eOk                   = "eOk"
-    | e == eInterrupted            = "eInterrupted"
+    | e == eInterrupted          = "eInterrupted"
     | e == eAgain                = "eAgain"
     | e == eWouldBlock           = "eWouldBlock"
     | e == eBadFileDescriptor    = "eBadFileDescriptor"
@@ -29,6 +29,7 @@ instance Show SocketException where
     | e == eAlready              = "eAlready"
     | e == eIsConnected          = "eIsConnected"
     | e == eTimedOut             = "eTimedOut"
+    | e == ePipe                 = "ePipe"
     | otherwise                  = "SocketException " ++ show i
 
 eOk                       :: SocketException
@@ -72,3 +73,6 @@ eIsConnected               = SocketException (#const SEISCONN)
 
 eTimedOut                 :: SocketException
 eTimedOut                  = SocketException (#const SETIMEDOUT)
+
+ePipe                     :: SocketException
+ePipe                      = SocketException (#const SEPIPE)

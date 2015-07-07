@@ -1,3 +1,6 @@
+ * Define `msgNoSignal` to 0 if not available and documented this behaviour.
+ * Added new exception value `ePipe`.
+
 0.5.1.0 Lars Petersen <info@lars-petersen.net> 2015-06-22
 
  * Exposed `unsafeGetSocketOption` and `unsafeSetSocketOption`.

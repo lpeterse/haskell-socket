@@ -27,3 +27,13 @@ int hs_get_last_socket_error(void);
 #define SEALREADY              EALREADY
 #define SEISCONN               EISCONN
 #define SETIMEDOUT             ETIMEDOUT
+#define SEPIPE                 EPIPE
+
+/* MSG_NOSIGNAL might not be available (i.e. on MacOSX and Solaris).
+ *   In this case it gets defined as 0. This is relatively
+ *   safe to do as the GHC runtime ignores signals that aren't hooked.
+ *   The application won't die, but might be unncessarily interrupted.
+ */
+#ifndef MSG_NOSIGNAL
+#define MSG_NOSIGNAL           0
+#endif

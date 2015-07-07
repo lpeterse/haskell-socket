@@ -438,7 +438,8 @@ accept s@(Socket mfd) = accept'
 --     `SequentialPacket` sockets certain assurances on atomicity exist and `eAgain` or
 --     `eWouldBlock` are returned until the whole message would fit
 --     into the send buffer. 
---   - The flag `msgNoSignal` is set to supress signals which are pointless.
+--   - The flag `msgNoSignal` (if supported) is set automatically to suppress signals which are essentially
+--     useless in multithreaded environments.
 --   - This operation throws `SocketException`s. Consult @man 3p send@ for
 --     details and specific @errno@s.
 --   - `eAgain`, `eWouldBlock` and `eInterrupted` and handled internally and won't

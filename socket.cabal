@@ -1,13 +1,9 @@
 name:                socket
-version:             0.5.1.0
+version:             0.5.2.0
 synopsis:            A portable and extensible sockets library.
 description:
   This library is a minimal and platform-independant interface for
   BSD style networking.
-  .
-  The following is a list of known extension packages:
-  .
-    - https://hackage.haskell.org/package/socket-sctp
   .
   Also see README.md for details.
 
@@ -142,6 +138,16 @@ test-suite IPV6_V6ONLY
   main-is:             IPV6_V6ONLY.hs
   type:                exitcode-stdio-1.0
   default-language:    Haskell2010
+  build-depends:       base >= 4.7 && < 5
+                     , bytestring < 0.11
+                     , socket
+                     , async
+
+test-suite EPIPE
+  hs-source-dirs:      tests
+  default-language:    Haskell2010
+  main-is:             EPIPE.hs
+  type:                exitcode-stdio-1.0
   build-depends:       base >= 4.7 && < 5
                      , bytestring < 0.11
                      , socket
