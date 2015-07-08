@@ -1,3 +1,5 @@
+0.5.2.0 Lars Petersen <info@lars-petersen.net> 2015-07-08
+
  * Don't set `msgNoSignal` automatically with `send` and `sendTo`. This implicit behaviour is a bad design decision. The implications of this change are rather limited. The behaviour/correctness of an application is only affected if it hooked SIGPIPE. GHC's RTS by default ignores SIGPIPE since #1619. You're still advised to adapt your applications to use `msgNoSignal` explicitly when writing on stream oriented sockets. Otherwise the RTS gets unnecessarily interrupted. This is harmless, but annoying and not desired when developing high-performance applications.
  * Define `msgNoSignal` as 0 if not available and documented this behaviour.
  * Added new exception value `ePipe`.

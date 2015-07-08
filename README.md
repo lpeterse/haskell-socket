@@ -41,7 +41,7 @@ Unknown. Should work. Please report if not.
 
 #### MacOS
 
-Unknown. Please report if you have a Mac.
+Working.
 
 #### Windows
 
