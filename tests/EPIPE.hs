@@ -34,12 +34,16 @@ main = do
             _ <- receive peerSock 4096 mempty                   `onException` print "E11"
             close peerSock                                      `onException` print "E12"
 
+            threadDelay 1000000
+
             e1 <- try $ send client "This might fail."  mempty  `onException` print "E13"
             case e1 of
               Right _ -> return ()
               Left  e -> if e == ePipe
                            then return ()
                            else throwIO e                       `onException` print "E14"
+
+            threadDelay 1000000
 
             e2 <- try $ send client "This should fail." mempty  `onException` print "E15"
             case e2 of
