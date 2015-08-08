@@ -28,6 +28,7 @@ int hs_get_last_socket_error(void);
 #define SEISCONN               EISCONN
 #define SETIMEDOUT             ETIMEDOUT
 #define SEPIPE                 EPIPE
+#define SEOPNOTSUPP            EOPNOTSUPP
 
 /* MSG_NOSIGNAL might not be available (i.e. on MacOSX and Solaris).
  *   In this case it gets defined as 0. This is relatively

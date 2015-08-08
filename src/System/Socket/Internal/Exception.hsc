@@ -30,6 +30,7 @@ instance Show SocketException where
     | e == eIsConnected          = "eIsConnected"
     | e == eTimedOut             = "eTimedOut"
     | e == ePipe                 = "ePipe"
+    | e == eOperationNotSupported  = "eOperationNotSupported"
     | otherwise                  = "SocketException " ++ show i
 
 eOk                       :: SocketException
@@ -76,3 +77,6 @@ eTimedOut                  = SocketException (#const SETIMEDOUT)
 
 ePipe                     :: SocketException
 ePipe                      = SocketException (#const SEPIPE)
+
+eOperationNotSupported    :: SocketException
+eOperationNotSupported     = SocketException (#const SEOPNOTSUPP)
