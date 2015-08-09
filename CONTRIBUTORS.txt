@@ -1,3 +1,4 @@
+Niklas Hambüchen (issue #9)
 Michael Fox (reported issue #7)
 Bryan O'Sullivan (legitimately criticised the bizarre naming)
 Alex Högy (reported the MSG_NOSIGNAL issue on OSX)

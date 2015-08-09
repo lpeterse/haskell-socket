@@ -153,6 +153,16 @@ test-suite EPIPE
                      , socket
                      , async
 
+test-suite EOPNOTSUPP
+  hs-source-dirs:      tests
+  default-language:    Haskell2010
+  main-is:             EOPNOTSUPP.hs
+  type:                exitcode-stdio-1.0
+  build-depends:       base >= 4.7 && < 5
+                     , bytestring < 0.11
+                     , socket
+                     , async
+
 source-repository head
   type:     git
   location: git://github.com/lpeterse/haskell-socket.git
