@@ -10,6 +10,8 @@ import Control.Concurrent.Async
 import System.Socket
 import System.Socket.Family.Inet  as Inet
 import System.Socket.Family.Inet6 as Inet6
+import System.Socket.Type.Datagram
+import System.Socket.Protocol.UDP
 import System.Exit
 
 main :: IO ()
@@ -31,10 +33,10 @@ t0001 =
     )
     (\(server,client)-> do
         setSocketOption server (V6Only True)                `onException` p 4
-        bind server (Inet6Address Inet6.any 7777 mempty 0) `onException` p 5
+        bind server (SocketAddressInet6 Inet6.any 7777 0 0) `onException` p 5
 
         threadDelay 1000000 -- wait for the listening socket being set up
-        sendTo client "PING" mempty (InetAddress Inet.loopback 7777)
+        sendTo client "PING" mempty (SocketAddressInet Inet.loopback 7777)
                                                             `onException` p 6
         eith <- race
           ( receiveFrom server 4096 mempty `onException` p 7 >> return () )
@@ -61,10 +63,10 @@ t0002 =
     )
     (\(server,client)-> do
         setSocketOption server (V6Only False)              `onException` p 4
-        bind server (Inet6Address Inet6.any 7778 mempty 0) `onException` p 5
+        bind server (SocketAddressInet6 Inet6.any 7778 0 0) `onException` p 5
 
         threadDelay 1000000 -- wait for the listening socket being set up
-        sendTo client "PING" mempty (InetAddress Inet.loopback 7778) `onException` p 6
+        sendTo client "PING" mempty (SocketAddressInet Inet.loopback 7778) `onException` p 6
         eith <- race
           ( receiveFrom server 4096 mempty `onException` p 7 >> return ())
           ( threadDelay 1000000 )

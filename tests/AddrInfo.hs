@@ -7,10 +7,13 @@ import Control.Monad
 import Control.Exception
 import System.Socket
 import System.Socket.Family.Inet as Inet
+import System.Socket.Family.Inet6 as Inet6
+import System.Socket.Type.Stream
+import System.Socket.Protocol.TCP
 import System.Exit
 
 main :: IO ()
-main = do 
+main = do
   t0001
   t0002
   t0003
@@ -20,14 +23,14 @@ t0001 = do
   ais <- getAddressInfo
           (Just "127.0.0.1")
           (Just "http")
-          aiNumericHost 
+          aiNumericHost
           `onException` p 0 :: IO [AddressInfo Inet Stream TCP]
   when (length ais /= 1) (e 1)
   let [ai] = ais
   when (canonicalName ai /= Nothing) (e 2)
   let sa = socketAddress ai
-  when (port    sa /= 80) (e 3)
-  when (address sa /= Inet.loopback) (e 4)
+  when (Inet.port    sa /= 80) (e 3)
+  when (Inet.address sa /= Inet.loopback) (e 4)
   where
     p i = print ("t0001." ++ show i)
     e i = error ("t0001." ++ show i)
@@ -54,7 +57,7 @@ t0003 = do
   x <- getAddressInfo
           (Just "localhost")
           Nothing
-          mempty 
+          mempty
           `onException` p 0:: IO [AddressInfo Inet6 Stream TCP]
   y <- getAddressInfo
           (Just "localhost")

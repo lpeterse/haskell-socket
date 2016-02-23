@@ -46,11 +46,9 @@ import Foreign.Marshal.Alloc
 
 import System.IO.Unsafe
 
-import System.Socket.Family
 import System.Socket.Family.Inet
 import System.Socket.Family.Inet6
-import System.Socket.Type
-import System.Socket.Protocol
+import System.Socket.Internal.Socket
 import System.Socket.Internal.Platform
 
 #include "hs_socket.h"
@@ -63,12 +61,12 @@ import System.Socket.Internal.Platform
 data AddressInfo f t p
    = AddressInfo
      { addressInfoFlags :: AddressInfoFlags
-     , socketAddress    :: Address f
+     , socketAddress    :: SocketAddress f
      , canonicalName    :: Maybe BS.ByteString
      }
 
-deriving instance (Eq   (Address f)) => Eq   (AddressInfo f t p)
-deriving instance (Show (Address f)) => Show (AddressInfo f t p)
+deriving instance (Eq   (SocketAddress f)) => Eq   (AddressInfo f t p)
+deriving instance (Show (SocketAddress f)) => Show (AddressInfo f t p)
 
 -------------------------------------------------------------------------------
 -- AddressInfoException
@@ -240,7 +238,7 @@ instance GetAddressInfo Inet where
 instance GetAddressInfo Inet6 where
   getAddressInfo = getAddressInfo'
 
-getAddressInfo' :: forall f t p. (Family f, Storable (Address f), Type t, Protocol p) => Maybe BS.ByteString -> Maybe BS.ByteString -> AddressInfoFlags -> IO [AddressInfo f t p]
+getAddressInfo' :: forall f t p. (Family f, Storable (SocketAddress f), Type t, Protocol p) => Maybe BS.ByteString -> Maybe BS.ByteString -> AddressInfoFlags -> IO [AddressInfo f t p]
 getAddressInfo' mnode mservice (AddressInfoFlags flags) = do
   alloca $ \resultPtrPtr-> do
     poke resultPtrPtr nullPtr
@@ -298,7 +296,7 @@ getAddressInfo' mnode mservice (AddressInfoFlags flags) = do
 --   > > getNameInfo (SocketAddressInet loopback 80) mempty
 --   > ("localhost.localdomain","http")
 class (Family f) => GetNameInfo f where
-  getNameInfo :: Address f -> NameInfoFlags -> IO (BS.ByteString, BS.ByteString)
+  getNameInfo :: SocketAddress f -> NameInfoFlags -> IO (BS.ByteString, BS.ByteString)
 
 instance GetNameInfo Inet where
   getNameInfo = getNameInfo'

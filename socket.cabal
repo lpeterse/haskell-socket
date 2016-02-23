@@ -29,15 +29,12 @@ extra-source-files:  README.md
 
 library
   exposed-modules:     System.Socket
-                     , System.Socket.Family
                      , System.Socket.Family.Inet
                      , System.Socket.Family.Inet6
-                     , System.Socket.Type
                      , System.Socket.Type.Raw
                      , System.Socket.Type.Datagram
                      , System.Socket.Type.Stream
                      , System.Socket.Type.SequentialPacket
-                     , System.Socket.Protocol
                      , System.Socket.Protocol.UDP
                      , System.Socket.Protocol.TCP
                      , System.Socket.Unsafe

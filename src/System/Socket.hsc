@@ -56,12 +56,15 @@
 -- >     B.putStr x
 -----------------------------------------------------------------------------
 module System.Socket (
-  -- * Name Resolution
-    AddressInfo (..)
-  -- ** getAddressInfo
-  , GetAddressInfo (..)
-  -- ** getNameInfo
-  , GetNameInfo (..)
+  -- * Socket
+    Socket ()
+  , SocketAddress (..)
+  -- ** Family
+  , Family ()
+  -- ** Type
+  , Type ()
+  -- ** Protocol
+  , Protocol  ()
   -- * Operations
   -- ** socket
   , socket
@@ -84,30 +87,6 @@ module System.Socket (
   , sendAll
   -- ** receiveAll
   , receiveAll
-  -- * Sockets
-  , Socket (..)
-  -- ** Families
-  , Family (..)
-  -- *** Inet
-  , Inet
-  -- *** Inet6
-  , Inet6
-  -- ** Types
-  , Type (..)
-  -- *** Datagram
-  , Datagram
-  -- *** Raw
-  , Raw
-    -- *** SequentialPacket
-  , SequentialPacket
-  -- *** Stream
-  , Stream
-  -- ** Protocols
-  , Protocol  (..)
-  -- *** UDP
-  , UDP
-  -- *** TCP
-  , TCP
   -- * Exceptions
   -- ** SocketException
   , module System.Socket.Internal.Exception
@@ -122,22 +101,28 @@ module System.Socket (
   , eaiSocketType
   , eaiService
   , eaiSystem
-  -- * Socket Options
+  -- * Options
   -- ** getSocketOption
   , GetSocketOption (..)
   -- ** setSocketOption
   , SetSocketOption (..)
   , Error (..)
   , ReuseAddress (..)
+  -- * Name Resolution
+  , AddressInfo (..)
+  -- ** getAddressInfo
+  , GetAddressInfo (..)
+  -- ** getNameInfo
+  , GetNameInfo (..)
   -- * Flags
   -- ** MessageFlags
-  , MessageFlags (..)
+  , MessageFlags ()
   , msgEndOfRecord
   , msgNoSignal
   , msgOutOfBand
   , msgWaitAll
   -- ** AddressInfoFlags
-  , AddressInfoFlags (..)
+  , AddressInfoFlags ()
   , aiAddressConfig
   , aiAll
   , aiCanonicalName
@@ -146,7 +131,7 @@ module System.Socket (
   , aiPassive
   , aiV4Mapped
   -- ** NameInfoFlags
-  , NameInfoFlags (..)
+  , NameInfoFlags ()
   , niNameRequired
   , niDatagram
   , niNoFullyQualifiedDomainName
@@ -182,19 +167,7 @@ import System.Socket.Internal.Message
 import System.Socket.Internal.AddressInfo
 import System.Socket.Internal.Platform
 
-import System.Socket.Family
-import System.Socket.Family.Inet
-import System.Socket.Family.Inet6
-
-import System.Socket.Type
-import System.Socket.Type.Datagram
-import System.Socket.Type.Raw
-import System.Socket.Type.SequentialPacket
 import System.Socket.Type.Stream
-
-import System.Socket.Protocol
-import System.Socket.Protocol.UDP
-import System.Socket.Protocol.TCP
 
 #include "hs_socket.h"
 
@@ -269,7 +242,7 @@ socket = socket'
 --     failed. It should be closed then.
 --   - Also see [these considerations](http://cr.yp.to/docs/connect.html) on
 --     the problems with connecting non-blocking sockets.
-connect :: (Family f, Storable (Address f)) => Socket f t p -> Address f -> IO ()
+connect :: (Family f, Storable (SocketAddress f)) => Socket f t p -> SocketAddress f -> IO ()
 connect (Socket mfd) addr = do
   alloca $ \addrPtr-> do
     poke addrPtr addr
@@ -343,7 +316,7 @@ connect (Socket mfd) addr = do
 --     [argued here](http://stackoverflow.com/a/14485305).
 --   - This operation throws `SocketException`s. Consult your @man@ page for
 --     details and specific @errno@s.
-bind :: (Family f, Storable (Address f)) => Socket f t p -> Address f -> IO ()
+bind :: (Family f, Storable (SocketAddress f)) => Socket f t p -> SocketAddress f -> IO ()
 bind (Socket mfd) addr = do
   alloca $ \addrPtr-> do
     poke addrPtr addr
@@ -386,15 +359,15 @@ listen (Socket ms) backlog = do
 --     details and specific @errno@s.
 --   - This operation catches `eAgain`, `eWouldBlock` and `eInterrupted` internally
 --     and retries automatically.
-accept :: (Family f, Storable (Address f)) => Socket f t p -> IO (Socket f t p, Address f)
+accept :: (Family f, Storable (SocketAddress f)) => Socket f t p -> IO (Socket f t p, SocketAddress f)
 accept s@(Socket mfd) = accept'
   where
-    accept' :: forall f t p. (Family f, Storable (Address f)) => IO (Socket f t p, Address f)
+    accept' :: forall f t p. (Family f, Storable (SocketAddress f)) => IO (Socket f t p, SocketAddress f)
     accept' = do
       -- Allocate local (!) memory for the address.
       alloca $ \addrPtr-> do
         alloca $ \addrPtrLen-> do
-          poke addrPtrLen (fromIntegral $ sizeOf (undefined :: Address f))
+          poke addrPtrLen (fromIntegral $ sizeOf (undefined :: SocketAddress f))
           ( fix $ \again iteration-> do
               -- We mask asynchronous exceptions during this critical section.
               ews <- withMVarMasked mfd $ \fd-> do
@@ -416,7 +389,7 @@ accept s@(Socket mfd) = accept'
                       c_get_last_socket_error >>= throwIO
                     else do
                       -- This peek operation might be a little expensive, but I don't see an alternative.
-                      addr <- peek addrPtr :: IO (Address f)
+                      addr <- peek addrPtr :: IO (SocketAddress f)
                       -- newMVar is guaranteed to be not interruptible.
                       mft <- newMVar ft
                       -- Register a finalizer on the new socket.
@@ -447,8 +420,8 @@ send s bs flags = do
     unsafeSend s (castPtr bufPtr) (fromIntegral bufSize) flags
   return (fromIntegral bytesSent)
 
--- | Like `send`, but allows for specifying a destination address.
-sendTo ::(Family f, Storable (Address f)) => Socket f t p -> BS.ByteString -> MessageFlags -> Address f -> IO Int
+-- | Like `send`, but allows to specify a destination address.
+sendTo ::(Family f, Storable (SocketAddress f)) => Socket f t p -> BS.ByteString -> MessageFlags -> SocketAddress f -> IO Int
 sendTo s bs flags addr = do
   bytesSent <- alloca $ \addrPtr-> do
     poke addrPtr addr
@@ -477,14 +450,14 @@ receive s bufSize flags =
     )
 
 -- | Like `receive`, but additionally yields the peer address.
-receiveFrom :: (Family f, Storable (Address f)) => Socket f t p -> Int -> MessageFlags -> IO (BS.ByteString, Address f)
+receiveFrom :: (Family f, Storable (SocketAddress f)) => Socket f t p -> Int -> MessageFlags -> IO (BS.ByteString, SocketAddress f)
 receiveFrom = receiveFrom'
   where
-    receiveFrom' :: forall f t p. (Family f, Storable (Address f)) => Socket f t p -> Int -> MessageFlags -> IO (BS.ByteString, Address f)
+    receiveFrom' :: forall f t p. (Family f, Storable (SocketAddress f)) => Socket f t p -> Int -> MessageFlags -> IO (BS.ByteString, SocketAddress f)
     receiveFrom' s bufSize flags = do
       alloca $ \addrPtr-> do
         alloca $ \addrSizePtr-> do
-          poke addrSizePtr (fromIntegral $ sizeOf (undefined :: Address f))
+          poke addrSizePtr (fromIntegral $ sizeOf (undefined :: SocketAddress f))
           bracketOnError
             ( mallocBytes bufSize )
             (\bufPtr-> free bufPtr )

@@ -10,6 +10,8 @@ import Foreign.Storable
 import System.Socket
 import System.Socket.Family.Inet  as Inet
 import System.Socket.Family.Inet6 as Inet6
+import System.Socket.Type.Stream
+import System.Socket.Protocol.TCP
 import System.Exit
 
 main :: IO ()
@@ -18,7 +20,7 @@ main = do
   test "test0001.02" $ test0001 (undefined :: Socket Inet6 Stream TCP)  localhost6
 
 -- Test send and receive on connection oriented sockets (i.e. TCP).
-test0001 :: (Family f, Type t, Protocol p, Storable (Address f)) => Socket f t p -> Address f -> IO (Either String String)
+test0001 :: (Family f, Type t, Protocol p, Storable (SocketAddress f)) => Socket f t p -> SocketAddress f -> IO (Either String String)
 test0001 dummy addr =
   bracket
       ( do  server <- socket `asTypeOf` return dummy  `onException` print "E01"
@@ -48,19 +50,19 @@ test0001 dummy addr =
   where
     helloWorld = "Hello world!"
 
-localhost :: Address Inet
+localhost :: SocketAddress Inet
 localhost =
-  InetAddress
+  SocketAddressInet
   { Inet.port      = 7777
   , Inet.address   = Inet.loopback
   }
 
-localhost6 :: Address Inet6
+localhost6 :: SocketAddress Inet6
 localhost6 =
-  Inet6Address
+  SocketAddressInet6
   { Inet6.port     = 7777
   , Inet6.address  = Inet6.loopback
-  , Inet6.flowInfo = mempty
+  , Inet6.flowInfo = 0
   , Inet6.scopeId  = 0
   }
 

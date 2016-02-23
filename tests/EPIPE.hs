@@ -12,6 +12,8 @@ import qualified Data.ByteString.Lazy as LBS
 
 import System.Socket
 import System.Socket.Family.Inet as Inet
+import System.Socket.Type.Stream
+import System.Socket.Protocol.TCP
 
 main :: IO ()
 main = do
@@ -53,4 +55,4 @@ main = do
                            else throwIO e                       `onException` print "E17"
       )
   where
-    addr          = InetAddress Inet.loopback 7777
+    addr          = SocketAddressInet Inet.loopback 7777

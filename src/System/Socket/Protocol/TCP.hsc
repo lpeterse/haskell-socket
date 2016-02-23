@@ -1,6 +1,6 @@
 module System.Socket.Protocol.TCP where
 
-import System.Socket.Protocol
+import System.Socket.Internal.Socket
 
 #include "hs_socket.h"
 

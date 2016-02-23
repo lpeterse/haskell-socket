@@ -1,6 +1,6 @@
 module System.Socket.Type.Stream where
 
-import System.Socket.Type
+import System.Socket.Internal.Socket
 
 #include "hs_socket.h"
 

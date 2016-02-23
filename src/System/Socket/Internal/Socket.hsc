@@ -1,5 +1,10 @@
+{-# LANGUAGE TypeFamilies #-}
 module System.Socket.Internal.Socket (
     Socket (..)
+  , SocketAddress
+  , Family (..)
+  , Type (..)
+  , Protocol (..)
   , GetSocketOption (..)
   , unsafeGetSocketOption
   , SetSocketOption (..)
@@ -24,11 +29,12 @@ import System.Socket.Internal.Exception
 
 #include "hs_socket.h"
 
--- | A generic socket type. Also see `socket` for details.
+-- | A generic socket type. Use `System.Socket.socket` to create a new socket.
 --
 --   The socket is just an `Control.Concurrent.MVar.MVar`-wrapped file descriptor.
---   It is exposed in order to make this library easily extensible, but it is
---   usually not necessary nor advised to work directly on the file descriptor.
+--   The `System.Socket.Unsafe.Socket` constructor is exported trough the unsafe
+--   module in order to make  this library easily extensible, but it is usually
+--   not necessary nor advised to work directly on the file descriptor.
 --   If you do, the following rules must be obeyed:
 --
 --   - Make sure not to deadlock. Use `Control.Concurrent.MVar.withMVar` or similar.
@@ -48,6 +54,17 @@ import System.Socket.Internal.Exception
 --     thread and read the library code to see how the problem is currently circumvented.
 newtype Socket f t p
       = Socket (MVar Fd)
+
+data family SocketAddress f
+
+class Family f where
+  familyNumber :: f -> CInt
+
+class Type t where
+  typeNumber :: t -> CInt
+
+class Protocol  p where
+  protocolNumber :: p -> CInt
 
 class GetSocketOption o where
   getSocketOption :: Socket f t p -> IO o
@@ -86,7 +103,7 @@ unsafeSetSocketOption (Socket mfd) level name value = do
   withMVar mfd $ \fd->
     alloca $ \vPtr-> do
         poke vPtr value
-        i <- c_setsockopt fd level name 
+        i <- c_setsockopt fd level name
                           vPtr
                           (fromIntegral $ sizeOf value)
         when (i < 0) $ do

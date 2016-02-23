@@ -8,9 +8,10 @@ import Control.Concurrent
 import Control.Concurrent.Async
 import Foreign.Storable
 import System.Socket
-import System.Socket.Family
 import System.Socket.Family.Inet   as Inet
 import System.Socket.Family.Inet6  as Inet6
+import System.Socket.Type.Datagram
+import System.Socket.Protocol.UDP
 import System.Exit
 
 main :: IO ()
@@ -19,7 +20,7 @@ main = do
   test "Inet6" (undefined :: Socket Inet6 Datagram  UDP)  localhost6
 
 -- Test stateless sockets (i.e. UDP).
-test :: (Family f, Type t, Protocol p, Storable (Address f)) => String -> Socket f t p -> Address f -> IO ()
+test :: (Family f, Type t, Protocol p, Storable (SocketAddress f)) => String -> Socket f t p -> SocketAddress f -> IO ()
 test inet dummy addr = do
   server <- socket `asTypeOf` return dummy                   `onException` p 1
   client <- socket `asTypeOf` return dummy                   `onException` p 2
@@ -49,18 +50,18 @@ test inet dummy addr = do
     e i        = error (inet ++ ": " ++ show i)
     p i        = print (inet ++ ": " ++ show i)
 
-localhost :: Address Inet
+localhost :: SocketAddress Inet
 localhost =
-  InetAddress
+  SocketAddressInet
   { Inet.port      = 7777
   , Inet.address   = Inet.loopback
   }
 
-localhost6 :: Address Inet6
+localhost6 :: SocketAddress Inet6
 localhost6 =
-  Inet6Address
+  SocketAddressInet6
   { Inet6.port     = 7777
   , Inet6.address  = Inet6.loopback
-  , Inet6.flowInfo = mempty
+  , Inet6.flowInfo = 0
   , Inet6.scopeId  = 0
   }
