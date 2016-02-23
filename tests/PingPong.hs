@@ -12,7 +12,7 @@ import System.Socket.Family.Inet as Inet
 import System.Exit
 
 main :: IO ()
-main = do 
+main = do
   t0001
 
 t0001 :: IO ()
@@ -24,7 +24,7 @@ t0001 = do
   listen server 5                         `onException` e 4
   connect client addr                     `onException` e 5
   (peer,_) <- accept server               `onException` e 6
-  
+
   x <- async (loop client 0)
   y <- async (loop peer 0)
 
@@ -39,7 +39,7 @@ t0001 = do
   when (i < 10000) (e 16)
 
   where
-    addr = SocketAddressInet Inet.loopback 8080
+    addr = InetAddress Inet.loopback 8080
     e i  = print ("t0001." ++ show i)
     loop sock index = ( do
       ping <- receive sock 4096 mempty

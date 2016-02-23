@@ -6,8 +6,6 @@ import Control.Exception
 import Control.Concurrent
 import Control.Concurrent.Async
 
-import Data.Int
-import Data.Monoid
 import qualified Data.ByteString.Lazy as LBS
 
 import System.Socket
@@ -31,4 +29,4 @@ main = do
                            else throwIO e                       `onException` print "E09"
       )
   where
-    addr          = SocketAddressInet Inet.loopback 7777
+    addr          = InetAddress Inet.loopback 7777

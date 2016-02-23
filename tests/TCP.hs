@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, ScopedTypeVariables, TypeFamilies #-}
+{-# LANGUAGE OverloadedStrings, ScopedTypeVariables, TypeFamilies, FlexibleContexts #-}
 module Main where
 
 import Data.Monoid
@@ -6,18 +6,19 @@ import Control.Monad
 import Control.Exception
 import Control.Concurrent
 import Control.Concurrent.Async
+import Foreign.Storable
 import System.Socket
 import System.Socket.Family.Inet  as Inet
 import System.Socket.Family.Inet6 as Inet6
 import System.Exit
 
 main :: IO ()
-main = do 
+main = do
   test "test0001.01" $ test0001 (undefined :: Socket Inet  Stream TCP)  localhost
   test "test0001.02" $ test0001 (undefined :: Socket Inet6 Stream TCP)  localhost6
 
 -- Test send and receive on connection oriented sockets (i.e. TCP).
-test0001 :: (Family f, Type t, Protocol p) => Socket f t p -> SocketAddress f -> IO (Either String String)
+test0001 :: (Family f, Type t, Protocol p, Storable (Address f)) => Socket f t p -> Address f -> IO (Either String String)
 test0001 dummy addr =
   bracket
       ( do  server <- socket `asTypeOf` return dummy  `onException` print "E01"
@@ -47,16 +48,16 @@ test0001 dummy addr =
   where
     helloWorld = "Hello world!"
 
-localhost :: SocketAddressInet
+localhost :: Address Inet
 localhost =
-  SocketAddressInet
+  InetAddress
   { Inet.port      = 7777
   , Inet.address   = Inet.loopback
   }
 
-localhost6 :: SocketAddressInet6
+localhost6 :: Address Inet6
 localhost6 =
-  SocketAddressInet6
+  Inet6Address
   { Inet6.port     = 7777
   , Inet6.address  = Inet6.loopback
   , Inet6.flowInfo = mempty

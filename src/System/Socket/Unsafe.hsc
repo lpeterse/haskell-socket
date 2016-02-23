@@ -23,7 +23,6 @@ module System.Socket.Unsafe (
   ) where
 
 import Data.Function
-import Data.Monoid
 
 import Control.Monad
 import Control.Exception
@@ -46,7 +45,7 @@ unsafeSend :: Socket a t p -> Ptr a -> CSize -> MessageFlags -> IO CInt
 unsafeSend s bufPtr bufSize flags = do
   tryWaitRetryLoop s unsafeSocketWaitWrite (\fd-> c_send fd bufPtr bufSize flags )
 
-unsafeSendTo :: Socket f t p -> Ptr b -> CSize -> MessageFlags -> Ptr (SocketAddress f) -> CInt -> IO CInt
+unsafeSendTo :: Socket f t p -> Ptr b -> CSize -> MessageFlags -> Ptr (Address f) -> CInt -> IO CInt
 unsafeSendTo s bufPtr bufSize flags addrPtr addrSize = do
   tryWaitRetryLoop s unsafeSocketWaitWrite (\fd-> c_sendto fd bufPtr (fromIntegral bufSize) flags addrPtr addrSize)
 
@@ -54,7 +53,7 @@ unsafeReceive :: Socket a t p -> Ptr b -> CSize -> MessageFlags -> IO CInt
 unsafeReceive s bufPtr bufSize flags =
   tryWaitRetryLoop s unsafeSocketWaitRead (\fd-> c_recv fd bufPtr bufSize flags)
 
-unsafeReceiveFrom :: Socket f t p -> Ptr b -> CSize -> MessageFlags -> Ptr (SocketAddress f) -> Ptr CInt -> IO CInt
+unsafeReceiveFrom :: Socket f t p -> Ptr b -> CSize -> MessageFlags -> Ptr (Address f) -> Ptr CInt -> IO CInt
 unsafeReceiveFrom s bufPtr bufSize flags addrPtr addrSizePtr = do
   tryWaitRetryLoop s unsafeSocketWaitRead (\fd-> c_recvfrom fd bufPtr bufSize flags addrPtr addrSizePtr)
 

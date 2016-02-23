@@ -13,12 +13,12 @@ import System.Socket.Family.Inet6 as Inet6
 import System.Exit
 
 main :: IO ()
-main = do 
+main = do
   t0001
   t0002
 
 t0001 :: IO ()
-t0001 = 
+t0001 =
   bracket
     ( do
         server <- socket                              `onException` p 0 :: IO (Socket Inet6 Datagram UDP)
@@ -31,10 +31,10 @@ t0001 =
     )
     (\(server,client)-> do
         setSocketOption server (V6Only True)                `onException` p 4
-        bind server (SocketAddressInet6 Inet6.any 7777 mempty 0) `onException` p 5
+        bind server (Inet6Address Inet6.any 7777 mempty 0) `onException` p 5
 
         threadDelay 1000000 -- wait for the listening socket being set up
-        sendTo client "PING" mempty (SocketAddressInet Inet.loopback 7777)
+        sendTo client "PING" mempty (InetAddress Inet.loopback 7777)
                                                             `onException` p 6
         eith <- race
           ( receiveFrom server 4096 mempty `onException` p 7 >> return () )
@@ -48,7 +48,7 @@ t0001 =
     p i  = print ("t0001." ++ show i)
 
 t0002 :: IO ()
-t0002 = 
+t0002 =
   bracket
     ( do
         server <- socket                              `onException` p 0 :: IO (Socket Inet6 Datagram UDP)
@@ -61,10 +61,10 @@ t0002 =
     )
     (\(server,client)-> do
         setSocketOption server (V6Only False)              `onException` p 4
-        bind server (SocketAddressInet6 Inet6.any 7778 mempty 0) `onException` p 5
+        bind server (Inet6Address Inet6.any 7778 mempty 0) `onException` p 5
 
         threadDelay 1000000 -- wait for the listening socket being set up
-        sendTo client "PING" mempty (SocketAddressInet Inet.loopback 7778) `onException` p 6
+        sendTo client "PING" mempty (InetAddress Inet.loopback 7778) `onException` p 6
         eith <- race
           ( receiveFrom server 4096 mempty `onException` p 7 >> return ())
           ( threadDelay 1000000 )

@@ -33,7 +33,7 @@
 -- >     forkIO $ do
 -- >       sendAll peer "Hello world!" msgNoSignal `finally` close peer
 -- >   where
--- >     addr = SocketAddressInet Inet.loopback 8080
+-- >     addr = AddressInet Inet.loopback 8080
 --
 -- This downloads the Haskell website and prints it to stdout.
 -- Note the use of IPv4-mapped `Inet6` addresses: This will work
@@ -42,11 +42,11 @@
 --
 -- > {-# LANGUAGE OverloadedStrings #-}
 -- > module Main where
--- > 
+-- >
 -- > import Data.Monoid
 -- > import Data.ByteString.Lazy as B
 -- > import System.Socket
--- > 
+-- >
 -- > main :: IO ()
 -- > main = do
 -- >   withConnectedSocket "www.haskell.org" "80" (aiAll `mappend` aiV4Mapped) $ \sock-> do
@@ -80,8 +80,6 @@ module System.Socket (
   -- ** close
   , close
   -- * Convenience Operations
-  -- ** withConnectedSocket
-  , withConnectedSocket
   -- ** sendAll
   , sendAll
   -- ** receiveAll
@@ -271,7 +269,7 @@ socket = socket'
 --     failed. It should be closed then.
 --   - Also see [these considerations](http://cr.yp.to/docs/connect.html) on
 --     the problems with connecting non-blocking sockets.
-connect :: Family f => Socket f t p -> SocketAddress f -> IO ()
+connect :: (Family f, Storable (Address f)) => Socket f t p -> Address f -> IO ()
 connect (Socket mfd) addr = do
   alloca $ \addrPtr-> do
     poke addrPtr addr
@@ -345,7 +343,7 @@ connect (Socket mfd) addr = do
 --     [argued here](http://stackoverflow.com/a/14485305).
 --   - This operation throws `SocketException`s. Consult your @man@ page for
 --     details and specific @errno@s.
-bind :: (Family f) => Socket f t p -> SocketAddress f -> IO ()
+bind :: (Family f, Storable (Address f)) => Socket f t p -> Address f -> IO ()
 bind (Socket mfd) addr = do
   alloca $ \addrPtr-> do
     poke addrPtr addr
@@ -388,15 +386,15 @@ listen (Socket ms) backlog = do
 --     details and specific @errno@s.
 --   - This operation catches `eAgain`, `eWouldBlock` and `eInterrupted` internally
 --     and retries automatically.
-accept :: (Family f) => Socket f t p -> IO (Socket f t p, SocketAddress f)
+accept :: (Family f, Storable (Address f)) => Socket f t p -> IO (Socket f t p, Address f)
 accept s@(Socket mfd) = accept'
   where
-    accept' :: forall f t p. (Family f) => IO (Socket f t p, SocketAddress f)
+    accept' :: forall f t p. (Family f, Storable (Address f)) => IO (Socket f t p, Address f)
     accept' = do
       -- Allocate local (!) memory for the address.
       alloca $ \addrPtr-> do
         alloca $ \addrPtrLen-> do
-          poke addrPtrLen (fromIntegral $ sizeOf (undefined :: SocketAddress f))
+          poke addrPtrLen (fromIntegral $ sizeOf (undefined :: Address f))
           ( fix $ \again iteration-> do
               -- We mask asynchronous exceptions during this critical section.
               ews <- withMVarMasked mfd $ \fd-> do
@@ -412,13 +410,13 @@ accept s@(Socket mfd) = accept'
                         then retry
                         else throwIO e
                   -- This is the critical section: We got a valid descriptor we have not yet returned.
-                  else do 
+                  else do
                     i <- c_setnonblocking ft
                     if i < 0 then do
                       c_get_last_socket_error >>= throwIO
                     else do
                       -- This peek operation might be a little expensive, but I don't see an alternative.
-                      addr <- peek addrPtr :: IO (SocketAddress f)
+                      addr <- peek addrPtr :: IO (Address f)
                       -- newMVar is guaranteed to be not interruptible.
                       mft <- newMVar ft
                       -- Register a finalizer on the new socket.
@@ -437,7 +435,7 @@ accept s@(Socket mfd) = accept'
 --   - The operation returns the number of bytes sent. On `Datagram` and
 --     `SequentialPacket` sockets certain assurances on atomicity exist and `eAgain` or
 --     `eWouldBlock` are returned until the whole message would fit
---     into the send buffer. 
+--     into the send buffer.
 --   - This operation throws `SocketException`s. Consult @man 3p send@ for
 --     details and specific @errno@s.
 --   - `eAgain`, `eWouldBlock` and `eInterrupted` and handled internally and won't
@@ -450,7 +448,7 @@ send s bs flags = do
   return (fromIntegral bytesSent)
 
 -- | Like `send`, but allows for specifying a destination address.
-sendTo ::(Family f) => Socket f t p -> BS.ByteString -> MessageFlags -> SocketAddress f -> IO Int
+sendTo ::(Family f, Storable (Address f)) => Socket f t p -> BS.ByteString -> MessageFlags -> Address f -> IO Int
 sendTo s bs flags addr = do
   bytesSent <- alloca $ \addrPtr-> do
     poke addrPtr addr
@@ -479,14 +477,14 @@ receive s bufSize flags =
     )
 
 -- | Like `receive`, but additionally yields the peer address.
-receiveFrom :: (Family f) => Socket f t p -> Int -> MessageFlags -> IO (BS.ByteString, SocketAddress f)
+receiveFrom :: (Family f, Storable (Address f)) => Socket f t p -> Int -> MessageFlags -> IO (BS.ByteString, Address f)
 receiveFrom = receiveFrom'
   where
-    receiveFrom' :: forall f t p. (Family f) => Socket f t p -> Int -> MessageFlags -> IO (BS.ByteString, SocketAddress f)
+    receiveFrom' :: forall f t p. (Family f, Storable (Address f)) => Socket f t p -> Int -> MessageFlags -> IO (BS.ByteString, Address f)
     receiveFrom' s bufSize flags = do
       alloca $ \addrPtr-> do
         alloca $ \addrSizePtr-> do
-          poke addrSizePtr (fromIntegral $ sizeOf (undefined :: SocketAddress f))
+          poke addrSizePtr (fromIntegral $ sizeOf (undefined :: Address f))
           bracketOnError
             ( mallocBytes bufSize )
             (\bufPtr-> free bufPtr )
@@ -505,7 +503,7 @@ receiveFrom = receiveFrom'
 --   - This operation wakes up all threads that are currently blocking on this
 --     socket. All other threads are guaranteed not to block on operations on this socket in the future.
 --     Threads that perform operations other than `close` on this socket will fail with `eBadFileDescriptor`
---     after the socket has been closed (`close` replaces the 
+--     after the socket has been closed (`close` replaces the
 --     `System.Posix.Types.Fd` in the `Control.Concurrent.MVar.MVar` with @-1@
 --     to reliably avoid use-after-free situations).
 --   - This operation potentially throws `SocketException`s (only @EIO@ is
@@ -528,7 +526,7 @@ close (Socket mfd) = do
             i <- c_close fd
             if i < 0 then do
               e <- c_get_last_socket_error
-              if e == eInterrupted 
+              if e == eInterrupted
                 then retry
                 else throwIO e
             else return ()
@@ -541,7 +539,7 @@ close (Socket mfd) = do
 -- Convenience Operations
 -------------------------------------------------------------------------------
 
--- | Like `send`, but operates on lazy `Data.ByteString.Lazy.ByteString`s and 
+-- | Like `send`, but operates on lazy `Data.ByteString.Lazy.ByteString`s and
 --   continues until all data has been sent or an exception occured.
 sendAll ::Socket f Stream p -> LBS.ByteString -> MessageFlags -> IO ()
 sendAll s lbs flags =
@@ -579,59 +577,3 @@ receiveAll sock maxLen flags = collect 0 mempty
                  $! (accum `mappend` BB.byteString bs)
     build accum = do
       return (BB.toLazyByteString accum)
-
--- | Looks up a name and executes an supplied action with a connected socket.
---
--- - The addresses returned by `getAddressInfo` are tried in sequence until a
---   connection has been established or all have been tried.
--- - If `connect` fails on all addresses the exception that occured on the
---   last connection attempt is thrown.
--- - The supplied action is executed at most once with the first established
---   connection.
--- - If the address family is `Inet6`, `V6Only` is set to `False` which
---   means the other end may be both IPv4 or IPv6.
--- - All sockets created by this operation get closed automatically.
--- - This operation throws `AddressInfoException`s, `SocketException`s and all
---   exceptions that that the supplied action might throw.
---
--- > withConnectedSocket "wwww.haskell.org" "80" (aiAll `mappend` aiV4Mapped) $ \sock-> do
--- >   let _ = sock :: Socket Inet6 Stream TCP
--- >   doSomethingWithSocket sock
-withConnectedSocket :: forall f t p a.
-                 ( GetAddressInfo f, Type t, Protocol p)
-                => BS.ByteString
-                -> BS.ByteString
-                -> AddressInfoFlags
-                -> (Socket f t p -> IO a)
-                -> IO a
-withConnectedSocket host serv flags action = do
-  addrs <- getAddressInfo (Just host) (Just serv) flags :: IO [AddressInfo f t p]
-  tryAddrs addrs
-  where
-    tryAddrs :: [AddressInfo f t p] -> IO a
-    tryAddrs [] = do
-      -- This should not happen.
-      throwIO eaiNoName
-    tryAddrs (addr:addrs) = do
-      eith <- bracket
-        ( socket )
-        ( close )
-        ( \sock-> do
-            configureSocketSpecific sock
-            connected <- try (connect sock $ socketAddress addr)
-            case connected of
-              Left e  -> return (Left (e :: SocketException))
-              Right _ -> Right <$> action sock
-        )
-      case eith of
-        Left e ->
-          -- Rethrow the last exception if there are no more addresses to try.
-          if null addrs
-            then throwIO e
-            else tryAddrs addrs
-        Right a -> do
-          return a
-
-    configureSocketSpecific sock = do
-      when (familyNumber (undefined :: f) == familyNumber (undefined :: Inet6)) $ do
-        setSocketOption sock (V6Only False)

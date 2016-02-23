@@ -1,12 +1,10 @@
-{-# LANGUAGE DeriveDataTypeable, ScopedTypeVariables,
-            StandaloneDeriving, FlexibleContexts, TypeFamilies,
-            GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE DeriveDataTypeable, ScopedTypeVariables, StandaloneDeriving,
+             FlexibleContexts, TypeFamilies, GeneralizedNewtypeDeriving #-}
 module System.Socket.Internal.AddressInfo (
     AddressInfo (..)
   , GetAddressInfo (..)
   , GetNameInfo (..)
   , AddressInfoException (..)
-  --, gaiStrerror
   , eaiAgain
   , eaiBadFlags
   , eaiFail
@@ -65,12 +63,12 @@ import System.Socket.Internal.Platform
 data AddressInfo f t p
    = AddressInfo
      { addressInfoFlags :: AddressInfoFlags
-     , socketAddress    :: SocketAddress f
+     , socketAddress    :: Address f
      , canonicalName    :: Maybe BS.ByteString
      }
 
-deriving instance (Eq   (SocketAddress f)) => Eq   (AddressInfo f t p)
-deriving instance (Show (SocketAddress f)) => Show (AddressInfo f t p)
+deriving instance (Eq   (Address f)) => Eq   (AddressInfo f t p)
+deriving instance (Show (Address f)) => Show (AddressInfo f t p)
 
 -------------------------------------------------------------------------------
 -- AddressInfoException
@@ -229,7 +227,7 @@ class (Family f) => GetAddressInfo f where
 --   >    canonicalName    = Nothing }]
 --   > > getAddressInfo (Just "darcs.haskell.org") Nothing aiV4Mapped :: IO [AddressInfo Inet6 Stream TCP]
 --   > [AddressInfo {
---   >    addressInfoFlags = AddressInfoFlags 8, 
+--   >    addressInfoFlags = AddressInfoFlags 8,
 --   >    socketAddress    = SocketAddressInet6 {address = 0000:0000:0000:0000:0000:ffff:17fd:e1ad, port = 0, flowInfo = mempty, scopeId = 0},
 --   >    canonicalName    = Nothing }]
 --   > > getAddressInfo (Just "darcs.haskell.org") Nothing mempty :: IO [AddressInfo Inet6 Stream TCP]
@@ -242,7 +240,7 @@ instance GetAddressInfo Inet where
 instance GetAddressInfo Inet6 where
   getAddressInfo = getAddressInfo'
 
-getAddressInfo' :: forall f t p. (Family f, Type t, Protocol p) => Maybe BS.ByteString -> Maybe BS.ByteString -> AddressInfoFlags -> IO [AddressInfo f t p]
+getAddressInfo' :: forall f t p. (Family f, Storable (Address f), Type t, Protocol p) => Maybe BS.ByteString -> Maybe BS.ByteString -> AddressInfoFlags -> IO [AddressInfo f t p]
 getAddressInfo' mnode mservice (AddressInfoFlags flags) = do
   alloca $ \resultPtrPtr-> do
     poke resultPtrPtr nullPtr
@@ -280,7 +278,7 @@ getAddressInfo' mnode mservice (AddressInfoFlags flags) = do
     fservice = case mservice of
       Just service -> BS.useAsCString service
       Nothing      -> \f-> f nullPtr
-    peekAddressInfos ptr = 
+    peekAddressInfos ptr =
       if ptr == nullPtr
         then return []
         else do
@@ -300,7 +298,7 @@ getAddressInfo' mnode mservice (AddressInfoFlags flags) = do
 --   > > getNameInfo (SocketAddressInet loopback 80) mempty
 --   > ("localhost.localdomain","http")
 class (Family f) => GetNameInfo f where
-  getNameInfo :: SocketAddress f -> NameInfoFlags -> IO (BS.ByteString, BS.ByteString)
+  getNameInfo :: Address f -> NameInfoFlags -> IO (BS.ByteString, BS.ByteString)
 
 instance GetNameInfo Inet where
   getNameInfo = getNameInfo'

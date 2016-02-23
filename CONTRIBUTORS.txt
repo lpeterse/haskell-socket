@@ -1,3 +1,4 @@
+Ben Gamari (issue #10)
 Niklas Hambüchen (issue #9)
 Michael Fox (reported issue #7)
 Bryan O'Sullivan (legitimately criticised the bizarre naming)

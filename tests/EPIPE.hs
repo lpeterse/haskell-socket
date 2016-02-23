@@ -53,4 +53,4 @@ main = do
                            else throwIO e                       `onException` print "E17"
       )
   where
-    addr          = SocketAddressInet Inet.loopback 7777
+    addr          = InetAddress Inet.loopback 7777

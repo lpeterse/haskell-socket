@@ -42,4 +42,4 @@ main =
   where
     msgSize       = 128*1024*1024 + 1 :: Int64
     msg           = LBS.replicate msgSize 23
-    addr          = SocketAddressInet Inet.loopback 7777
+    addr          = InetAddress Inet.loopback 7777

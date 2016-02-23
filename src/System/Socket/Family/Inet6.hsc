@@ -1,9 +1,9 @@
-{-# LANGUAGE TypeFamilies, GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE TypeFamilies, FlexibleInstances, GeneralizedNewtypeDeriving #-}
 module System.Socket.Family.Inet6
   ( Inet6
+  , Address (Inet6Address, address, port, flowInfo, scopeId)
+  , IPv6Address
     -- * Addresses
-  , SocketAddressInet6 (..)
-  , Address ()
   , Port (..)
   , FlowInfo (..)
   , ScopeId (..)
@@ -40,15 +40,14 @@ import System.Socket.Internal.Platform
 data Inet6
 
 instance Family Inet6 where
-  type SocketAddress Inet6 = SocketAddressInet6
   familyNumber _ = (#const AF_INET6)
 
 -- | Example:
 --
 --  > SocketAddressInet6 loopback 8080 mempty 0
-data SocketAddressInet6
-   = SocketAddressInet6
-     { address   :: Address
+data instance Address Inet6
+   = Inet6Address
+     { address   :: IPv6Address
      , port      :: Port
      , flowInfo  :: FlowInfo
      , scopeId   :: ScopeId
@@ -72,11 +71,11 @@ instance Show Port where
 --
 --   > > getAddressInfo (Just "::1") Nothing aiNumericHost :: IO [AddressInfo SocketAddressInet6 Stream TCP]
 --   > [AddressInfo {
---   >    addressInfoFlags = AddressInfoFlags 4, 
+--   >    addressInfoFlags = AddressInfoFlags 4,
 --   >    socketAddress    = SocketAddressInet6 {address = 0000:0000:0000:0000:0000:0000:0000:0001, port = 0, flowInfo = mempty, scopeId = 0},
 --   >    canonicalName    = Nothing }]
-newtype Address
-      = Address BS.ByteString
+newtype IPv6Address
+      = IPv6Address BS.ByteString
       deriving (Eq)
 
 newtype FlowInfo
@@ -98,15 +97,15 @@ instance Show ScopeId where
   show (ScopeId i) = show i
 
 -- | @::@
-any      :: Address
-any       = Address (BS.pack [0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0])
+any      :: IPv6Address
+any       = IPv6Address (BS.pack [0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0])
 
 -- | @::1@
-loopback :: Address
-loopback  = Address (BS.pack [0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,1])
+loopback :: IPv6Address
+loopback  = IPv6Address (BS.pack [0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,1])
 
-instance Show Address where
-  show (Address addr) = tail $ t $ BS.unpack addr
+instance Show IPv6Address where
+  show (IPv6Address addr) = tail $ t $ BS.unpack addr
     where
       t []       = []
       t [x]      = g x 0 []
@@ -133,31 +132,31 @@ instance Show Address where
       h 15 = 'f'
       h  _ = '_'
 
-instance Storable Address where
+instance Storable IPv6Address where
   sizeOf   _  = 16
   alignment _ = 16
   peek ptr    =
-    Address <$> BS.packCStringLen (castPtr ptr, 16)
-  poke ptr (Address a) =
+    IPv6Address <$> BS.packCStringLen (castPtr ptr, 16)
+  poke ptr (IPv6Address a) =
     BS.unsafeUseAsCString a $ \aPtr-> do
       copyBytes ptr (castPtr aPtr) (min 16 $ BS.length a)
 
-instance Storable SocketAddressInet6 where
+instance Storable (Address Inet6) where
   sizeOf    _ = (#size struct sockaddr_in6)
   alignment _ = (#alignment struct sockaddr_in6)
   peek ptr    = do
     f   <- peek              (sin6_flowinfo ptr)     :: IO Word32
     ph  <- peekByteOff       (sin6_port     ptr)  0  :: IO Word8
     pl  <- peekByteOff       (sin6_port     ptr)  1  :: IO Word8
-    a   <- peek              (sin6_addr     ptr)     :: IO Address
+    a   <- peek              (sin6_addr     ptr)     :: IO IPv6Address
     s   <- peek              (sin6_scope_id ptr)     :: IO Word32
-    return (SocketAddressInet6 a (Port $ fromIntegral ph * 256 + fromIntegral pl) (FlowInfo f) (ScopeId s))
+    return (Inet6Address a (Port $ fromIntegral ph * 256 + fromIntegral pl) (FlowInfo f) (ScopeId s))
     where
       sin6_flowinfo = (#ptr struct sockaddr_in6, sin6_flowinfo)
       sin6_scope_id = (#ptr struct sockaddr_in6, sin6_scope_id)
       sin6_port     = (#ptr struct sockaddr_in6, sin6_port)
       sin6_addr     = (#ptr struct in6_addr, s6_addr) . (#ptr struct sockaddr_in6, sin6_addr)
-  poke ptr (SocketAddressInet6 a (Port p) (FlowInfo f) (ScopeId s)) = do
+  poke ptr (Inet6Address a (Port p) (FlowInfo f) (ScopeId s)) = do
     c_memset ptr 0 (#const sizeof(struct sockaddr_in6))
     poke        (sin6_family   ptr) ((#const AF_INET6) :: Word16)
     poke        (sin6_flowinfo ptr) f

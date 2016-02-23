@@ -1,11 +1,12 @@
 {-# LANGUAGE TypeFamilies, FlexibleContexts #-}
 module System.Socket.Family
   ( Family (..)
+  , Address
   ) where
 
 import Foreign.C.Types
-import Foreign.Storable
 
-class (Storable (SocketAddress f)) => Family f where
-  type SocketAddress f
+class Family f where
   familyNumber :: f -> CInt
+
+data family Address f
