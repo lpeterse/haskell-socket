@@ -22,6 +22,7 @@ module System.Socket.Family.Inet
 
 import Data.Word
 import Data.List
+import Data.Functor
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Unsafe as BS
 
@@ -97,7 +98,7 @@ instance Storable InetAddress where
   sizeOf   _  = (#size      uint32_t)
   alignment _ = (#alignment uint32_t)
   peek ptr    =
-    InetAddress <$> BS.packCStringLen (castPtr ptr, 4)
+    InetAddress Data.Functor.<$> BS.packCStringLen (castPtr ptr, 4)
   poke ptr (InetAddress a) =
     BS.unsafeUseAsCString a $ \aPtr-> do
       copyBytes ptr (castPtr aPtr) (min 4 $ BS.length a)
