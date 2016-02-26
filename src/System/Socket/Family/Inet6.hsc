@@ -13,8 +13,6 @@ module System.Socket.Family.Inet6
   , V6Only (..)
   ) where
 
-import Data.Bits
-import Data.Monoid
 import Data.Word
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Unsafe as BS

@@ -58,7 +58,7 @@
 module System.Socket (
   -- * Socket
     Socket ()
-  , SocketAddress (..)
+  , SocketAddress ()
   -- ** Family
   , Family ()
   -- ** Type
