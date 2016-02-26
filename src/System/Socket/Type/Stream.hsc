@@ -11,14 +11,11 @@ import Control.Monad (when)
 import Data.Int
 import Data.Monoid
 import qualified Data.ByteString as BS
-import qualified Data.ByteString.Unsafe as BS
 import qualified Data.ByteString.Builder as BB
 import qualified Data.ByteString.Builder.Extra as BB
 import qualified Data.ByteString.Lazy as LBS
 
 import System.Socket
-import System.Socket.Internal.Socket
-import System.Socket.Internal.Message
 
 #include "hs_socket.h"
 

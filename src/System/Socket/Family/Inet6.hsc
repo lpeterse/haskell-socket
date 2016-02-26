@@ -2,7 +2,7 @@
 module System.Socket.Family.Inet6
   ( Inet6
   , Inet6Address
-  , SocketAddress (SocketAddressInet6, address, port, flowInfo, scopeId)
+  , SocketAddress (SocketAddressInet6, sin6Address, sin6Port, sin6FlowInfo, sin6ScopeId)
   -- * Special Addresses
   -- ** any
   , System.Socket.Family.Inet6.any
@@ -37,13 +37,13 @@ instance Family Inet6 where
 
 -- | Example:
 --
---  > SocketAddressInet6 loopback 8080 mempty 0
+--  > SocketAddressInet6 loopback 8080 0 0
 data instance SocketAddress Inet6
    = SocketAddressInet6
-     { address   :: Inet6Address
-     , port      :: Word16
-     , flowInfo  :: Word32
-     , scopeId   :: Word32
+     { sin6Address   :: Inet6Address
+     , sin6Port      :: Word16
+     , sin6FlowInfo  :: Word32
+     , sin6ScopeId   :: Word32
      } deriving (Eq, Show)
 
 -- | To avoid errors with endianess it was decided to keep this type abstract.

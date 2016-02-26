@@ -2,7 +2,7 @@
 module System.Socket.Family.Inet
   ( Inet
   , InetAddress
-  , SocketAddress (SocketAddressInet, address, port)
+  , SocketAddress (SocketAddressInet, sinAddress, sinPort)
   -- * Special Addresses
   -- ** allHostsGroup
   , allHostsGroup
@@ -41,10 +41,13 @@ data Inet
 instance Family Inet where
   familyNumber _ = (#const AF_INET)
 
+-- | Example:
+--
+--  > SocketAddressInet loopback 8080
 data instance SocketAddress Inet
    = SocketAddressInet
-     { address   :: InetAddress
-     , port      :: Word16
+     { sinAddress   :: InetAddress
+     , sinPort      :: Word16
      } deriving (Eq, Show)
 
 -- | To avoid errors with endianess it was decided to keep this type abstract.
@@ -57,7 +60,7 @@ data instance SocketAddress Inet
 --   nameserver lookups:
 --
 --   > > getAddressInfo (Just "127.0.0.1") Nothing aiNumericHost :: IO [AddressInfo Inet Stream TCP]
---   > [AddressInfo {addressInfoFlags = AddressInfoFlags 4, socketAddress = SocketAddressInet { address = 127.0.0.1, port = 0}, canonicalName = Nothing}]
+--   > [AddressInfo {addressInfoFlags = AddressInfoFlags 4, socketAddress = SocketAddressInet { sinAddress = 127.0.0.1, sinPort = 0}, canonicalName = Nothing}]
 newtype InetAddress
       = InetAddress BS.ByteString
       deriving (Eq)
