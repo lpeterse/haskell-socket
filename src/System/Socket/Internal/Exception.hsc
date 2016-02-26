@@ -15,68 +15,136 @@ instance Exception SocketException
 
 instance Show SocketException where
   show e@(SocketException i)
-    | e == eOk                   = "eOk"
-    | e == eInterrupted          = "eInterrupted"
-    | e == eAgain                = "eAgain"
-    | e == eWouldBlock           = "eWouldBlock"
-    | e == eBadFileDescriptor    = "eBadFileDescriptor"
-    | e == eInProgress           = "eInProgress"
-    | e == eProtocolNotSupported = "eProtocolNotSupported"
-    | e == eInvalid              = "eInvalid"
-    | e == eConnectionRefused    = "eConnectionRefused"
-    | e == eNetworkUnreachable   = "eNetworkUnreachable"
-    | e == eNotConnected         = "eNotConnected"
-    | e == eAlready              = "eAlready"
-    | e == eIsConnected          = "eIsConnected"
-    | e == eTimedOut             = "eTimedOut"
-    | e == ePipe                 = "ePipe"
-    | e == eOperationNotSupported  = "eOperationNotSupported"
-    | otherwise                  = "SocketException " ++ show i
+    | e == eOk                         = "eOk"
+    | e == eInterrupted                = "eInterrupted"
+    | e == eBadFileDescriptor          = "eBadFileDescriptor"
+    | e == eInvalid                    = "eInvalid"
+    | e == ePipe                       = "ePipe"
+    | e == eWouldBlock                 = "eWouldBlock"
+    | e == eAgain                      = "eAgain"
+    | e == eNotSocket                  = "eNotSocket"
+    | e == eDestinationAddressRequired = "eDestinationAddressRequired"
+    | e == eMessageSize                = "eMessageSize"
+    | e == eProtocolType               = "eProtocolType"
+    | e == eNoProtocolOption           = "eNoProtocolOption"
+    | e == eProtocolNotSupported       = "eProtocolNotSupported"
+    | e == eSocketTypeNotSupported     = "eSocketTypeNotSupported"
+    | e == eOperationNotSupported      = "eOperationNotSupported"
+    | e == eProtocolFamilyNotSupported = "eProtocolFamilyNotSupported"
+    | e == eAddressFamilyNotSupported  = "eAddressFamilyNotSupported"
+    | e == eAddressInUse               = "eAddressInUse"
+    | e == eAddressNotAvailable        = "eAddressNotAvailable"
+    | e == eNetworkDown                = "eNetworkDown"
+    | e == eNetworkUnreachable         = "eNetworkUnreachable"
+    | e == eNetworkReset               = "eNetworkReset"
+    | e == eNoBufferSpace              = "eNoBufferSpace"
+    | e == eIsConnected                = "eIsConnected"
+    | e == eNotConnected               = "eNotConnected"
+    | e == eShutdown                   = "eShutdown"
+    | e == eTooManyReferences          = "eTooManyReferences"
+    | e == eTimedOut                   = "eTimedOut"
+    | e == eConnectionRefused          = "eConnectionRefused"
+    | e == eHostDown                   = "eHostDown"
+    | e == eHostUnreachable            = "eHostUnreachable"
+    | e == eAlready                    = "eAlready"
+    | e == eInProgress                 = "eInProgress"
+    | otherwise                        = "SocketException " ++ show i
 
-eOk                       :: SocketException
-eOk                        = SocketException (#const SEOK)
+eOk                         :: SocketException
+eOk                          = SocketException (#const SEOK)
 
-eInterrupted              :: SocketException
-eInterrupted               = SocketException (#const SEINTR)
+eInterrupted                :: SocketException
+eInterrupted                 = SocketException (#const SEINTR)
 
-eAgain                    :: SocketException
-eAgain                     = SocketException (#const SEAGAIN)
+eBadFileDescriptor          :: SocketException
+eBadFileDescriptor           = SocketException (#const SEBADF)
 
-eWouldBlock               :: SocketException
-eWouldBlock                = SocketException (#const SEWOULDBLOCK)
+eInvalid                    :: SocketException
+eInvalid                     = SocketException (#const SEINVAL)
 
-eBadFileDescriptor        :: SocketException
-eBadFileDescriptor         = SocketException (#const SEBADF)
+ePipe                       :: SocketException
+ePipe                        = SocketException (#const SEPIPE)
 
-eInProgress               :: SocketException
-eInProgress                = SocketException (#const SEINPROGRESS)
+eWouldBlock                 :: SocketException
+eWouldBlock                  = SocketException (#const SEWOULDBLOCK)
 
-eProtocolNotSupported     :: SocketException
-eProtocolNotSupported      = SocketException (#const SEPROTONOSUPPORT)
+eAgain                      :: SocketException
+eAgain                       = SocketException (#const SEAGAIN)
 
-eInvalid                  :: SocketException
-eInvalid                   = SocketException (#const SEINVAL)
+eNotSocket                  :: SocketException
+eNotSocket                   = SocketException (#const SENOTSOCK)
 
-eConnectionRefused        :: SocketException
-eConnectionRefused         = SocketException (#const SECONNREFUSED)
+eDestinationAddressRequired :: SocketException
+eDestinationAddressRequired  = SocketException (#const SEDESTADDRREQ)
 
-eNetworkUnreachable       :: SocketException
-eNetworkUnreachable        = SocketException (#const SENETUNREACH)
+eMessageSize                :: SocketException
+eMessageSize                 = SocketException (#const SEMSGSIZE)
 
-eNotConnected             :: SocketException
-eNotConnected              = SocketException (#const SENOTCONN)
+eProtocolType               :: SocketException
+eProtocolType                = SocketException (#const SEPROTOTYPE)
 
-eAlready                  :: SocketException
-eAlready                   = SocketException (#const SEALREADY)
+eNoProtocolOption           :: SocketException
+eNoProtocolOption            = SocketException (#const SENOPROTOOPT)
 
-eIsConnected              :: SocketException
-eIsConnected               = SocketException (#const SEISCONN)
+eProtocolNotSupported       :: SocketException
+eProtocolNotSupported        = SocketException (#const SEPROTONOSUPPORT)
 
-eTimedOut                 :: SocketException
-eTimedOut                  = SocketException (#const SETIMEDOUT)
+eSocketTypeNotSupported     :: SocketException
+eSocketTypeNotSupported      = SocketException (#const SESOCKTNOSUPPORT)
 
-ePipe                     :: SocketException
-ePipe                      = SocketException (#const SEPIPE)
+eOperationNotSupported      :: SocketException
+eOperationNotSupported       = SocketException (#const SEOPNOTSUPP)
 
-eOperationNotSupported    :: SocketException
-eOperationNotSupported     = SocketException (#const SEOPNOTSUPP)
+eProtocolFamilyNotSupported :: SocketException
+eProtocolFamilyNotSupported  = SocketException (#const SEPFNOSUPPORT)
+
+eAddressFamilyNotSupported  :: SocketException
+eAddressFamilyNotSupported   = SocketException (#const SEAFNOSUPPORT)
+
+eAddressInUse               :: SocketException
+eAddressInUse                = SocketException (#const SEADDRINUSE)
+
+eAddressNotAvailable        :: SocketException
+eAddressNotAvailable         = SocketException (#const SEADDRNOTAVAIL)
+
+eNetworkDown                :: SocketException
+eNetworkDown                 = SocketException (#const SENETDOWN)
+
+eNetworkUnreachable         :: SocketException
+eNetworkUnreachable          = SocketException (#const SENETUNREACH)
+
+eNetworkReset               :: SocketException
+eNetworkReset                = SocketException (#const SENETRESET)
+
+eNoBufferSpace              :: SocketException
+eNoBufferSpace               = SocketException (#const SENOBUFS)
+
+eIsConnected                :: SocketException
+eIsConnected                 = SocketException (#const SEISCONN)
+
+eNotConnected               :: SocketException
+eNotConnected                = SocketException (#const SENOTCONN)
+
+eShutdown                   :: SocketException
+eShutdown                    = SocketException (#const SESHUTDOWN)
+
+eTooManyReferences          :: SocketException
+eTooManyReferences           = SocketException (#const SETOOMANYREFS)
+
+eTimedOut                   :: SocketException
+eTimedOut                    = SocketException (#const SETIMEDOUT)
+
+eConnectionRefused          :: SocketException
+eConnectionRefused           = SocketException (#const SECONNREFUSED)
+
+eHostDown                   :: SocketException
+eHostDown                    = SocketException (#const SEHOSTDOWN)
+
+eHostUnreachable            :: SocketException
+eHostUnreachable             = SocketException (#const SEHOSTUNREACH)
+
+eAlready                    :: SocketException
+eAlready                     = SocketException (#const SEALREADY)
+
+eInProgress                 :: SocketException
+eInProgress                  = SocketException (#const SEINPROGRESS)

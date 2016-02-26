@@ -29,6 +29,23 @@ int hs_get_last_socket_error(void);
 #define SETIMEDOUT             ETIMEDOUT
 #define SEPIPE                 EPIPE
 #define SEOPNOTSUPP            EOPNOTSUPP
+#define SENOTSOCK              ENOTSOCK
+#define SEDESTADDRREQ          EDESTADDRREQ
+#define SEMSGSIZE              EMSGSIZE
+#define SEPROTOTYPE            EPROTOTYPE
+#define SENOPROTOOPT           ENOPROTOOPT
+#define SESOCKTNOSUPPORT       ESOCKTNOSUPPORT
+#define SEPFNOSUPPORT          EPFNOSUPPORT
+#define SEAFNOSUPPORT          EAFNOSUPPORT
+#define SEADDRINUSE            EADDRINUSE
+#define SEADDRNOTAVAIL         EADDRNOTAVAIL
+#define SENETDOWN              ENETDOWN
+#define SENETRESET             ENETRESET
+#define SENOBUFS               ENOBUFS
+#define SESHUTDOWN             ESHUTDOWN
+#define SETOOMANYREFS          ETOOMANYREFS
+#define SEHOSTDOWN             EHOSTDOWN
+#define SEHOSTUNREACH          EHOSTUNREACH
 
 /* MSG_NOSIGNAL might not be available (i.e. on MacOSX and Solaris).
  *   In this case it gets defined as 0. This is relatively
