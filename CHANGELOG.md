@@ -1,5 +1,8 @@
 0.6.0.0 Lars Petersen <info@lars-petersen.net> 2016-02-23
-
+ * The operations `sendAll` and `receiveAll` are now exported through
+   `System.Socket.Type.Stream` and no longer trough the main module.
+   They are very specific, solely stream-oriented and just wrappers around
+   the basic operations. Such operations shouldn't pollute the main module.
  * Issue #10: Ben Gamari reported that the associated type `SocketAddress`
    is not injective which would lead to compilation failure on GHC 8.* .
    This is fixed by using a data family instead.
