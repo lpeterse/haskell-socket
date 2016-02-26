@@ -286,7 +286,7 @@ connect (Socket mfd) addr = do
                   return Nothing
                 else if e == eAlready then do
                   -- The previous connection attempt is still pending.
-                  Just <$> unsafeSocketWaitWrite fd iteration
+                  Just Control.Applicative.<$> unsafeSocketWaitWrite fd iteration
                 else do
                   -- The previous connection failed (results in EINPROGRESS or
                   -- EWOULBLOCK here) or something else is wrong.
@@ -536,7 +536,7 @@ sendAll s lbs flags =
 --     eqal than the limit, the data has not been truncated and the
 --     transmission is complete.
 receiveAll :: Socket f Stream p -> Int64 -> MessageFlags -> IO LBS.ByteString
-receiveAll sock maxLen flags = collect 0 mempty
+receiveAll sock maxLen flags = collect 0 Data.Monoid.mempty
   where
     collect len accum
       | len > maxLen = do
@@ -547,6 +547,6 @@ receiveAll sock maxLen flags = collect 0 mempty
             build accum
           else do
             collect (len + fromIntegral (BS.length bs))
-                 $! (accum `mappend` BB.byteString bs)
+                 $! (accum `Data.Monoid.mappend` BB.byteString bs)
     build accum = do
       return (BB.toLazyByteString accum)

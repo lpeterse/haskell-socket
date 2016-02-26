@@ -2,7 +2,6 @@
 module System.Socket.Internal.Message (
     MessageFlags (..)
   , Message
-  , IoVec
   , msgEndOfRecord
   , msgNoSignal
   , msgOutOfBand
@@ -32,8 +31,6 @@ newtype MessageFlags
 
 data Message a t p
 
-data IoVec
-
 instance Monoid MessageFlags where
   mempty  = MessageFlags 0
   mappend = (.|.)
@@ -41,12 +38,12 @@ instance Monoid MessageFlags where
 instance Show MessageFlags where
   show msg = "mconcat [" ++ y ++ "]"
     where
-      x = [ if msg .&. msgEndOfRecord      /= mempty then Just "msgEndOfRecord"      else Nothing
-          , if msg .&. msgNoSignal /= mempty then Just "msgNoSignal" else Nothing
-          , if msg .&. msgOutOfBand      /= mempty then Just "msgOutOfBand"      else Nothing
-          , if msg .&. msgWaitAll  /= mempty then Just "msgWaitAll"  else Nothing
-          , let (MessageFlags i) = msg `xor` (mconcat [msgEndOfRecord,msgNoSignal,msgOutOfBand,msgWaitAll] .&. msg)
-            in if i /= 0 then Just ("MessageFlags " ++ show i) else Nothing 
+      x = [ if msg .&. msgEndOfRecord /= mempty then Just "msgEndOfRecord" else Nothing
+          , if msg .&. msgNoSignal    /= mempty then Just "msgNoSignal"    else Nothing
+          , if msg .&. msgOutOfBand   /= mempty then Just "msgOutOfBand"   else Nothing
+          , if msg .&. msgWaitAll     /= mempty then Just "msgWaitAll"     else Nothing
+          , let (MessageFlags i) = msg `xor` (Data.Monoid.mconcat [msgEndOfRecord,msgNoSignal,msgOutOfBand,msgWaitAll] .&. msg)
+            in if                   i /= 0      then Just ("MessageFlags " ++ show i) else Nothing
           ]
       y = concat $ intersperse "," $ catMaybes x
 

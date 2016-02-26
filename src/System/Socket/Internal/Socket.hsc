@@ -79,7 +79,7 @@ data Error
 
 instance GetSocketOption Error where
   getSocketOption s =
-    Error . SocketException <$> unsafeGetSocketOption s (#const SOL_SOCKET) (#const SO_ERROR)
+    Error . SocketException Control.Applicative.<$> unsafeGetSocketOption s (#const SOL_SOCKET) (#const SO_ERROR)
 
 -- | @SO_REUSEADDR@
 data ReuseAddress
