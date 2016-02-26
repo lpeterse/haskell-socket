@@ -26,6 +26,9 @@ install:
  - travis_retry cabal update
  - cabal install --only-dependencies --enable-tests --enable-benchmarks
 
+before_script:
+ - sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'
+
 script:
  - if [ -f configure.ac ]; then autoreconf -i; fi
  - cabal configure --enable-tests --enable-benchmarks -v2  # -v2 provides useful information for debugging
