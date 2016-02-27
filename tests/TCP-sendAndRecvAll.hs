@@ -10,7 +10,7 @@ import Data.Monoid
 import qualified Data.ByteString.Lazy as LBS
 
 import System.Socket
-import System.Socket.Family.Inet as Inet
+import System.Socket.Family.Inet
 import System.Socket.Type.Stream
 import System.Socket.Protocol.TCP
 
@@ -44,4 +44,4 @@ main =
   where
     msgSize       = 128*1024*1024 + 1 :: Int64
     msg           = LBS.replicate msgSize 23
-    addr          = SocketAddressInet Inet.loopback 7777
+    addr          = SocketAddressInet inetLoopback 7777

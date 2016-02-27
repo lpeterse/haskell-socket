@@ -9,7 +9,7 @@ import Control.Concurrent.Async
 import qualified Data.ByteString.Lazy as LBS
 
 import System.Socket
-import System.Socket.Family.Inet as Inet
+import System.Socket.Family.Inet
 import System.Socket.Type.Datagram
 import System.Socket.Protocol.UDP
 
@@ -31,4 +31,4 @@ main = do
                            else throwIO e                       `onException` print "E09"
       )
   where
-    addr          = SocketAddressInet Inet.loopback 7777
+    addr          = SocketAddressInet inetLoopback 7777

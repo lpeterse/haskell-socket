@@ -8,7 +8,7 @@ import Control.Exception
 import Control.Concurrent
 import Control.Concurrent.Async
 import System.Socket
-import System.Socket.Family.Inet as Inet
+import System.Socket.Family.Inet
 import System.Socket.Type.Stream
 import System.Socket.Protocol.TCP
 import System.Exit
@@ -41,7 +41,7 @@ t0001 = do
   when (i < 10000) (e 16)
 
   where
-    addr = SocketAddressInet Inet.loopback 8080
+    addr = SocketAddressInet inetLoopback 8080
     e i  = print ("t0001." ++ show i)
     loop sock index = ( do
       ping <- receive sock 4096 mempty

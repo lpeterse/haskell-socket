@@ -8,8 +8,8 @@ import Control.Concurrent
 import Control.Concurrent.Async
 import Foreign.Storable
 import System.Socket
-import System.Socket.Family.Inet  as Inet
-import System.Socket.Family.Inet6 as Inet6
+import System.Socket.Family.Inet
+import System.Socket.Family.Inet6
 import System.Socket.Type.Stream
 import System.Socket.Protocol.TCP
 import System.Exit
@@ -51,10 +51,10 @@ test0001 dummy addr =
     helloWorld = "Hello world!"
 
 localhost :: SocketAddress Inet
-localhost =  SocketAddressInet Inet.loopback 7777
+localhost =  SocketAddressInet inetLoopback 7777
 
 localhost6 :: SocketAddress Inet6
-localhost6 = SocketAddressInet6 Inet6.loopback 7777 0 0
+localhost6 = SocketAddressInet6 inet6Loopback 7777 0 0
 
 
 test :: String -> IO (Either String String) -> IO ()

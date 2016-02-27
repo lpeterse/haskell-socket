@@ -1,23 +1,28 @@
 {-# LANGUAGE TypeFamilies, FlexibleInstances, GeneralizedNewtypeDeriving #-}
 module System.Socket.Family.Inet
-  ( Inet
+  ( -- * Inet
+    Inet
+    -- ** InetAddress
   , InetAddress
-  , SocketAddress (SocketAddressInet, sinAddress, sinPort)
+    -- ** InetPort
+  , InetPort
+    -- ** SocketAddress Inet
+  , SocketAddress (SocketAddressInet, inetAddress, inetPort)
   -- * Special Addresses
-  -- ** allHostsGroup
-  , allHostsGroup
-  -- ** any
-  , System.Socket.Family.Inet.any
-  -- ** broadcast
-  , broadcast
-  -- ** loopback
-  , loopback
-  -- ** maxLocalGroup
-  , maxLocalGroup
-  -- ** none
-  , none
-  -- ** unspecificGroup
-  , unspecificGroup
+  -- ** inetAllHostsGroup
+  , inetAllHostsGroup
+  -- ** inetAny
+  , inetAny
+  -- ** inetBroadcast
+  , inetBroadcast
+  -- ** inetLoopback
+  , inetLoopback
+  -- ** inetMaxLocalGroup
+  , inetMaxLocalGroup
+  -- ** inetNone
+  , inetNone
+  -- ** inetUnspecificGroup
+  , inetUnspecificGroup
   ) where
 
 import Data.Word
@@ -42,8 +47,8 @@ instance Family Inet where
 --  > SocketAddressInet loopback 8080
 data instance SocketAddress Inet
    = SocketAddressInet
-     { sinAddress   :: InetAddress
-     , sinPort      :: Word16
+     { inetAddress   :: InetAddress
+     , inetPort      :: InetPort
      } deriving (Eq, Show)
 
 -- | To avoid errors with endianess it was decided to keep this type abstract.
@@ -61,38 +66,56 @@ newtype InetAddress
       = InetAddress Word32
       deriving (Eq)
 
+newtype InetPort = InetPort Word16
+      deriving (Eq, Ord, Show, Num)
+
 -- | @0.0.0.0@
-any             :: InetAddress
-any              = InetAddress $ 0
+inetAny             :: InetAddress
+inetAny              = InetAddress $ 0
 
 -- | @255.255.255.255@
-broadcast       :: InetAddress
-broadcast        = InetAddress $ foldl1' (\x y->x*256+y) [255,255,255,255]
+inetBroadcast       :: InetAddress
+inetBroadcast        = InetAddress $ foldl1' (\x y->x*256+y) [255,255,255,255]
 
 -- | @255.255.255.255@
-none            :: InetAddress
-none             = InetAddress $ foldl1' (\x y->x*256+y) [255,255,255,255]
+inetNone            :: InetAddress
+inetNone             = InetAddress $ foldl1' (\x y->x*256+y) [255,255,255,255]
 
 -- | @127.0.0.1@
-loopback        :: InetAddress
-loopback         = InetAddress $ foldl1' (\x y->x*256+y) [127,  0,  0,  1]
+inetLoopback        :: InetAddress
+inetLoopback         = InetAddress $ foldl1' (\x y->x*256+y) [127,  0,  0,  1]
 
 -- | @224.0.0.0@
-unspecificGroup :: InetAddress
-unspecificGroup  = InetAddress $ foldl1' (\x y->x*256+y) [224,  0,  0,  0]
+inetUnspecificGroup :: InetAddress
+inetUnspecificGroup  = InetAddress $ foldl1' (\x y->x*256+y) [224,  0,  0,  0]
 
 -- | @224.0.0.1@
-allHostsGroup   :: InetAddress
-allHostsGroup    = InetAddress $ foldl1' (\x y->x*256+y) [224,  0,  0,  1]
+inetAllHostsGroup   :: InetAddress
+inetAllHostsGroup    = InetAddress $ foldl1' (\x y->x*256+y) [224,  0,  0,  1]
 
 -- | @224.0.0.255@
-maxLocalGroup   :: InetAddress
-maxLocalGroup    = InetAddress $ foldl1' (\x y->x*256+y) [224,  0,  0,255]
+inetMaxLocalGroup   :: InetAddress
+inetMaxLocalGroup    = InetAddress $ foldl1' (\x y->x*256+y) [224,  0,  0,255]
 
 instance Show InetAddress where
   show (InetAddress a) =
    concat $ intersperse "."
           $ map (\p-> show $ a `div` 256^p `mod` 256) [3,2,1,0 :: Word32]
+
+instance Storable InetPort where
+  sizeOf   _  = (#size      uint16_t)
+  alignment _ = (#alignment uint16_t)
+  peek ptr    = do
+    p0 <- peekByteOff ptr 0 :: IO Word8
+    p1 <- peekByteOff ptr 1 :: IO Word8
+    return $ InetPort (fromIntegral p0 * 256 + fromIntegral p1)
+  poke ptr (InetPort w16) = do
+    pokeByteOff ptr 0 (w16_0 w16)
+    pokeByteOff ptr 1 (w16_1 w16)
+    where
+      w16_0, w16_1 :: Word16 -> Word8
+      w16_0 x = fromIntegral $ rem (quot x  256) 256
+      w16_1 x = fromIntegral $ rem       x       256
 
 instance Storable InetAddress where
   sizeOf   _  = (#size      uint32_t)
@@ -115,20 +138,18 @@ instance Storable (SocketAddress Inet) where
   sizeOf    _ = (#size struct sockaddr_in)
   alignment _ = (#alignment struct sockaddr_in)
   peek ptr    = do
-    ph  <- peekByteOff (sin_port ptr)  0 :: IO Word8
-    pl  <- peekByteOff (sin_port ptr)  1 :: IO Word8
-    a   <- peek        (sin_addr ptr)    :: IO InetAddress
-    return (SocketAddressInet a (fromIntegral ph * 256 + fromIntegral pl))
+    a  <- peek (sin_addr ptr)
+    p  <- peek (sin_port ptr)
+    return $ SocketAddressInet a p
     where
-      sin_port     = (#ptr struct sockaddr_in, sin_port)
       sin_addr     = (#ptr struct in_addr, s_addr) . (#ptr struct sockaddr_in, sin_addr)
+      sin_port     = (#ptr struct sockaddr_in, sin_port)
   poke ptr (SocketAddressInet a p) = do
     c_memset ptr 0 (#const sizeof(struct sockaddr_in))
     poke        (sin_family   ptr) ((#const AF_INET) :: Word16)
-    pokeByteOff (sin_port     ptr)  0 (fromIntegral $ rem (quot p 256) 256 :: Word8)
-    pokeByteOff (sin_port     ptr)  1 (fromIntegral $ rem       p      256 :: Word8)
     poke        (sin_addr     ptr) a
+    poke        (sin_port     ptr) p
     where
       sin_family   = (#ptr struct sockaddr_in, sin_family)
-      sin_port     = (#ptr struct sockaddr_in, sin_port)
       sin_addr     = (#ptr struct in_addr, s_addr) . (#ptr struct sockaddr_in, sin_addr)
+      sin_port     = (#ptr struct sockaddr_in, sin_port)

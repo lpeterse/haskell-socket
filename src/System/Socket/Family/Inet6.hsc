@@ -11,12 +11,13 @@ module System.Socket.Family.Inet6
     -- ** Inet6ScopeId
   , Inet6ScopeId
     -- ** SocketAddress Inet6
-  , SocketAddress (SocketAddressInet6, sin6Address, sin6Port, sin6FlowInfo, sin6ScopeId)
+  , SocketAddress (SocketAddressInet6, inet6Address, inet6Port,
+                                       inet6FlowInfo, inet6ScopeId)
   -- * Special Addresses
-  -- ** any
-  , System.Socket.Family.Inet6.any
-  -- ** loopback
-  , loopback
+  -- ** inet6Any
+  , inet6Any
+  -- ** inet6Loopback
+  , inet6Loopback
   -- * Socket Options
   -- ** V6Only
   , V6Only (..)
@@ -45,10 +46,10 @@ instance Family Inet6 where
 --  > SocketAddressInet6 loopback 8080 0 0
 data instance SocketAddress Inet6
    = SocketAddressInet6
-     { sin6Address   :: Inet6Address
-     , sin6Port      :: Inet6Port
-     , sin6FlowInfo  :: Inet6FlowInfo
-     , sin6ScopeId   :: Inet6ScopeId
+     { inet6Address   :: Inet6Address
+     , inet6Port      :: Inet6Port
+     , inet6FlowInfo  :: Inet6FlowInfo
+     , inet6ScopeId   :: Inet6ScopeId
      } deriving (Eq, Show)
 
 -- | To avoid errors with endianess it was decided to keep this type abstract.
@@ -78,12 +79,12 @@ newtype Inet6ScopeId  = Inet6ScopeId Word32
       deriving (Eq, Ord, Show, Num)
 
 -- | @::@
-any      :: Inet6Address
-any       = Inet6Address 0 0
+inet6Any      :: Inet6Address
+inet6Any       = Inet6Address 0 0
 
 -- | @::1@
-loopback :: Inet6Address
-loopback  = Inet6Address 0 1
+inet6Loopback :: Inet6Address
+inet6Loopback  = Inet6Address 0 1
 
 instance Show Inet6Address where
   show (Inet6Address high low) =
@@ -205,8 +206,8 @@ instance Storable Inet6Address where
     pokeByteOff ptr 15 (w64_7 low)
 
 instance Storable Inet6Port where
-  sizeOf   _  = 2
-  alignment _ = 2
+  sizeOf   _  = (#size uint16_t)
+  alignment _ = (#alignment uint16_t)
   peek ptr    = do
     p0 <- peekByteOff ptr 0 :: IO Word8
     p1 <- peekByteOff ptr 1 :: IO Word8
@@ -216,8 +217,8 @@ instance Storable Inet6Port where
     pokeByteOff ptr 1 (w16_1 w16)
 
 instance Storable Inet6FlowInfo where
-  sizeOf   _  = 4
-  alignment _ = 4
+  sizeOf   _  = (#size uint32_t)
+  alignment _ = (#alignment uint32_t)
   peek ptr    = do
     p0 <- peekByteOff ptr 0 :: IO Word8
     p1 <- peekByteOff ptr 1 :: IO Word8
@@ -232,8 +233,8 @@ instance Storable Inet6FlowInfo where
     pokeByteOff ptr 3 (w32_3 w32)
 
 instance Storable Inet6ScopeId where
-  sizeOf   _  = 4
-  alignment _ = 4
+  sizeOf   _  = (#size uint32_t)
+  alignment _ = (#alignment uint32_t)
   peek ptr    = do
     p0 <- peekByteOff ptr 0 :: IO Word8
     p1 <- peekByteOff ptr 1 :: IO Word8

@@ -29,8 +29,8 @@ t0001 = do
   let [ai] = ais
   when (canonicalName ai /= Nothing) (e 2)
   let sa = socketAddress ai
-  when (Inet.sinPort    sa /= 80) (e 3)
-  when (Inet.sinAddress sa /= Inet.loopback) (e 4)
+  when (inetPort    sa /= 80) (e 3)
+  when (inetAddress sa /= inetLoopback) (e 4)
   where
     p i = print ("t0001." ++ show i)
     e i = error ("t0001." ++ show i)
