@@ -1,4 +1,6 @@
 0.6.0.0 Lars Petersen <info@lars-petersen.net> 2016-02-23
+ * Removed operation `withConnectedSocket` without replacement.
+   It should not be part of this minimal library. Its code can be retrieved from the repository if needed.
  * The operations `sendAll` and `receiveAll` are now exported through
    `System.Socket.Type.Stream` and no longer trough the main module.
    They are very specific, solely stream-oriented and just wrappers around
