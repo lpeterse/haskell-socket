@@ -33,8 +33,8 @@ module System.Socket.Internal.AddressInfo (
 import Control.Exception
 import Control.Monad
 
-import Data.Bits
 import Data.Monoid
+import Data.Bits
 import Data.Typeable
 import qualified Data.ByteString as BS
 
@@ -134,7 +134,7 @@ newtype AddressInfoFlags
       = AddressInfoFlags CInt
       deriving (Eq, Show, Bits)
 
-instance Monoid AddressInfoFlags where
+instance Data.Monoid.Monoid AddressInfoFlags where
   mempty
     = AddressInfoFlags 0
   mappend (AddressInfoFlags a) (AddressInfoFlags b)
@@ -289,7 +289,7 @@ getAddressInfo' mnode mservice (AddressInfoFlags flags) = do
           as    <- peek (ai_next ptr) >>= peekAddressInfos
           return ((AddressInfo (AddressInfoFlags flag) addr cname):as)
 
--- | Maps addresss to readable host- and service names.
+-- | Maps addresses to readable host- and service names.
 --
 --   The operation throws `AddressInfoException`s.
 --

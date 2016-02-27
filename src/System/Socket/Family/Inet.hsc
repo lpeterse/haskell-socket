@@ -22,13 +22,9 @@ module System.Socket.Family.Inet
 
 import Data.Word
 import Data.List
-import Data.Functor
-import qualified Data.ByteString as BS
-import qualified Data.ByteString.Unsafe as BS
 
 import Foreign.Ptr
 import Foreign.Storable
-import Foreign.Marshal.Utils
 
 import System.Socket.Internal.Socket
 import System.Socket.Internal.Platform
@@ -62,49 +58,58 @@ data instance SocketAddress Inet
 --   > > getAddressInfo (Just "127.0.0.1") Nothing aiNumericHost :: IO [AddressInfo Inet Stream TCP]
 --   > [AddressInfo {addressInfoFlags = AddressInfoFlags 4, socketAddress = SocketAddressInet { sinAddress = 127.0.0.1, sinPort = 0}, canonicalName = Nothing}]
 newtype InetAddress
-      = InetAddress BS.ByteString
+      = InetAddress Word32
       deriving (Eq)
 
 -- | @0.0.0.0@
 any             :: InetAddress
-any              = InetAddress $ BS.pack [  0,  0,  0,  0]
+any              = InetAddress $ 0
 
 -- | @255.255.255.255@
 broadcast       :: InetAddress
-broadcast        = InetAddress $ BS.pack [255,255,255,255]
+broadcast        = InetAddress $ foldl1' (\x y->x*256+y) [255,255,255,255]
 
 -- | @255.255.255.255@
 none            :: InetAddress
-none             = InetAddress $ BS.pack [255,255,255,255]
+none             = InetAddress $ foldl1' (\x y->x*256+y) [255,255,255,255]
 
 -- | @127.0.0.1@
 loopback        :: InetAddress
-loopback         = InetAddress $ BS.pack [127,  0,  0,  1]
+loopback         = InetAddress $ foldl1' (\x y->x*256+y) [127,  0,  0,  1]
 
 -- | @224.0.0.0@
 unspecificGroup :: InetAddress
-unspecificGroup  = InetAddress $ BS.pack [224,  0,  0,  0]
+unspecificGroup  = InetAddress $ foldl1' (\x y->x*256+y) [224,  0,  0,  0]
 
 -- | @224.0.0.1@
 allHostsGroup   :: InetAddress
-allHostsGroup    = InetAddress $ BS.pack [224,  0,  0,  1]
+allHostsGroup    = InetAddress $ foldl1' (\x y->x*256+y) [224,  0,  0,  1]
 
 -- | @224.0.0.255@
 maxLocalGroup   :: InetAddress
-maxLocalGroup    = InetAddress $ BS.pack [224,  0,  0,255]
+maxLocalGroup    = InetAddress $ foldl1' (\x y->x*256+y) [224,  0,  0,255]
 
 instance Show InetAddress where
   show (InetAddress a) =
-    concat $ intersperse "." $ map show $ BS.unpack a
+   concat $ intersperse "."
+          $ map (\p-> show $ a `div` 256^p `mod` 256) [3,2,1,0 :: Word32]
 
 instance Storable InetAddress where
   sizeOf   _  = (#size      uint32_t)
   alignment _ = (#alignment uint32_t)
-  peek ptr    =
-    InetAddress Data.Functor.<$> BS.packCStringLen (castPtr ptr, 4)
-  poke ptr (InetAddress a) =
-    BS.unsafeUseAsCString a $ \aPtr-> do
-      copyBytes ptr (castPtr aPtr) (min 4 $ BS.length a)
+  peek ptr    = do
+    i0  <- peekByteOff ptr 0 :: IO Word8
+    i1  <- peekByteOff ptr 1 :: IO Word8
+    i2  <- peekByteOff ptr 2 :: IO Word8
+    i3  <- peekByteOff ptr 3 :: IO Word8
+    return $ InetAddress $ (((((f i0 * 256) + f i1) * 256) + f i2) * 256) + f i3
+    where
+      f = fromIntegral
+  poke ptr (InetAddress a) = do
+    pokeByteOff ptr 0 (fromIntegral $ rem (quot a $ 256*256*256) 256 :: Word8)
+    pokeByteOff ptr 1 (fromIntegral $ rem (quot a $     256*256) 256 :: Word8)
+    pokeByteOff ptr 2 (fromIntegral $ rem (quot a $         256) 256 :: Word8)
+    pokeByteOff ptr 3 (fromIntegral $ rem       a $              256 :: Word8)
 
 instance Storable (SocketAddress Inet) where
   sizeOf    _ = (#size struct sockaddr_in)

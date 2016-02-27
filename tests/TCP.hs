@@ -51,20 +51,11 @@ test0001 dummy addr =
     helloWorld = "Hello world!"
 
 localhost :: SocketAddress Inet
-localhost =
-  SocketAddressInet
-  { Inet.port      = 7777
-  , Inet.address   = Inet.loopback
-  }
+localhost =  SocketAddressInet Inet.loopback 7777
 
 localhost6 :: SocketAddress Inet6
-localhost6 =
-  SocketAddressInet6
-  { Inet6.port     = 7777
-  , Inet6.address  = Inet6.loopback
-  , Inet6.flowInfo = 0
-  , Inet6.scopeId  = 0
-  }
+localhost6 = SocketAddressInet6 Inet6.loopback 7777 0 0
+
 
 test :: String -> IO (Either String String) -> IO ()
 test n t = do

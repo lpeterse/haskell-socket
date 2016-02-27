@@ -8,8 +8,8 @@ import Control.Concurrent
 import Control.Concurrent.Async
 import Foreign.Storable
 import System.Socket
-import System.Socket.Family.Inet   as Inet
-import System.Socket.Family.Inet6  as Inet6
+import System.Socket.Family.Inet as Inet
+import System.Socket.Family.Inet6 as Inet6
 import System.Socket.Type.Datagram
 import System.Socket.Protocol.UDP
 import System.Exit
@@ -51,17 +51,7 @@ test inet dummy addr = do
     p i        = print (inet ++ ": " ++ show i)
 
 localhost :: SocketAddress Inet
-localhost =
-  SocketAddressInet
-  { Inet.port      = 7777
-  , Inet.address   = Inet.loopback
-  }
+localhost =  SocketAddressInet Inet.loopback 7777
 
 localhost6 :: SocketAddress Inet6
-localhost6 =
-  SocketAddressInet6
-  { Inet6.port     = 7777
-  , Inet6.address  = Inet6.loopback
-  , Inet6.flowInfo = 0
-  , Inet6.scopeId  = 0
-  }
+localhost6 = SocketAddressInet6 Inet6.loopback 7777 0 0
