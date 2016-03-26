@@ -15,16 +15,17 @@
 -- > import Control.Monad ( forever )
 -- >
 -- > import System.Socket
--- > import System.Socket.Family.Inet6 ( Inet6, SocketAddress (..), inet6Any, V6Only (..) )
--- > import System.Socket.Type.Stream ( Stream, sendAll )
--- > import System.Socket.Protocol.TCP ( TCP )
+-- > import System.Socket.Family.Inet6
+-- > import System.Socket.Type.Stream
+-- > import System.Socket.Protocol.TCP
 -- >
 -- > main :: IO ()
 -- > main = bracket
 -- >   ( socket :: IO (Socket Inet6 Stream TCP) )
 -- >   ( \s-> do
 -- >     close s
--- >     putStrLn "Listening socket closed." )
+-- >     putStrLn "Listening socket closed."
+-- >   )
 -- >   ( \s-> do
 -- >     setSocketOption s (ReuseAddress True)
 -- >     setSocketOption s (V6Only False)

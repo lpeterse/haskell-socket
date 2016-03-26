@@ -55,7 +55,7 @@ import System.Socket.Internal.Exception
 --   - The socket is non-blocking and all the code relies on that assumption.
 --     You need to use GHC's eventing mechanism primitives to block until
 --     something happens. The former rules forbid to use `GHC.Conc.threadWaitRead` as it
---     does not seperate between registering the file descriptor (for which
+--     does not separate between registering the file descriptor (for which
 --     the lock __must__ be held) and the actual waiting (for which you must
 --     __not__ hold the lock).
 --     Also see [this](https://mail.haskell.org/pipermail/haskell-cafe/2014-September/115823.html)

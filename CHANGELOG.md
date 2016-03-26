@@ -1,4 +1,11 @@
-0.6.0.0 Lars Petersen <info@lars-petersen.net> 2016-02-23
+0.6.0.0 Lars Petersen <info@lars-petersen.net> 2016-03-26
+ * Improved and adapted documentation.
+ * Merged `GetSocketOption` and `SetSocketOption` to one single type class
+   `SocketOption`.
+ * `getNameInfo` now returns `NameInfo` instead of a tuple.
+ * Added all theoretically possible `SocketExceptions`.
+ * The type class `GetNameInfo` has been renamed to `HasNameInfo`.
+ * The type class `GetAddressInfo` has been renamed to `HasAddressInfo`.
  * Removed operation `withConnectedSocket` without replacement.
    It should not be part of this minimal library. Its code can be retrieved from the repository if needed.
  * The operations `sendAll` and `receiveAll` are now exported through

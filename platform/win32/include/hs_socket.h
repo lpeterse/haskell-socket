@@ -135,8 +135,8 @@ int hs_get_last_socket_error(void);
 #define SENOBUFS               WSAENOBUFS
 #define SENETRESET             WSAENETRESET
 #define SENETDOWN              WSAENETDOWN
-#define SECONNABORTED          WSECONNABORTED
-#define SECONNRESET            WSECONNRESET
+#define SECONNABORTED          WSAECONNABORTED
+#define SECONNRESET            WSAECONNRESET
 #define SEADDRNOTAVAIL         WSAEADDRNOTAVAIL
 #define SEADDRINUSE            WSAEADDRINUSE
 #define SEAFNOSUPPORT          WSAEAFNOSUPPORT
