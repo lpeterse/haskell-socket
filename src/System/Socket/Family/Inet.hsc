@@ -61,7 +61,7 @@ data instance SocketAddress Inet
 --   nameserver lookups:
 --
 --   > > getAddressInfo (Just "127.0.0.1") Nothing aiNumericHost :: IO [AddressInfo Inet Stream TCP]
---   > [AddressInfo {addressInfoFlags = AddressInfoFlags 4, socketAddress = SocketAddressInet { sinAddress = 127.0.0.1, sinPort = 0}, canonicalName = Nothing}]
+--   > [AddressInfo {addressInfoFlags = AddressInfoFlags 4, socketAddress = SocketAddressInet {inetAddress = InetAddress 127.0.0.1, inetPort = InetPort 0}, canonicalName = Nothing}]
 newtype InetAddress
       = InetAddress Word32
       deriving (Eq)
