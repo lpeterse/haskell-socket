@@ -37,6 +37,8 @@ instance Show SocketException where
     | e == eNetworkDown                = "eNetworkDown"
     | e == eNetworkUnreachable         = "eNetworkUnreachable"
     | e == eNetworkReset               = "eNetworkReset"
+    | e == eConnectionAborted          = "eConnectionAborted"
+    | e == eConnectionReset            = "eConnectionReset"
     | e == eNoBufferSpace              = "eNoBufferSpace"
     | e == eIsConnected                = "eIsConnected"
     | e == eNotConnected               = "eNotConnected"
@@ -115,6 +117,12 @@ eNetworkUnreachable          = SocketException (#const SENETUNREACH)
 
 eNetworkReset               :: SocketException
 eNetworkReset                = SocketException (#const SENETRESET)
+
+eConnectionAborted          :: SocketException
+eConnectionAborted           = SocketException (#const SECONNABORTED)
+
+eConnectionReset            :: SocketException
+eConnectionReset             = SocketException (#const SECONNRESET)
 
 eNoBufferSpace              :: SocketException
 eNoBufferSpace               = SocketException (#const SENOBUFS)

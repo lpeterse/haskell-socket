@@ -126,7 +126,6 @@ eaiSocketType  = AddressInfoException (#const EAI_SOCKTYPE)
 eaiSystem   :: AddressInfoException
 eaiSystem    = AddressInfoException (#const EAI_SYSTEM)
 
-
 -- | Use the `Data.Monoid.Monoid` instance to combine several flags:
 --
 --   > mconcat [aiAddressConfig, aiV4Mapped]
@@ -147,29 +146,29 @@ aiAddressConfig   = AddressInfoFlags (#const AI_ADDRCONFIG)
 -- | @AI_ALL@: Return both IPv4 (as mapped `SocketAddressInet6`) and IPv6 addresses when
 -- `aiV4Mapped` is set independent of whether IPv6 addresses exist for this
 --  name.
-aiAll         :: AddressInfoFlags
-aiAll          = AddressInfoFlags (#const AI_ALL)
+aiAll             :: AddressInfoFlags
+aiAll              = AddressInfoFlags (#const AI_ALL)
 
 -- | @AI_CANONNAME@:
 aiCanonicalName   :: AddressInfoFlags
 aiCanonicalName    = AddressInfoFlags (#const AI_CANONNAME)
 
 -- | @AI_NUMERICHOST@:
-aiNumericHost :: AddressInfoFlags
-aiNumericHost  = AddressInfoFlags (#const AI_NUMERICHOST)
+aiNumericHost     :: AddressInfoFlags
+aiNumericHost      = AddressInfoFlags (#const AI_NUMERICHOST)
 
 -- | @AI_NUMERICSERV@:
-aiNumericService :: AddressInfoFlags
-aiNumericService  = AddressInfoFlags (#const AI_NUMERICSERV)
+aiNumericService  :: AddressInfoFlags
+aiNumericService   = AddressInfoFlags (#const AI_NUMERICSERV)
 
 -- | @AI_PASSIVE@:
-aiPassive     :: AddressInfoFlags
-aiPassive      = AddressInfoFlags (#const AI_PASSIVE)
+aiPassive         :: AddressInfoFlags
+aiPassive          = AddressInfoFlags (#const AI_PASSIVE)
 
 -- | @AI_V4MAPPED@: Return mapped IPv4 addresses if no IPv6 addresses could be found
 --   or if `aiAll` flag is set.
-aiV4Mapped    :: AddressInfoFlags
-aiV4Mapped     = AddressInfoFlags (#const AI_V4MAPPED)
+aiV4Mapped        :: AddressInfoFlags
+aiV4Mapped         = AddressInfoFlags (#const AI_V4MAPPED)
 
 -- | Use the `Data.Monoid.Monoid` instance to combine several flags:
 --
@@ -185,24 +184,24 @@ instance Monoid NameInfoFlags where
     = NameInfoFlags (a .|. b)
 
 -- | @NI_NAMEREQD@: Throw an exception if the hostname cannot be determined.
-niNameRequired     :: NameInfoFlags
-niNameRequired      = NameInfoFlags (#const NI_NAMEREQD)
+niNameRequired               :: NameInfoFlags
+niNameRequired                = NameInfoFlags (#const NI_NAMEREQD)
 
 -- | @NI_DGRAM@: Service is datagram based (i.e. `System.Socket.Protocol.UDP.UDP`) rather than stream based (i.e. `System.Socket.Protocol.TCP.TCP`).
-niDatagram        :: NameInfoFlags
-niDatagram         = NameInfoFlags (#const NI_DGRAM)
+niDatagram                   :: NameInfoFlags
+niDatagram                    = NameInfoFlags (#const NI_DGRAM)
 
 -- | @NI_NOFQDN@: Return only the hostname part of the fully qualified domain name for local hosts.
-niNoFullyQualifiedDomainName       :: NameInfoFlags
-niNoFullyQualifiedDomainName        = NameInfoFlags (#const NI_NOFQDN)
+niNoFullyQualifiedDomainName :: NameInfoFlags
+niNoFullyQualifiedDomainName  = NameInfoFlags (#const NI_NOFQDN)
 
 -- | @NI_NUMERICHOST@: Return the numeric form of the host address.
-niNumericHost  :: NameInfoFlags
-niNumericHost   = NameInfoFlags (#const NI_NUMERICHOST)
+niNumericHost                :: NameInfoFlags
+niNumericHost                 = NameInfoFlags (#const NI_NUMERICHOST)
 
 -- | @NI_NUMERICSERV@: Return the numeric form of the service address.
-niNumericService  :: NameInfoFlags
-niNumericService   = NameInfoFlags (#const NI_NUMERICSERV)
+niNumericService             :: NameInfoFlags
+niNumericService              = NameInfoFlags (#const NI_NUMERICSERV)
 
 class (Family f) => GetAddressInfo f where
   -- | Maps names to addresses (i.e. by DNS lookup).
@@ -221,7 +220,7 @@ class (Family f) => GetAddressInfo f where
 --   > > getAddressInfo (Just "www.haskell.org") (Just "80") aiV4Mapped :: IO [AddressInfo Inet6 Stream TCP]
 --   > [AddressInfo {
 --   >    addressInfoFlags = AddressInfoFlags 8,
---   >    socketAddress    = SocketAddressInet6 {address = 2400:cb00:2048:0001:0000:0000:6ca2:cc3c, port = 80, flowInfo = mempty, scopeId = 0},
+--   >    socketAddress    = SocketAddressInet6 {inet6Address = 2400:cb00:2048:0001:0000:0000:6ca2:cc3c, port = 80, flowInfo = mempty, scopeId = 0},
 --   >    canonicalName    = Nothing }]
 --   > > getAddressInfo (Just "darcs.haskell.org") Nothing aiV4Mapped :: IO [AddressInfo Inet6 Stream TCP]
 --   > [AddressInfo {

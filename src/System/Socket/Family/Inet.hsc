@@ -98,9 +98,10 @@ inetMaxLocalGroup   :: InetAddress
 inetMaxLocalGroup    = InetAddress $ foldl1' (\x y->x*256+y) [224,  0,  0,255]
 
 instance Show InetAddress where
-  show (InetAddress a) =
-   concat $ intersperse "."
-          $ map (\p-> show $ a `div` 256^p `mod` 256) [3,2,1,0 :: Word32]
+  show (InetAddress a) = ("InetAddress " ++)
+    $ concat
+    $ intersperse "."
+    $ map (\p-> show $ a `div` 256^p `mod` 256) [3,2,1,0 :: Word32]
 
 instance Storable InetPort where
   sizeOf   _  = (#size      uint16_t)

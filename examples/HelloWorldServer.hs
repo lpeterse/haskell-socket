@@ -1,23 +1,22 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Main where
 
+import Control.Exception ( finally )
+import Control.Monad ( forever )
+
 import System.Socket
-import System.Socket.Family.Inet as Inet
-import Data.Monoid
-import Data.ByteString
-import Control.Monad
-import Control.Concurrent
-import Control.Exception
+import System.Socket.Family.Inet6 ( Inet6, SocketAddress (..), inet6Any, V6Only (..) )
+import System.Socket.Type.Stream ( Stream, sendAll )
+import System.Socket.Protocol.TCP ( TCP )
 
 main :: IO ()
 main = do
-  s <- socket :: IO (Socket Inet Stream TCP)
-  setSocketOption s (ReuseAddress True)
-  bind s addr
-  listen s 5
+  listeningSocket <- socket :: IO (Socket Inet6 Stream TCP)
+  setSocketOption listeningSocket (ReuseAddress True)
+  setSocketOption listeningSocket (V6Only False)
+  bind listeningSocket (SocketAddressInet6 inet6Any 8080 0 0)
+  listen listeningSocket 5
   forever $ do
-    (peer,_) <- accept s
-    forkIO $ do
-      sendAll peer "Hello world!" mempty `finally` close peer
-  where
-    addr = SocketAddressInet Inet.loopback 8080
+    (peerSocket, peerAddress) <- accept listeningSocket
+    print peerAddress
+    sendAll peerSocket "Hello world!" msgNoSignal `finally` close peerSocket

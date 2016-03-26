@@ -49,7 +49,7 @@ int hs_close(int sockfd) {
 };
 
 int hs_setnonblocking(int fd) {
-  // If iMode = 0, blocking is enabled; 
+  // If iMode = 0, blocking is enabled;
   // If iMode != 0, non-blocking mode is enabled.
   u_long iMode = 1;
   return ioctlsocket(fd, FIONBIO, &iMode);

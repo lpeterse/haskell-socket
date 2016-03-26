@@ -41,6 +41,8 @@ int hs_get_last_socket_error(void);
 #define SEADDRNOTAVAIL         EADDRNOTAVAIL
 #define SENETDOWN              ENETDOWN
 #define SENETRESET             ENETRESET
+#define SECONNABORTED          ECONNABORTED
+#define SECONNRESET            ECONNRESET
 #define SENOBUFS               ENOBUFS
 #define SESHUTDOWN             ESHUTDOWN
 #define SETOOMANYREFS          ETOOMANYREFS

@@ -87,7 +87,7 @@ inet6Loopback :: Inet6Address
 inet6Loopback  = Inet6Address 0 1
 
 instance Show Inet6Address where
-  show (Inet6Address high low) =
+  show (Inet6Address high low) = "Inet6Address " ++
     [ hex $ hn $ w64_0 high
     , hex $ ln $ w64_0 high
     , hex $ hn $ w64_1 high
