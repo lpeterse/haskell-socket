@@ -1,4 +1,13 @@
 {-# LANGUAGE TypeFamilies, FlexibleInstances, GeneralizedNewtypeDeriving #-}
+--------------------------------------------------------------------------------
+-- |
+-- Module      :  System.Socket
+-- Copyright   :  (c) Lars Petersen 2015
+-- License     :  MIT
+--
+-- Maintainer  :  info@lars-petersen.net
+-- Stability   :  experimental
+--------------------------------------------------------------------------------
 module System.Socket.Family.Inet
   ( -- * Inet
     Inet
@@ -37,14 +46,18 @@ import System.Socket.Internal.Platform
 #include "hs_socket.h"
 #let alignment t = "%lu", (unsigned long)offsetof(struct {char x__; t (y__); }, y__)
 
+-- | The [Internet Protocol version 4](https://en.wikipedia.org/wiki/IPv4).
 data Inet
 
 instance Family Inet where
   familyNumber _ = (#const AF_INET)
 
--- | Example:
+-- | An [IPv4](https://en.wikipedia.org/wiki/IPv4) socket address.
 --
---  > SocketAddressInet loopback 8080
+--   The socket address contains a port number that may be used by transport
+--   protocols like [TCP](https://en.wikipedia.org/wiki/Transmission_Control_Protocol).
+--
+-- > SocketAddressInet inetLoopback 8080
 data instance SocketAddress Inet
    = SocketAddressInet
      { inetAddress   :: InetAddress

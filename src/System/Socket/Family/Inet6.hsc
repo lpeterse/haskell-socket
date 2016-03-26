@@ -1,4 +1,13 @@
 {-# LANGUAGE TypeFamilies, FlexibleInstances, GeneralizedNewtypeDeriving #-}
+--------------------------------------------------------------------------------
+-- |
+-- Module      :  System.Socket
+-- Copyright   :  (c) Lars Petersen 2015
+-- License     :  MIT
+--
+-- Maintainer  :  info@lars-petersen.net
+-- Stability   :  experimental
+--------------------------------------------------------------------------------
 module System.Socket.Family.Inet6
   ( -- * Inet6
     Inet6
@@ -36,14 +45,18 @@ import System.Socket.Internal.Platform
 #include "hs_socket.h"
 #let alignment t = "%lu", (unsigned long)offsetof(struct {char x__; t (y__); }, y__)
 
+-- | The [Internet Protocol version 4](https://en.wikipedia.org/wiki/IPv4).
 data Inet6
 
 instance Family Inet6 where
   familyNumber _ = (#const AF_INET6)
 
--- | Example:
+-- | An [IPv6](https://en.wikipedia.org/wiki/IPv6) socket address.
 --
---  > SocketAddressInet6 loopback 8080 0 0
+--   The socket address contains a port number that may be used by transport
+--   protocols like [TCP](https://en.wikipedia.org/wiki/Transmission_Control_Protocol).
+--
+-- > SocketAddressInet6 inet6Loopback 8080 0 0
 data instance SocketAddress Inet6
    = SocketAddressInet6
      { inet6Address   :: Inet6Address
@@ -64,7 +77,7 @@ data instance SocketAddress Inet6
 --   > > getAddressInfo (Just "::1") Nothing aiNumericHost :: IO [AddressInfo SocketAddressInet6 Stream TCP]
 --   > [AddressInfo {
 --   >    addressInfoFlags = AddressInfoFlags 4,
---   >    socketAddress    = SocketAddressInet6 {address = 0000:0000:0000:0000:0000:0000:0000:0001, port = 0, flowInfo = mempty, scopeId = 0},
+--   >    socketAddress    = SocketAddressInet6 {inet6Address = Inet6Address 0000:0000:0000:0000:0000:0000:0000:0001, inet6Port = Inet6Port 0, inet6FlowInfo = Inet6FlowInfo 0, inet6ScopeId = Inet6ScopeId 0},
 --   >    canonicalName    = Nothing }]
 data  Inet6Address    = Inet6Address {-# UNPACK #-} !Word64 {-# UNPACK #-} !Word64
       deriving (Eq)

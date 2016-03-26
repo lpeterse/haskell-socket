@@ -8,9 +8,6 @@
 -- Maintainer  :  info@lars-petersen.net
 -- Stability   :  experimental
 --
--- This starts a TCP server on localhost, sends @"Hello world!"@ to
--- connecting peers and closes the connection immediately.
---
 -- > {-# LANGUAGE OverloadedStrings #-}
 -- > module Main where
 -- >
