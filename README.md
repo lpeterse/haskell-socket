@@ -7,7 +7,7 @@ socket
 
 ### Motivation
 
-This library aims to expose a minimal and platform-independant interface for
+This library aims to expose a minimal and cross platform interface for
 POSIX compliant networking code.
 
 ### Implementation Philosophy
@@ -15,29 +15,20 @@ POSIX compliant networking code.
   - Every operation and every flag exposed should be supported with same
     semantics on every platform. If this cannot be guaranteed it should
     be supplied by another (extension) package.
-    Examples for things that have been ripped out of this library are:
-      - Support for Unix sockets which don't have an equivalent on Windows.
-      - Support for SCTP.
-      - Support for vectored IO (at least unless it can be guaranteed to
-        be supported on all platforms).
 
   - Absolutely no conditional exports.
 
   - No `#ifdef` madness in the Haskell sources. The Haskell binding code
     uses the FFI to reference the platform's native networking functions.
-    If they are not Posix compliant (i.e. on Windows) an level of
-    indirection is introduced to create an Posix compliant equivalent in C
-    using whatever the plaform specific building blocks are.
+    If they are not POSIX compliant (i.e. on Windows) a level of
+    indirection is introduced to create a POSIX compliant equivalent in C
+    using whatever the platform specific building blocks are.
 
 ### Platform Support
 
 #### Linux
 
 Working.
-
-#### BSD
-
-Unknown. Should work. Please report if not.
 
 #### MacOS
 
@@ -47,11 +38,11 @@ Working.
 
 Fully supported on Windows7 (maybe Vista) or higher :-)
 
-GHCs runtime system on Windows does not offer an event notification mechanism for sockets.
+GHC's runtime system on Windows does not offer an event notification mechanism for sockets.
 The original [network](https://hackage.haskell.org/package/network) library
-suffers from this, too. For example, connection attempts are uninterruptible etc.
+suffers from this, too. For example, connection attempts are non-interruptible etc.
 The approach taken to circumvent this in this library is to poll the
-non-blocking sockets with increasing delay. This guarantees interruptability
+non-blocking sockets with increasing delay. This guarantees non-interruptability
 and fairness between different threads. It allows for decent throughput
 while also keeping CPU consumption on a moderate level if a socket has not seen
 events for a longer period of time (maximum of 1 second delay after 20

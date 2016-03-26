@@ -1,11 +1,9 @@
 name:                socket
 version:             0.5.3.0
-synopsis:            A portable and extensible sockets library.
+synopsis:            An extensible socket library.
 description:
-  This library is a minimal and platform-independant interface for
+  This library is a minimal and cross platform interface for
   BSD style networking.
-  .
-  Also see README.md for details.
 
 license:             MIT
 license-file:        LICENSE
