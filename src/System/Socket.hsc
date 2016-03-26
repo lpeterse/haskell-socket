@@ -59,18 +59,15 @@ module System.Socket (
   -- ** close
   , close
   -- * Options
-  -- ** getSocketOption
-  , GetSocketOption (..)
-  -- ** setSocketOption
-  , SetSocketOption (..)
+  , SocketOption (..)
   , Error (..)
   , ReuseAddress (..)
   -- * Name Resolution
   , AddressInfo (..)
   -- ** getAddressInfo
-  , GetAddressInfo (..)
+  , HasAddressInfo (..)
   -- ** getNameInfo
-  , GetNameInfo (..)
+  , HasNameInfo (..)
   -- * Flags
   -- ** MessageFlags
   , MessageFlags ()

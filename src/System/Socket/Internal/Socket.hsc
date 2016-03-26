@@ -1,13 +1,21 @@
 {-# LANGUAGE TypeFamilies #-}
+--------------------------------------------------------------------------------
+-- |
+-- Module      :  System.Socket
+-- Copyright   :  (c) Lars Petersen 2015
+-- License     :  MIT
+--
+-- Maintainer  :  info@lars-petersen.net
+-- Stability   :  experimental
+--------------------------------------------------------------------------------
 module System.Socket.Internal.Socket (
     Socket (..)
   , SocketAddress
   , Family (..)
   , Type (..)
   , Protocol (..)
-  , GetSocketOption (..)
+  , SocketOption (..)
   , unsafeGetSocketOption
-  , SetSocketOption (..)
   , unsafeSetSocketOption
   , Error (..)
   , ReuseAddress (..)
@@ -55,6 +63,13 @@ import System.Socket.Internal.Exception
 newtype Socket f t p
       = Socket (MVar Fd)
 
+-- | The `SocketAddress` type is a [data family](https://wiki.haskell.org/GHC/Type_families#Detailed_definition_of_data_families).
+--   This allows to provide different data constructors depending on the socket
+--   family wihtout knowing all of them in advance or the need to patch this
+--   core library.
+--
+-- > SocketAddressInet  inetLoopback  8080     :: SocketAddress Inet
+-- > SocketAddressInet6 inet6Loopback 8080 0 0 :: SocketAddress Inet6
 data family SocketAddress f
 
 class Family f where
@@ -66,10 +81,8 @@ class Type t where
 class Protocol  p where
   protocolNumber :: p -> CInt
 
-class GetSocketOption o where
+class SocketOption o where
   getSocketOption :: Socket f t p -> IO o
-
-class SetSocketOption o where
   setSocketOption :: Socket f t p -> o -> IO ()
 
 -- | @SO_ERROR@
@@ -77,20 +90,19 @@ data Error
    = Error SocketException
    deriving (Eq, Ord, Show)
 
-instance GetSocketOption Error where
+instance SocketOption Error where
   getSocketOption s =
     Error . SocketException Control.Applicative.<$> unsafeGetSocketOption s (#const SOL_SOCKET) (#const SO_ERROR)
+  setSocketOption _ _ = throwIO eInvalid
 
 -- | @SO_REUSEADDR@
 data ReuseAddress
    = ReuseAddress Bool
    deriving (Eq, Ord, Show)
 
-instance GetSocketOption ReuseAddress where
+instance SocketOption ReuseAddress where
   getSocketOption s =
     ReuseAddress . ((/=0) :: CInt -> Bool) <$> unsafeGetSocketOption s (#const SOL_SOCKET) (#const SO_REUSEADDR)
-
-instance SetSocketOption ReuseAddress where
   setSocketOption s (ReuseAddress o) =
     unsafeSetSocketOption s (#const SOL_SOCKET) (#const SO_REUSEADDR) (if o then 1 else 0 :: CInt)
 

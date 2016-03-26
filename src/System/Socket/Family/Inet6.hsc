@@ -296,11 +296,9 @@ data V6Only
    = V6Only Bool
    deriving (Eq, Ord, Show)
 
-instance GetSocketOption V6Only where
+instance SocketOption V6Only where
   getSocketOption s =
     V6Only . ((/=0) :: CInt -> Bool) <$> unsafeGetSocketOption s (#const IPPROTO_IPV6) (#const IPV6_V6ONLY)
-
-instance SetSocketOption V6Only where
   setSocketOption s (V6Only o) =
     unsafeSetSocketOption s (#const IPPROTO_IPV6) (#const IPV6_V6ONLY) (if o then 1 else 0 :: CInt)
 

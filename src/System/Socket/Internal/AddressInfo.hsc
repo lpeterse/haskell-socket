@@ -11,8 +11,8 @@
 --------------------------------------------------------------------------------
 module System.Socket.Internal.AddressInfo (
     AddressInfo (..)
-  , GetAddressInfo (..)
-  , GetNameInfo (..)
+  , HasAddressInfo (..)
+  , HasNameInfo (..)
   , AddressInfoException (..)
   , eaiAgain
   , eaiBadFlags
@@ -212,7 +212,7 @@ niNumericHost                 = NameInfoFlags (#const NI_NUMERICHOST)
 niNumericService             :: NameInfoFlags
 niNumericService              = NameInfoFlags (#const NI_NUMERICSERV)
 
-class (Family f) => GetAddressInfo f where
+class (Family f) => HasAddressInfo f where
   -- | Maps names to addresses (i.e. by DNS lookup).
 --
 --   The operation throws `AddressInfoException`s.
@@ -244,10 +244,10 @@ class (Family f) => GetAddressInfo f where
 --   > *** Exception: AddressInfoException "Name or service not known"
   getAddressInfo :: (Type t, Protocol p) => Maybe BS.ByteString -> Maybe BS.ByteString -> AddressInfoFlags -> IO [AddressInfo f t p]
 
-instance GetAddressInfo Inet where
+instance HasAddressInfo Inet where
   getAddressInfo = getAddressInfo'
 
-instance GetAddressInfo Inet6 where
+instance HasAddressInfo Inet6 where
   getAddressInfo = getAddressInfo'
 
 getAddressInfo' :: forall f t p. (Family f, Storable (SocketAddress f), Type t, Protocol p) => Maybe BS.ByteString -> Maybe BS.ByteString -> AddressInfoFlags -> IO [AddressInfo f t p]
@@ -307,13 +307,13 @@ getAddressInfo' mnode mservice (AddressInfoFlags flags) = do
 --
 --   > > getNameInfo (SocketAddressInet loopback 80) mempty
 --   > ("localhost.localdomain","http")
-class (Family f) => GetNameInfo f where
+class (Family f) => HasNameInfo f where
   getNameInfo :: SocketAddress f -> NameInfoFlags -> IO (BS.ByteString, BS.ByteString)
 
-instance GetNameInfo Inet where
+instance HasNameInfo Inet where
   getNameInfo = getNameInfo'
 
-instance GetNameInfo Inet6 where
+instance HasNameInfo Inet6 where
   getNameInfo = getNameInfo'
 
 getNameInfo' :: Storable a => a -> NameInfoFlags -> IO (BS.ByteString, BS.ByteString)
