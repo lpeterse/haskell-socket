@@ -313,7 +313,7 @@ data NameInfo
 --
 --   The operation throws `AddressInfoException`s.
 --
---   > > getNameInfo (SocketAddressInet loopback 80) mempty
+--   > > getNameInfo (SocketAddressInet inetLoopback 80) mempty
 --   > NameInfo {hostName = "localhost.localdomain", serviceName = "http"}
 class (Family f) => HasNameInfo f where
   getNameInfo :: SocketAddress f -> NameInfoFlags -> IO NameInfo
