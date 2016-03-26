@@ -63,10 +63,11 @@ module System.Socket (
   , Error (..)
   , ReuseAddress (..)
   -- * Name Resolution
-  , AddressInfo (..)
   -- ** getAddressInfo
+  , AddressInfo (..)
   , HasAddressInfo (..)
   -- ** getNameInfo
+  , NameInfo (..)
   , HasNameInfo (..)
   -- * Flags
   -- ** MessageFlags

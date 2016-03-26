@@ -12,6 +12,7 @@
 module System.Socket.Internal.AddressInfo (
     AddressInfo (..)
   , HasAddressInfo (..)
+  , NameInfo (..)
   , HasNameInfo (..)
   , AddressInfoException (..)
   , eaiAgain
@@ -301,14 +302,21 @@ getAddressInfo' mnode mservice (AddressInfoFlags flags) = do
           as    <- peek (ai_next ptr) >>= peekAddressInfos
           return ((AddressInfo (AddressInfoFlags flag) addr cname):as)
 
+-- | A `NameInfo` consists of host and service name.
+data NameInfo
+   = NameInfo
+     { hostName    :: BS.ByteString
+     , serviceName :: BS.ByteString
+     } deriving (Eq, Show)
+
 -- | Maps addresses to readable host- and service names.
 --
 --   The operation throws `AddressInfoException`s.
 --
 --   > > getNameInfo (SocketAddressInet loopback 80) mempty
---   > ("localhost.localdomain","http")
+--   > NameInfo {hostName = "localhost.localdomain", serviceName = "http"}
 class (Family f) => HasNameInfo f where
-  getNameInfo :: SocketAddress f -> NameInfoFlags -> IO (BS.ByteString, BS.ByteString)
+  getNameInfo :: SocketAddress f -> NameInfoFlags -> IO NameInfo
 
 instance HasNameInfo Inet where
   getNameInfo = getNameInfo'
@@ -316,7 +324,7 @@ instance HasNameInfo Inet where
 instance HasNameInfo Inet6 where
   getNameInfo = getNameInfo'
 
-getNameInfo' :: Storable a => a -> NameInfoFlags -> IO (BS.ByteString, BS.ByteString)
+getNameInfo' :: Storable a => a -> NameInfoFlags -> IO NameInfo
 getNameInfo' addr (NameInfoFlags flags) =
   alloca $ \addrPtr->
     allocaBytes (#const NI_MAXHOST) $ \hostPtr->
@@ -329,6 +337,6 @@ getNameInfo' addr (NameInfoFlags flags) =
         if e == 0 then do
           host <- BS.packCString hostPtr
           serv <- BS.packCString servPtr
-          return (host,serv)
+          return $ NameInfo host serv
         else do
           throwIO (AddressInfoException e)
