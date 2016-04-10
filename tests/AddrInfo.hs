@@ -10,17 +10,16 @@ import System.Socket.Family.Inet as Inet
 import System.Exit
 
 main :: IO ()
-main = do 
+main = do
   t0001
   t0002
-  t0003
 
 t0001 :: IO ()
 t0001 = do
   ais <- getAddressInfo
           (Just "127.0.0.1")
-          (Just "http")
-          aiNumericHost 
+          (Just "80")
+          aiNumericHost
           `onException` p 0 :: IO [AddressInfo Inet Stream TCP]
   when (length ais /= 1) (e 1)
   let [ai] = ais
@@ -49,12 +48,14 @@ t0002 = do
 --   AI_V4MAPPEND and AI_ALL. Asking for localhost should
 --   yield an additional v4-mappend IPV6-Address in the second case,
 --   but not in the first one.
+{-
+-- TODO: Commented out due to issue #12.
 t0003 :: IO ()
 t0003 = do
   x <- getAddressInfo
           (Just "localhost")
           Nothing
-          mempty 
+          mempty
           `onException` p 0:: IO [AddressInfo Inet6 Stream TCP]
   y <- getAddressInfo
           (Just "localhost")
@@ -65,3 +66,4 @@ t0003 = do
   where
     p i = print ("t0003." ++ show i)
     e i = error ("t0003." ++ show i)
+-}

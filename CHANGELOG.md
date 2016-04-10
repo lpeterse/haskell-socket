@@ -1,3 +1,7 @@
+0.5.3.1 Lars Petersen <info@lars-petersen.net> 2016-04-10
+
+ * Fixed `AddrInfo` test suite. Should now work even in a `chroot()` environment.
+
 0.5.3.0 Lars Petersen <info@lars-petersen.net> 2015-08-09
 
  * Added a test for `eOperationNotSupported` (try to listen on a UDP socket).
