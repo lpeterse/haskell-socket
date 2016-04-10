@@ -1,4 +1,10 @@
+0.6.0.1 Lars Petersen <info@lars-petersen.net> 2016-04-10
+
+ * Adapted the `AddrInfo` test suite to not depend on specific nameresolution
+   features that aren't available in a `chroot()` environment (see issue #12).
+
 0.6.0.0 Lars Petersen <info@lars-petersen.net> 2016-03-26
+
  * Improved and adapted documentation.
  * Merged `GetSocketOption` and `SetSocketOption` to one single type class
    `SocketOption`.
