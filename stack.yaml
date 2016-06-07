@@ -1,0 +1,5 @@
+resolver: ghc-8.0
+packages:
+- '.'
+nix:
+  packages: [ ncurses ]   # To support hacking with Intero.
