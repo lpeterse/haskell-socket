@@ -250,39 +250,10 @@ connect (Socket mfd) addr = do
       Just wait -> do
         -- This either waits or does nothing.
         wait
-        -- By here we don't know anything about the current connection status.
-        -- It might either have succeeded, failed or is still undecided.
-        -- The approach is to try a second connection attempt, because its error
-        -- codes allow us to distinguish all three potential states.
-        ( fix $ \again iteration-> do
-            mwait' <- withMVar mfd $ \fd-> do
-              i <- c_connect fd addrPtr addrLen
-              if i < 0 then do
-                e <- c_get_last_socket_error
-                if e == eIsConnected then do
-                  -- This is what we want. The connection is established.
-                  return Nothing
-                else if e == eAlready then do
-                  -- The previous connection attempt is still pending.
-                  Just Control.Applicative.<$> unsafeSocketWaitWrite fd iteration
-                else do
-                  -- The previous connection failed (results in EINPROGRESS or
-                  -- EWOULBLOCK here) or something else is wrong.
-                  -- We throw eTimedOut here as we don't know and will never
-                  -- know the exact reason (better suggestions appreciated).
-                  throwIO eTimedOut
-              else do
-                -- This means the last connection attempt succeeded immediately.
-                -- Linux does this when connecting to the same address when the
-                -- unsafeSocketWaitWrite call signals writeability.
-                return Nothing
-            case mwait' of
-              Nothing    -> do
-                return ()
-              Just wait' -> do
-                wait'
-                again $! iteration + 1
-         ) 1
+        -- Use `getsockopt` to get the actual socket errno.
+        Error se <- getSocketOption (Socket mfd)
+        -- Throw exception when status code is != 0.
+        when (se /= eOk) (throwIO se)
 
 -- | Bind a socket to an address.
 --

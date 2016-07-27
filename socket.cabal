@@ -58,6 +58,22 @@ library
     hs-source-dirs:    platform/linux/src
     c-sources:         platform/linux/cbits/hs_socket.c
 
+test-suite test
+  default-language:
+    Haskell2010
+  type:
+    exitcode-stdio-1.0
+  hs-source-dirs:
+    test
+  main-is:
+    test.hs
+  build-depends:
+      base >= 4.7 && < 5
+    , tasty >= 0.11
+    , tasty-hunit
+    , bytestring
+    , socket
+
 test-suite UDP
   hs-source-dirs:      tests
   main-is:             UDP.hs
