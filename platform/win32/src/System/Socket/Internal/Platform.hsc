@@ -1,12 +1,17 @@
 module System.Socket.Internal.Platform where
 
 import Control.Concurrent ( threadDelay )
+import Control.Concurrent.MVar ( MVar, withMVar )
+import Control.Exception ( throwIO )
+import Control.Monad ( when )
 
 import Data.Bits
 
 import Foreign.Ptr
 import Foreign.C.Types
 import Foreign.C.String
+import Foreign.Storable
+import Foreign.Marshal
 
 import System.Posix.Types ( Fd(..) )
 
@@ -20,6 +25,30 @@ unsafeSocketWaitWrite _ iteration = do
 unsafeSocketWaitRead :: Fd -> Int -> IO (IO ())
 unsafeSocketWaitRead  _ iteration = do
   return (threadDelay $ 1 `shiftL` min iteration 20)
+
+unsafeSocketWaitConnected :: MVar Fd -> Fd -> IO (IO ())
+unsafeSocketWaitConnected mfd _ =
+  return $ loop 0
+  where
+    loop iteration = do
+      pending <- withMVar mfd $ \fd-> do
+        when (fd < 0) $
+          throwIO eBadFileDescriptor
+        alloca $ \ptr-> do
+          poke ptr 23
+          i <- c_connect_status fd ptr
+          case i of
+            0  -> return True
+            1  -> return False
+            _  -> do
+              SocketException <$> peek ptr >>= throwIO
+      if pending
+        then do
+          -- Wait with exponential backoff.
+          threadDelay $ 1 `shiftL` min iteration 20
+          -- Try again.
+          loop $ iteration + 1
+        else return ()
 
 type CSSize
    = CInt
@@ -35,6 +64,9 @@ foreign import ccall unsafe "hs_bind"
 
 foreign import ccall unsafe "hs_connect"
   c_connect :: Fd -> Ptr a -> CInt -> IO CInt
+
+foreign import ccall unsafe "hs_connect_status"
+  c_connect_status :: Fd -> Ptr CInt -> IO CInt
 
 foreign import ccall unsafe "hs_accept"
   c_accept  :: Fd -> Ptr a -> Ptr CInt -> IO Fd

@@ -236,7 +236,7 @@ connect (Socket mfd) addr = do
           -- The manpage says that in this case the connection
           -- shall be established asynchronously and one is
           -- supposed to wait.
-          wait <- unsafeSocketWaitWrite fd 0
+          wait <- unsafeSocketWaitConnected mfd fd
           return (Just wait)
         else do
           throwIO e
@@ -244,16 +244,10 @@ connect (Socket mfd) addr = do
         -- This should not be the case on non-blocking socket, but better safe than sorry.
         return Nothing
     case mwait of
-      Nothing -> do
-        -- The connection could be established synchronously. Nothing else to do.
-        return ()
-      Just wait -> do
-        -- This either waits or does nothing.
-        wait
-        -- Use `getsockopt` to get the actual socket errno.
-        Error se <- getSocketOption (Socket mfd)
-        -- Throw exception when status code is != 0.
-        when (se /= eOk) (throwIO se)
+      -- The connection has been established synchronously. Nothing else to do.
+      Nothing   -> return ()
+      -- The connection attempt is pending.
+      Just wait -> wait
 
 -- | Bind a socket to an address.
 --

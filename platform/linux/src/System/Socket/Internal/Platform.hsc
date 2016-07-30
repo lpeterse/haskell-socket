@@ -1,8 +1,14 @@
 module System.Socket.Internal.Platform where
 
+import Control.Exception
+import Control.Concurrent.MVar
+import Control.Monad (when)
+
 import Foreign.Ptr
 import Foreign.C.Types
 import Foreign.C.String
+import Foreign.Storable
+import Foreign.Marshal.Alloc
 
 import GHC.Conc (threadWaitReadSTM, threadWaitWriteSTM, atomically)
 
@@ -10,6 +16,8 @@ import System.Posix.Types ( Fd(..) )
 
 import System.Socket.Internal.Message
 import System.Socket.Internal.Exception
+
+#include "hs_socket.h"
 
 unsafeSocketWaitWrite :: Fd -> Int -> IO (IO ())
 unsafeSocketWaitWrite fd _ = do
@@ -20,7 +28,7 @@ unsafeSocketWaitWrite fd _ = do
 -- > safeSocketWaitRead = do
 -- >   wait <- withMVar msock $ \sock-> do
 -- >     -- Register while holding a lock on the socket descriptor.
--- >     unsafeSocketWaitRead sock 0 
+-- >     unsafeSocketWaitRead sock 0
 -- >   -- Do the waiting without keeping the socket descriptor locked.
 -- >   wait
 unsafeSocketWaitRead :: Fd   -- ^ Socket descriptor
@@ -28,6 +36,23 @@ unsafeSocketWaitRead :: Fd   -- ^ Socket descriptor
                -> IO (IO ()) -- ^ The outer action registers the waiting, the inner does the actual wait.
 unsafeSocketWaitRead fd _ = do
   threadWaitReadSTM fd >>= return . atomically . fst
+
+unsafeSocketWaitConnected :: MVar Fd -> Fd -> IO (IO ())
+unsafeSocketWaitConnected mfd fd = do
+  wait <- unsafeSocketWaitWrite fd 0
+  return $ do
+    wait
+    -- Use `getsockopt` to get the actual socket status.
+    withMVar mfd $ \fd->
+      alloca $ \vPtr-> do
+        alloca $ \lPtr-> do
+          poke lPtr (fromIntegral $ sizeOf (undefined :: CInt))
+          i <- c_getsockopt fd (#const SOL_SOCKET) (#const SO_ERROR) vPtr (lPtr :: Ptr CInt)
+          if i < 0 then do
+            c_get_last_socket_error >>= throwIO
+          else do
+            e <- SocketException <$> peek vPtr
+            when (e /= eOk) (throwIO e)
 
 type CSSize
    = CInt

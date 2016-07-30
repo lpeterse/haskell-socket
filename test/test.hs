@@ -21,7 +21,7 @@ tgSocket = testGroup "connect"
       ( socket :: IO (Socket Inet Stream TCP))
       close
       ( \s-> do
-          r <- try $ connect s (SocketAddressInet inetLoopback 64999)
+          r <- try $ connect s (SocketAddressInet inetLoopback 39000)
           case r of
             Left e   | e == eConnectionRefused -> return ()
                      | otherwise               -> throwIO e
@@ -33,8 +33,9 @@ tgSocket = testGroup "connect"
       ( \s-> do
           r <- try $ connect s (SocketAddressInet inetNone 64999)
           case r of
-            Left e   | e == eNetworkUnreachable -> return ()
-                     | otherwise                -> throwIO e
+            Left e   | e == eNetworkUnreachable  -> return ()
+                     | e == eAddressNotAvailable -> return ()
+                     | otherwise                 -> throwIO e
             Right () -> assertFailure "connection should have failed"
       )
   ]

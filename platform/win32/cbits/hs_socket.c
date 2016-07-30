@@ -33,6 +33,46 @@ int hs_connect(int sockfd, const struct sockaddr *name, int namelen) {
   return connect(sockfd, name, namelen);
 };
 
+/**
+* Determine a sockets connection status.
+*
+* Return values:
+*   0: connection pending
+*   1: connection established
+*   2: connection failed
+*   3: select or getsockopt failed
+*
+* The operation will block for the least possible time interval (1 micro second)
+* and is not used as it is supposed to be used as we don't want to block.
+* Haskell's RTS is used to wait and poll this operation from time to time.
+*/
+int hs_connect_status (int sockfd, int *err) {
+  int errlen = sizeof(int);
+  struct timeval timeout = {0,1};
+  fd_set writefds;
+  fd_set exceptfds;
+
+  FD_ZERO(&writefds);
+  FD_ZERO(&exceptfds);
+  FD_SET(sockfd, &writefds);
+  FD_SET(sockfd, &exceptfds);
+
+  switch (select(sockfd, NULL, &writefds, &exceptfds, &timeout)) {
+    case 0:
+      return 0; // Connection pending.
+    case 1:
+      if (FD_ISSET(sockfd, &writefds)) {
+        return 1; // Connection established.
+      }
+      if (FD_ISSET(sockfd, &exceptfds) && !getsockopt(sockfd, SOL_SOCKET, SO_ERROR, (char*) err, &errlen)) {
+        return 2; // Connection failed.
+      }
+  }
+
+  *err = WSAGetLastError();
+  return 3; // select or getsockopt failed.
+}
+
 int hs_listen (int sockfd, int backlog) {
   return listen(sockfd, backlog);
 };
@@ -47,6 +87,7 @@ int hs_accept(int sockfd, struct sockaddr *addr, int *addrlen) {
 int hs_close(int sockfd) {
   return closesocket(sockfd);
 };
+
 
 int hs_setnonblocking(int fd) {
   // If iMode = 0, blocking is enabled;
