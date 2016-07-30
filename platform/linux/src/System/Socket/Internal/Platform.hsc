@@ -1,5 +1,6 @@
 module System.Socket.Internal.Platform where
 
+import Control.Applicative ((<$>))
 import Control.Exception
 import Control.Concurrent.MVar
 import Control.Monad (when)
