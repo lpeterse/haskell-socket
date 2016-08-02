@@ -10,6 +10,8 @@ import Prelude hiding ( head )
 
 import Data.Maybe ( isJust )
 import Data.Monoid ( mempty )
+import Data.Int ( Int64 )
+import qualified Data.ByteString.Lazy as LBS
 
 import Test.Tasty
 import Test.Tasty.HUnit
@@ -23,7 +25,7 @@ import System.Socket.Protocol.TCP
 import System.Socket.Protocol.UDP
 
 main :: IO ()
-main  = defaultMain $ testGroup "Tests" [ group00, group01, group02, group03, group80, group99 ]
+main  = defaultMain $ testGroup "Tests" [ group00, group01, group02, group03, group07, group80, group99 ]
 
 port :: InetPort
 port  = 39000
@@ -236,6 +238,39 @@ group03 = testGroup "send/receive"
             threadDelay 1000000
             sendTo client helloWorld mempty addr
           when (msg /= helloWorld) $ assertFailure "messages not equal"
+        )
+    ]
+  ]
+
+group07 :: TestTree
+group07 = testGroup "sendAll/receiveAll"
+  [ testGroup "Inet/Stream/TCP"
+    [ testCase "send and receive a 128MB chunk" $ bracket
+        ( do
+          server <- socket :: IO (Socket Inet Stream TCP)
+          client <- socket :: IO (Socket Inet Stream TCP)
+          return (server, client)
+        )
+        ( \(server,client)-> do
+          close server
+          close client
+        )
+        ( \(server,client)-> do
+          let addr    = SocketAddressInet inetLoopback port
+          let msgSize = 128*1024*1024 + 1 :: Int64
+          let msg     = LBS.replicate msgSize 23
+          setSocketOption server (ReuseAddress True)
+          bind server addr
+          listen server 5
+          serverRecv <- async $ do
+            (peerSock, peerAddr) <- accept server
+            receiveAll peerSock msgSize mempty
+          threadDelay 100000
+          connect client addr
+          sendAll client msg mempty
+          close client
+          msgReceived <- wait serverRecv
+          when (msgReceived /= msg) (assertFailure "Received message was bogus.")
         )
     ]
   ]
