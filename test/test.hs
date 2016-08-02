@@ -5,8 +5,11 @@ import Control.Concurrent ( threadDelay )
 import Control.Concurrent.Async ( race )
 import Control.Exception ( try, bracket, throwIO, catch )
 import Control.Monad ( when, unless, void )
+
 import Prelude hiding ( head )
+
 import Data.Maybe ( isJust )
+import Data.Monoid ( mempty )
 
 import Test.Tasty
 import Test.Tasty.HUnit
