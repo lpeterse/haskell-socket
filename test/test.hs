@@ -2,7 +2,7 @@
 module Main where
 
 import Control.Concurrent ( threadDelay )
-import Control.Concurrent.Async ( async, race, poll, cancel, concurrently )
+import Control.Concurrent.Async ( async, race, poll, cancel, concurrently, wait )
 import Control.Exception ( try, bracket, throwIO, catch )
 import Control.Monad ( when, unless, void )
 
@@ -157,11 +157,11 @@ group02  = testGroup "listen"
 group03 :: TestTree
 group03 = testGroup "send/receive"
   [ testGroup "Inet/Stream/TCP"
-    [ testCase "trigger ePipe exception" $ bracket
+    [ testCase "send and receive a chunk" $ bracket
         ( do
-            server <- socket :: IO (Socket Inet Stream TCP)
-            client <- socket :: IO (Socket Inet Stream TCP)
-            return (server, client)
+          server <- socket :: IO (Socket Inet Stream TCP)
+          client <- socket :: IO (Socket Inet Stream TCP)
+          return (server, client)
         )
         ( \(server,client)-> do
           close server
@@ -169,6 +169,31 @@ group03 = testGroup "send/receive"
         )
         ( \(server,client)-> do
           let addr = SocketAddressInet inetLoopback port
+          let helloWorld = "Hello world!"
+          setSocketOption server (ReuseAddress True)
+          bind server addr
+          listen server 5
+          serverRecv <- async $ do
+            (peerSock, peerAddr) <- accept server
+            receive peerSock 4096 mempty
+          connect client addr
+          send client helloWorld mempty
+          msg <- wait serverRecv
+          when (msg /= helloWorld) (assertFailure "Received message was bogus.")
+        )
+    , testCase "trigger ePipe exception" $ bracket
+        ( do
+          server <- socket :: IO (Socket Inet Stream TCP)
+          client <- socket :: IO (Socket Inet Stream TCP)
+          return (server, client)
+        )
+        ( \(server,client)-> do
+          close server
+          close client
+        )
+        ( \(server,client)-> do
+          let addr = SocketAddressInet inetLoopback port
+          setSocketOption server (ReuseAddress True)
           bind server addr
           listen server 5
           connect client addr
