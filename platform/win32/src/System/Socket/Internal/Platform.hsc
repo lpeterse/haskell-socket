@@ -26,29 +26,20 @@ unsafeSocketWaitRead :: Fd -> Int -> IO (IO ())
 unsafeSocketWaitRead  _ iteration = do
   return (threadDelay $ 1 `shiftL` min iteration 20)
 
-unsafeSocketWaitConnected :: MVar Fd -> Fd -> IO (IO ())
-unsafeSocketWaitConnected mfd _ =
-  return $ loop 0
+unsafeSocketWaitConnected :: Fd -> IO ()
+unsafeSocketWaitConnected fd =
+  alloca $ \errPtr-> loop errPtr 0
   where
-    loop iteration = do
-      pending <- withMVar mfd $ \fd-> do
-        when (fd < 0) $
-          throwIO eBadFileDescriptor
-        alloca $ \ptr-> do
-          poke ptr 23
-          i <- c_connect_status fd ptr
-          case i of
-            0  -> return True
-            1  -> return False
-            _  -> do
-              SocketException <$> peek ptr >>= throwIO
-      if pending
-        then do
-          -- Wait with exponential backoff.
-          threadDelay $ 1 `shiftL` min iteration 20
-          -- Try again.
-          loop $ iteration + 1
-        else return ()
+    loop errPtr iteration = do
+        i <- c_connect_status fd errPtr
+        when (i /= 0) $ case i of
+          1  -> do
+            -- Wait with exponential backoff.
+            threadDelay $ 1 `shiftL` min iteration 20
+            -- Try again.
+            loop errPtr $! iteration + 1
+          _  -> do
+            SocketException <$> peek errPtr >>= throwIO
 
 type CSSize
    = CInt
@@ -63,7 +54,7 @@ foreign import ccall unsafe "hs_bind"
   c_bind    :: Fd -> Ptr a -> CInt -> IO CInt
 
 foreign import ccall unsafe "hs_connect"
-  c_connect :: Fd -> Ptr a -> CInt -> IO CInt
+  c_connect :: Fd -> Ptr a -> CInt -> Ptr CInt -> IO CInt
 
 foreign import ccall unsafe "hs_connect_status"
   c_connect_status :: Fd -> Ptr CInt -> IO CInt

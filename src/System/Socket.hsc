@@ -236,8 +236,14 @@ connect (Socket mfd) addr =
             -- shall be established asynchronously and one is
             -- supposed to wait.
             unsafeSocketWaitConnected fd
+            -- At least on Linux a second connect after signaled writeability
+            -- will not fail (the next one would).
             i' <- c_connect fd addrPtr addrLen errPtr
-            when (i' /= 0) (SocketException <$> peek errPtr >>= throwIO)
+            when (i' /= 0) $ do
+              err' <- SocketException <$> peek errPtr
+              -- On Windows, the second connect fails with `eIsConnected`.
+              -- In our case this is not an error condition - other errors are.
+              when (err' /= eIsConnected) (throwIO err')
           else throwIO err
 
 -- | Bind a socket to an address.

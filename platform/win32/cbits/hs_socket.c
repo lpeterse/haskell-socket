@@ -29,16 +29,20 @@ int hs_bind(int sockfd, const struct sockaddr *name, int namelen) {
   return bind(sockfd, name, namelen);
 };
 
-int hs_connect(int sockfd, const struct sockaddr *name, int namelen) {
-  return connect(sockfd, name, namelen);
+int hs_connect(int sockfd, const struct sockaddr *name, int namelen, int *err) {
+  int i = connect(sockfd, name, namelen);
+  if (i) {
+    *err = WSAGetLastError();
+  }
+  return i;
 };
 
 /**
 * Determine a sockets connection status.
 *
 * Return values:
-*   0: connection pending
-*   1: connection established
+*   0: connection established
+*   1: connection pending
 *   2: connection failed
 *   3: select or getsockopt failed
 *
@@ -59,18 +63,18 @@ int hs_connect_status (int sockfd, int *err) {
 
   switch (select(sockfd, NULL, &writefds, &exceptfds, &timeout)) {
     case 0:
-      return 0; // Connection pending.
+      return 1;   // Connection pending.
     case 1:
       if (FD_ISSET(sockfd, &writefds)) {
-        return 1; // Connection established.
+        return 0; // Connection established.
       }
       if (FD_ISSET(sockfd, &exceptfds) && !getsockopt(sockfd, SOL_SOCKET, SO_ERROR, (char*) err, &errlen)) {
         return 2; // Connection failed.
       }
+    default:
+      *err = WSAGetLastError();
+      return -1; // select or getsockopt failed.
   }
-
-  *err = WSAGetLastError();
-  return 3; // select or getsockopt failed.
 }
 
 int hs_listen (int sockfd, int backlog) {

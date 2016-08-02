@@ -80,7 +80,7 @@ int hs_socket_init();
 
 int hs_socket  (int domain, int type, int protocol);
 int hs_bind    (int sockfd, const struct sockaddr *name, int namelen);
-int hs_connect (int sockfd, const struct sockaddr *name, int namelen);
+int hs_connect (int sockfd, const struct sockaddr *name, int namelen, int *err);
 int hs_connect_status (int sockfd, int *err);
 int hs_listen  (int sockfd, int backlog);
 int hs_accept  (int sockfd, struct sockaddr *addr, int *addrlen);
