@@ -146,16 +146,6 @@ test-suite IPV6_V6ONLY
                      , socket
                      , async
 
-test-suite EPIPE
-  hs-source-dirs:      tests
-  default-language:    Haskell2010
-  main-is:             EPIPE.hs
-  type:                exitcode-stdio-1.0
-  build-depends:       base >= 4.7 && < 5
-                     , bytestring < 0.11
-                     , socket
-                     , async
-
 source-repository head
   type:     git
   location: git://github.com/lpeterse/haskell-socket.git

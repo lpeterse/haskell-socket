@@ -1,8 +1,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Main where
 
+import Control.Concurrent ( threadDelay )
 import Control.Exception ( try, bracket, throwIO, catch )
-import Control.Monad ( when, void )
+import Control.Monad ( when, unless, void )
 import Prelude hiding ( head )
 import Data.Maybe ( isJust )
 
@@ -17,7 +18,7 @@ import System.Socket.Protocol.TCP
 import System.Socket.Protocol.UDP
 
 main :: IO ()
-main  = defaultMain $ testGroup "Tests" [ group01, group02, group03 ]
+main  = defaultMain $ testGroup "Tests" [ group01, group02, group03, group99 ]
 
 port :: InetPort
 port  = 39000
@@ -119,7 +120,42 @@ group02  = testGroup "listen"
   ]
 
 group03 :: TestTree
-group03  = testGroup "getAddrInfo" [
+group03 = testGroup "send" [ testGroup "Inet/Stream/TCP"
+    [ testCase "trigger ePipe exception" $ bracket
+        ( do
+            server <- socket :: IO (Socket Inet Stream TCP)
+            client <- socket :: IO (Socket Inet Stream TCP)
+            return (server, client)
+        )
+        ( \(server,client)-> do
+          close server
+          close client
+        )
+        ( \(server,client)-> do
+          let addr = SocketAddressInet inetLoopback port
+          bind server addr
+          listen server 5
+          connect client addr
+          (peerSock, _) <- accept server
+          _ <- send client "This should be received." mempty
+          _ <- receive peerSock 4096 mempty
+          close peerSock
+          threadDelay 1000000
+          e1 <- try $ send client "This might fail." mempty
+          case e1 of
+            Right _ -> return ()
+            Left  e -> unless (e == ePipe) (throwIO e)
+          threadDelay 1000000
+          e2 <- try $ send client "This should fail." mempty
+          case e2 of
+            Right _ -> assertFailure "expected ePipe"
+            Left e  -> unless (e == ePipe) (throwIO e)
+        )
+    ]
+  ]
+
+group99 :: TestTree
+group99  = testGroup "getAddrInfo" [
 
     testCase "getAddrInfo \"127.0.0.1\" \"80\"" $ do
       ais <- getAddressInfo
