@@ -2,7 +2,7 @@
 module Main where
 
 import Control.Concurrent ( threadDelay )
-import Control.Concurrent.Async ( async, race, poll, cancel )
+import Control.Concurrent.Async ( async, race, poll, cancel, concurrently )
 import Control.Exception ( try, bracket, throwIO, catch )
 import Control.Monad ( when, unless, void )
 
@@ -155,7 +155,8 @@ group02  = testGroup "listen"
   ]
 
 group03 :: TestTree
-group03 = testGroup "send" [ testGroup "Inet/Stream/TCP"
+group03 = testGroup "send/receive"
+  [ testGroup "Inet/Stream/TCP"
     [ testCase "trigger ePipe exception" $ bracket
         ( do
             server <- socket :: IO (Socket Inet Stream TCP)
@@ -185,6 +186,31 @@ group03 = testGroup "send" [ testGroup "Inet/Stream/TCP"
           case e2 of
             Right _ -> assertFailure "expected ePipe"
             Left e  -> unless (e == ePipe) (throwIO e)
+        )
+    ]
+  , testGroup "Inet/Datagram/UDP"
+    [ testCase "send and receive a datagram" $ bracket
+        ( do
+          server <- socket :: IO (Socket Inet Datagram UDP)
+          client <- socket :: IO (Socket Inet Datagram UDP)
+          return (server, client)
+        )
+        ( \(server,client)-> do
+          close server
+          close client
+        )
+        ( \(server,client)-> do
+          let addr = SocketAddressInet inetLoopback port
+          let helloWorld = "Hello world!"
+          bind server addr
+          ((msg,peeraddr),_) <- concurrently (receiveFrom server 4096 mempty) $ do
+            -- This is a race condition:
+            --   The server must listen before the client sends his msg or the packt goes
+            --   to nirvana. Still, a second here should be enough. If not, there's
+            --   something wrong worth investigating.
+            threadDelay 1000000
+            sendTo client helloWorld mempty addr
+          when (msg /= helloWorld) $ assertFailure "messages not equal"
         )
     ]
   ]
