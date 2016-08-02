@@ -72,6 +72,7 @@ test-suite test
       base >= 4.7 && < 5
     , tasty >= 0.11
     , tasty-hunit
+    , async
     , bytestring
     , socket
 
@@ -131,16 +132,6 @@ test-suite NonBlockingIO-threaded
   type:                exitcode-stdio-1.0
   default-language:    Haskell2010
   ghc-options:         -threaded
-  build-depends:       base >= 4.7 && < 5
-                     , bytestring < 0.11
-                     , socket
-                     , async
-
-test-suite IPV6_V6ONLY
-  hs-source-dirs:      tests
-  main-is:             IPV6_V6ONLY.hs
-  type:                exitcode-stdio-1.0
-  default-language:    Haskell2010
   build-depends:       base >= 4.7 && < 5
                      , bytestring < 0.11
                      , socket
