@@ -2,7 +2,7 @@
 module Main where
 
 import Control.Concurrent ( threadDelay )
-import Control.Concurrent.Async ( race )
+import Control.Concurrent.Async ( async, race, poll, cancel )
 import Control.Exception ( try, bracket, throwIO, catch )
 import Control.Monad ( when, unless, void )
 
@@ -23,13 +23,40 @@ import System.Socket.Protocol.TCP
 import System.Socket.Protocol.UDP
 
 main :: IO ()
-main  = defaultMain $ testGroup "Tests" [ group01, group02, group03, group80, group99 ]
+main  = defaultMain $ testGroup "Tests" [ group00, group01, group02, group03, group80, group99 ]
 
 port :: InetPort
 port  = 39000
 
 port6 :: Inet6Port
 port6 = 39000
+
+group00 :: TestTree
+group00 = testGroup "accept"
+  [ testGroup "Inet/Strem/TCP"
+      [ testCase "cancel operation" $
+          -- | This is to test interruptability of (blocking) calls like
+          --   accept. The implementation may either run the call "safe"
+          --   in another thread if it is really blocking or wait on events
+          --   in which case the control is at the RTS's IO manager.
+          --   In both cases this test should be able to cancel the accept
+          --   async and therefore terminate.
+          --   If the test hangs, this means the runtime system got sedated
+          --   possibly due to a blocking system call in a non-threaded
+          --   environment.
+          bracket (socket :: IO (Socket Inet Stream TCP)) close $ \s-> do
+            setSocketOption s (ReuseAddress True)
+            bind s (SocketAddressInet inetLoopback port)
+            listen s 5
+            a <- async (accept s)
+            threadDelay 1000000 -- make sure the async call really got enough time to start
+            p <- poll a
+            case p of
+              Just (Left ex) -> assertFailure "unexpected exception"
+              Just (Right _) -> assertFailure "unexpected connect"
+              Nothing ->  void $ cancel a
+      ]
+  ]
 
 group01 :: TestTree
 group01 = testGroup "connect" [ testGroup "Inet/Stream/TCP" t1 ]
