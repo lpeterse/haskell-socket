@@ -209,45 +209,36 @@ socket = socket'
                   return s
        )
 
--- | Connects to an remote address.
+-- | Connects to a remote address.
 --
---   - Calling `connect` on a `close`d socket throws `eBadFileDescriptor` even if the former file descriptor has been reassigned.
 --   - This operation returns as soon as a connection has been established (as
 --     if the socket were blocking). The connection attempt has either failed or
 --     succeeded after this operation threw an exception or returned.
---   - The operation might throw `SocketException`s. Due to implementation quirks
---     the socket should be considered in an undefined state when this operation
---     failed. It should be closed then.
---   - Also see [these considerations](http://cr.yp.to/docs/connect.html) on
---     the problems with connecting non-blocking sockets.
+--   - The socket is locked throughout the whole operation.
+--   - The operation throws `SocketException`s. Calling `connect` on a `close`d
+--     socket throws `eBadFileDescriptor` even if the former file descriptor has
+--     been reassigned.
 connect :: (Family f, Storable (SocketAddress f)) => Socket f t p -> SocketAddress f -> IO ()
-connect (Socket mfd) addr = do
-  alloca $ \addrPtr-> do
-    poke addrPtr addr
-    let addrLen = fromIntegral (sizeOf addr)
-    mwait <- withMVar mfd $ \fd-> do
-      when (fd < 0) (throwIO eBadFileDescriptor)
+connect (Socket mfd) addr =
+  withMVar mfd $ \fd-> do
+    when (fd < 0) (throwIO eBadFileDescriptor)
+    alloca $ \addrPtr-> alloca $ \errPtr-> do
+      poke addrPtr addr
+      let addrLen = fromIntegral (sizeOf addr)
       -- The actual connection attempt.
-      i <- c_connect fd addrPtr addrLen
+      i <- c_connect fd addrPtr addrLen errPtr
       -- On non-blocking sockets we expect to get EINPROGRESS or EWOULDBLOCK.
-      if i < 0 then do
-        e <- c_get_last_socket_error
-        if e == eInProgress || e == eWouldBlock || e == eInterrupted then do
-          -- The manpage says that in this case the connection
-          -- shall be established asynchronously and one is
-          -- supposed to wait.
-          wait <- unsafeSocketWaitConnected mfd fd
-          return (Just wait)
-        else do
-          throwIO e
-      else do
-        -- This should not be the case on non-blocking socket, but better safe than sorry.
-        return Nothing
-    case mwait of
-      -- The connection has been established synchronously. Nothing else to do.
-      Nothing   -> return ()
-      -- The connection attempt is pending.
-      Just wait -> wait
+      when (i /= 0) $ do
+        err <- SocketException <$> peek errPtr
+        if err == eInProgress || err == eWouldBlock
+          then do
+            -- The manpage says that in this case the connection
+            -- shall be established asynchronously and one is
+            -- supposed to wait.
+            unsafeSocketWaitConnected fd
+            i' <- c_connect fd addrPtr addrLen errPtr
+            when (i' /= 0) (SocketException <$> peek errPtr >>= throwIO)
+          else throwIO err
 
 -- | Bind a socket to an address.
 --

@@ -2,8 +2,7 @@ module System.Socket.Internal.Platform where
 
 import Control.Applicative ((<$>))
 import Control.Exception
-import Control.Concurrent.MVar
-import Control.Monad (when)
+import Control.Monad (when, join)
 
 import Foreign.Ptr
 import Foreign.C.Types
@@ -38,22 +37,9 @@ unsafeSocketWaitRead :: Fd   -- ^ Socket descriptor
 unsafeSocketWaitRead fd _ = do
   threadWaitReadSTM fd >>= return . atomically . fst
 
-unsafeSocketWaitConnected :: MVar Fd -> Fd -> IO (IO ())
-unsafeSocketWaitConnected mfd fd = do
-  wait <- unsafeSocketWaitWrite fd 0
-  return $ do
-    wait
-    -- Use `getsockopt` to get the actual socket status.
-    withMVar mfd $ \fd->
-      alloca $ \vPtr-> do
-        alloca $ \lPtr-> do
-          poke lPtr (fromIntegral $ sizeOf (undefined :: CInt))
-          i <- c_getsockopt fd (#const SOL_SOCKET) (#const SO_ERROR) vPtr (lPtr :: Ptr CInt)
-          if i < 0 then do
-            c_get_last_socket_error >>= throwIO
-          else do
-            e <- SocketException <$> peek vPtr
-            when (e /= eOk) (throwIO e)
+unsafeSocketWaitConnected :: Fd -> IO ()
+unsafeSocketWaitConnected fd = do
+  join $ unsafeSocketWaitWrite fd 0
 
 type CSSize
    = CInt
@@ -67,8 +53,8 @@ foreign import ccall unsafe "close"
 foreign import ccall unsafe "bind"
   c_bind    :: Fd -> Ptr a -> CInt -> IO CInt
 
-foreign import ccall unsafe "connect"
-  c_connect :: Fd -> Ptr a -> CInt -> IO CInt
+foreign import ccall unsafe "hs_connect"
+  c_connect :: Fd -> Ptr a -> CInt -> Ptr CInt -> IO CInt
 
 foreign import ccall unsafe "accept"
   c_accept  :: Fd -> Ptr a -> Ptr CInt -> IO Fd

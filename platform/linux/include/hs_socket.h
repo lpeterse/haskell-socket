@@ -12,6 +12,7 @@
 
 int hs_setnonblocking(int fd);
 int hs_get_last_socket_error(void);
+int hs_connect (int sockfd, const struct sockaddr *name, int namelen, int *err);
 
 #define SEOK                   0
 #define SEINTR                 EINTR
