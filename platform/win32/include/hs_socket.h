@@ -90,8 +90,8 @@ int hs_recv    (int sockfd,       void *buf, size_t len, int flags, int *err);
 int hs_sendto  (int sockfd, const void *buf, size_t len, int flags, const struct sockaddr *dest_addr, int addrlen, int *err);
 int hs_recvfrom(int sockfd,       void *buf, size_t len, int flags, struct sockaddr *src_addr, int *addrlen, int *err);
 
-int hs_getsockopt(int sockfd, int level, int option_name,       void *option_value, int *option_len);
-int hs_setsockopt(int sockfd, int level, int option_name, const void *option_value, int  option_len);
+int hs_getsockopt(int sockfd, int level, int option_name,       void *option_value, int *option_len, int *err);
+int hs_setsockopt(int sockfd, int level, int option_name, const void *option_value, int  option_len, int *err);
 
 int  hs_getaddrinfo(const char *node, const char *service,
                     const struct addrinfo *hints,

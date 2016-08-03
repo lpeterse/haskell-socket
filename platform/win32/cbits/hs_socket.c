@@ -1,9 +1,5 @@
 #include <hs_socket.h>
 
-int hs_get_last_socket_error() {
-  return WSAGetLastError();
-}
-
 int hs_socket_init() {
   static int has_already_been_initialised = 0;
 
@@ -155,12 +151,20 @@ int hs_recvfrom(int sockfd,       void *buf, size_t len, int flags, struct socka
   return i;
 };
 
-int hs_getsockopt(int sockfd, int level, int option_name,       void *option_value, int *option_len) {
-  return getsockopt(sockfd, level, option_name, option_value, option_len);
+int hs_getsockopt(int sockfd, int level, int option_name,       void *option_value, int *option_len, int *err) {
+  int i = getsockopt(sockfd, level, option_name, option_value, option_len);
+  if (i) {
+    *err = WSAGetLastError();
+  }
+  return i;
 };
 
-int hs_setsockopt(int sockfd, int level, int option_name, const void *option_value, int  option_len) {
-  return setsockopt(sockfd, level, option_name, option_value, option_len);
+int hs_setsockopt(int sockfd, int level, int option_name, const void *option_value, int  option_len, int *err) {
+  int i = setsockopt(sockfd, level, option_name, option_value, option_len);
+  if (i) {
+    *err = WSAGetLastError();
+  }
+  return i;
 };
 
 const char *hs_gai_strerror(int errcode) {

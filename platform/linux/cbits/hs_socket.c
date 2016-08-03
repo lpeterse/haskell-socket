@@ -1,9 +1,5 @@
 #include <hs_socket.h>
 
-int hs_get_last_socket_error() {
-  return errno;
-}
-
 int hs_socket (int domain, int type, int protocol, int *err) {
 #ifdef SOCK_NONBLOCK
   // On Linux, there is an optimized way to set a socket non-blocking
@@ -94,6 +90,18 @@ int hs_sendto (int fd, const void *buf, size_t len, int flags, const struct sock
 
 int hs_recvfrom (int fd, void *buf, size_t len, int flags, struct sockaddr *src_addr, int *addrlen, int *err) {
   int i = recvfrom(fd, buf, len, flags, src_addr, addrlen);
+  *err = errno;
+  return i;
+}
+
+int hs_getsockopt(int fd, int level, int optname,       void *optval, int *optlen, int *err) {
+  int i = getsockopt(fd, level, optname, optval, optlen);
+  *err = errno;
+  return i;
+}
+
+int hs_setsockopt(int fd, int level, int optname, const void *optval, int  optlen, int *err) {
+  int i = setsockopt(fd, level, optname, optval, optlen);
   *err = errno;
   return i;
 }

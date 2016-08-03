@@ -10,18 +10,19 @@
 #include "netdb.h"
 
 int hs_socket  (int domain, int type, int protocol, int *err);
-int hs_connect (int sockfd, const struct sockaddr *name, int namelen, int *err);
-int hs_bind    (int sockfd, const struct sockaddr *name, int namelen, int *err);
-int hs_listen  (int sockfd, int backlog, int *err);
-int hs_accept  (int sockfd, struct sockaddr *addr, int *addrlen, int *err);
-int hs_close   (int sockfd, int *err);
+int hs_connect (int fd, const struct sockaddr *name, int namelen, int *err);
+int hs_bind    (int fd, const struct sockaddr *name, int namelen, int *err);
+int hs_listen  (int fd, int backlog, int *err);
+int hs_accept  (int fd, struct sockaddr *addr, int *addrlen, int *err);
+int hs_close   (int fd, int *err);
 
-int hs_send    (int sockfd, const void *buf, size_t len, int flags, int *err);
-int hs_recv    (int sockfd,       void *buf, size_t len, int flags, int *err);
-int hs_sendto  (int sockfd, const void *buf, size_t len, int flags, const struct sockaddr *dest_addr, int addrlen, int *err);
-int hs_recvfrom(int sockfd,       void *buf, size_t len, int flags, struct sockaddr *src_addr, int *addrlen, int *err);
+int hs_send    (int fd, const void *buf, size_t len, int flags, int *err);
+int hs_recv    (int fd,       void *buf, size_t len, int flags, int *err);
+int hs_sendto  (int fd, const void *buf, size_t len, int flags, const struct sockaddr *dest_addr, int addrlen, int *err);
+int hs_recvfrom(int fd,       void *buf, size_t len, int flags, struct sockaddr *src_addr, int *addrlen, int *err);
 
-int hs_get_last_socket_error();
+int hs_getsockopt(int fd, int level, int option_name,       void *option_value, int *option_len, int *err);
+int hs_setsockopt(int fd, int level, int option_name, const void *option_value, int  option_len, int *err);
 
 #define SEOK                   0
 #define SEINTR                 EINTR

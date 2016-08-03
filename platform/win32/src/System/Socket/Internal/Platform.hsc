@@ -78,10 +78,10 @@ foreign import ccall unsafe "hs_recvfrom"
   c_recvfrom :: Fd -> Ptr a -> CSize -> MessageFlags -> Ptr b -> Ptr CInt -> Ptr CInt -> IO CSSize
 
 foreign import ccall unsafe "hs_getsockopt"
-  c_getsockopt  :: Fd -> CInt -> CInt -> Ptr a -> Ptr CInt -> IO CInt
+  c_getsockopt  :: Fd -> CInt -> CInt -> Ptr a -> Ptr CInt -> Ptr CInt -> IO CInt
 
 foreign import ccall unsafe "hs_setsockopt"
-  c_setsockopt  :: Fd -> CInt -> CInt -> Ptr a -> CInt -> IO CInt
+  c_setsockopt  :: Fd -> CInt -> CInt -> Ptr a -> CInt -> Ptr CInt -> IO CInt
 
 foreign import ccall unsafe "memset"
   c_memset       :: Ptr a -> CInt -> CSize -> IO ()
@@ -97,6 +97,3 @@ foreign import ccall safe "hs_getnameinfo"
 
 foreign import ccall unsafe "hs_gai_strerror"
   c_gai_strerror  :: CInt -> IO CString
-
-foreign import ccall unsafe "hs_get_last_socket_error"
-  c_get_last_socket_error :: IO SocketException

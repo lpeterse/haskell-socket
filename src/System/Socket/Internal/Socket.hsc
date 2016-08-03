@@ -24,7 +24,7 @@ module System.Socket.Internal.Socket (
 import Control.Concurrent.MVar
 import Control.Exception
 import Control.Monad
-import Control.Applicative
+import Control.Applicative ((<$>))
 
 import Foreign.Ptr
 import Foreign.Storable
@@ -111,26 +111,18 @@ instance SocketOption ReuseAddress where
 -------------------------------------------------------------------------------
 
 unsafeSetSocketOption :: Storable a => Socket f t p -> CInt -> CInt -> a -> IO ()
-unsafeSetSocketOption (Socket mfd) level name value = do
-  withMVar mfd $ \fd->
-    alloca $ \vPtr-> do
-        poke vPtr value
-        i <- c_setsockopt fd level name
-                          vPtr
-                          (fromIntegral $ sizeOf value)
-        when (i < 0) $ do
-          c_get_last_socket_error >>= throwIO
+unsafeSetSocketOption (Socket mfd) level name value =
+  withMVar mfd $ \fd-> alloca $ \vPtr-> alloca $ \errPtr-> do
+    poke vPtr value
+    i <- c_setsockopt fd level name vPtr (fromIntegral $ sizeOf value) errPtr
+    when (i < 0) (SocketException <$> peek errPtr >>= throwIO)
 
 unsafeGetSocketOption :: Storable a => Socket f t p -> CInt -> CInt -> IO a
-unsafeGetSocketOption (Socket mfd) level name = do
-  u <- return undefined
-  withMVar mfd $ \fd->
-    alloca $ \vPtr-> do
-      alloca $ \lPtr-> do
-        poke lPtr (fromIntegral $ sizeOf u)
-        i <- c_getsockopt fd level name vPtr (lPtr :: Ptr CInt)
-        if i < 0 then do
-          c_get_last_socket_error >>= throwIO
-        else do
-          x <- peek vPtr
-          return (x `asTypeOf` u)
+unsafeGetSocketOption (Socket mfd) level name =
+  withMVar mfd $ \fd-> alloca $ \vPtr-> alloca $ \lPtr-> alloca $ \errPtr-> do
+    u <- return undefined
+    poke lPtr (fromIntegral $ sizeOf u)
+    i <- c_getsockopt fd level name vPtr (lPtr :: Ptr CInt) errPtr
+    when (i < 0) (SocketException <$> peek errPtr >>= throwIO)
+    x <- peek vPtr
+    return (x `asTypeOf` u)
