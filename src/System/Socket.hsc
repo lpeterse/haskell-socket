@@ -192,7 +192,7 @@ socket = socket'
        -- On failure after the c_socket call we try to close the socket to not leak file descriptors.
        -- If closing fails we cannot really do something about it. We tried at least.
        -- c_close is an unsafe FFI call.
-       ( \fd-> when (fd >= 0) (c_close fd >> return ()) )
+       ( \fd-> when (fd >= 0) $ alloca $ void . c_close fd )
        ( \fd-> do
            when (fd < 0) (SocketException <$> peek errPtr >>= throwIO)
            mfd <- newMVar fd
@@ -301,7 +301,7 @@ accept s@(Socket mfd) = accept'
                 when (fd < 0) (throwIO eBadFileDescriptor)
                 bracketOnError
                   ( c_accept fd addrPtr addrPtrLen errPtr )
-                  ( \ft-> when (ft >= 0) (void $ c_close ft) )
+                  ( \ft-> when (ft >= 0) $ alloca $ void . c_close ft )
                   ( \ft-> if ft < 0
                     then do
                       err <- SocketException <$> peek errPtr
@@ -416,14 +416,12 @@ close (Socket mfd) = do
         -- EINTR: It is best practice to just retry the operation what we do here.
         -- EIO: Only occurs when filesystem is involved (?).
         -- Conclusion: Our close should never fail. If it does, something is horribly wrong.
-        ( const $ fix $ \retry-> do
-            i <- c_close fd
-            if i < 0 then do
-              e <- c_get_last_socket_error
-              if e == eInterrupted
-                then retry
-                else throwIO e
-            else return ()
+        ( const $ alloca $ \errPtr-> fix $ \retry-> do
+            i <- c_close fd errPtr
+            when (i /= 0) $ do
+              err <- SocketException <$> peek errPtr
+              when (err /= eInterrupted) (throwIO err)
+              retry
         ) fd
       -- When we arrive here, no exception has been thrown and the descriptor has been closed.
       -- We put an invalid file descriptor into the MVar.

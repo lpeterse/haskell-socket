@@ -45,7 +45,7 @@ int hs_listen (int sockfd, int backlog, int *err) {
   return i;
 }
 
-int hs_accept  (int sockfd, struct sockaddr *addr, int *addrlen, int *err) {
+int hs_accept (int sockfd, struct sockaddr *addr, int *addrlen, int *err) {
 #ifdef SOCK_NONBLOCK
   // On Linux, there is an optimized way to set a socket non-blocking
   int fd = accept4(sockfd, addr, addrlen, SOCK_NONBLOCK);
@@ -66,4 +66,10 @@ int hs_accept  (int sockfd, struct sockaddr *addr, int *addrlen, int *err) {
 #endif
   *err = errno;
   return -1;
+}
+
+int hs_close (int fd, int *err) {
+  int i = close(fd);
+  *err = errno;
+  return i;
 }

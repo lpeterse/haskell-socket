@@ -83,7 +83,7 @@ int hs_connect (int sockfd, const struct sockaddr *name, int namelen, int *err);
 int hs_connect_status (int sockfd, int *err);
 int hs_listen  (int sockfd, int backlog, int *err);
 int hs_accept  (int sockfd, struct sockaddr *addr, int *addrlen, int *err);
-int hs_close   (int sockfd);
+int hs_close   (int sockfd, int *err);
 
 int hs_send    (int sockfd, const void *buf, size_t len, int flags);
 int hs_recv    (int sockfd,       void *buf, size_t len, int flags);

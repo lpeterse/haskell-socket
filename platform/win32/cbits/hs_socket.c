@@ -115,8 +115,12 @@ int hs_accept(int fd, struct sockaddr *addr, int *addrlen, int *err) {
   return ft;
 }
 
-int hs_close(int sockfd) {
-  return closesocket(sockfd);
+int hs_close(int sockfd, int *err) {
+  int i = closesocket(sockfd);
+  if (i) {
+    *err = WSAGetLastError();
+  }
+  return i;
 };
 
 int hs_send    (int sockfd, const void *buf, size_t len, int flags) {

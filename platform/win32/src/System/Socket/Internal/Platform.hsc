@@ -48,7 +48,7 @@ foreign import ccall unsafe "hs_socket"
   c_socket  :: CInt -> CInt -> CInt -> Ptr CInt -> IO Fd
 
 foreign import ccall unsafe "hs_close"
-  c_close   :: Fd -> IO CInt
+  c_close   :: Fd -> Ptr CInt -> IO CInt
 
 foreign import ccall unsafe "hs_bind"
   c_bind    :: Fd -> Ptr a -> CInt -> Ptr CInt -> IO CInt
