@@ -51,7 +51,7 @@ foreign import ccall unsafe "hs_close"
   c_close   :: Fd -> IO CInt
 
 foreign import ccall unsafe "hs_bind"
-  c_bind    :: Fd -> Ptr a -> CInt -> IO CInt
+  c_bind    :: Fd -> Ptr a -> CInt -> Ptr CInt -> IO CInt
 
 foreign import ccall unsafe "hs_connect"
   c_connect :: Fd -> Ptr a -> CInt -> Ptr CInt -> IO CInt

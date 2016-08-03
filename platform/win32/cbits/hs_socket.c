@@ -22,7 +22,7 @@ int hs_socket(int domain, int type, int protocol, int *err) {
     u_long iMode = 1;
     int fd = socket(domain, type, protocol);
     if (fd >= 0) {
-      if (!ioctlsocket(fd, FIONBIO, &iMode) {
+      if (!ioctlsocket(fd, FIONBIO, &iMode)) {
         return fd;
       } else {
         closesocket(fd);
@@ -33,8 +33,12 @@ int hs_socket(int domain, int type, int protocol, int *err) {
   return -1;
 };
 
-int hs_bind(int sockfd, const struct sockaddr *name, int namelen) {
-  return bind(sockfd, name, namelen);
+int hs_bind(int sockfd, const struct sockaddr *name, int namelen, int *err) {
+  int i = bind(sockfd, name, namelen);
+  if (i) {
+    *err = WSAGetLastError();
+  }
+  return i;
 };
 
 int hs_connect(int sockfd, const struct sockaddr *name, int namelen, int *err) {

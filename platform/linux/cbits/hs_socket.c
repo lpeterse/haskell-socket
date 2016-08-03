@@ -36,10 +36,14 @@ int hs_socket (int domain, int type, int protocol, int *err) {
   return -1;
 }
 
+int hs_bind    (int sockfd, const struct sockaddr *name, int namelen, int *err) {
+  int i = bind(sockfd, name, namelen);
+  *err = errno;
+  return i;
+}
+
 int hs_connect (int sockfd, const struct sockaddr *name, int namelen, int *err) {
   int i = connect(sockfd, name, namelen);
-  if (i) {
-    *err = errno;
-  }
+  *err = errno;
   return i;
 }

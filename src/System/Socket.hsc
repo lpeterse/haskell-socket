@@ -241,7 +241,7 @@ connect (Socket mfd) addr =
 -- | Bind a socket to an address.
 --
 --   - Calling `bind` on a `close`d socket throws `eBadFileDescriptor` even if the former file descriptor has been reassigned.
---   - It is assumed that `c_bind` never blocks and therefore `eInProgress`, `eAlready` and `eInterrupted` don't occur.
+--   - It is assumed that `bind` never blocks and therefore `eInProgress`, `eAlready` and `eInterrupted` don't occur.
 --     This assumption is supported by the fact that the Linux manpage doesn't mention any of these errors,
 --     the Posix manpage doesn't mention the last one and even MacOS' implementation will never
 --     fail with any of these when the socket is configured non-blocking as
@@ -249,14 +249,12 @@ connect (Socket mfd) addr =
 --   - This operation throws `SocketException`s. Consult your @man@ page for
 --     details and specific @errno@s.
 bind :: (Family f, Storable (SocketAddress f)) => Socket f t p -> SocketAddress f -> IO ()
-bind (Socket mfd) addr = do
-  alloca $ \addrPtr-> do
+bind (Socket mfd) addr =
+  alloca $ \addrPtr-> alloca $ \errPtr-> do
     poke addrPtr addr
     withMVar mfd $ \fd-> do
-      i <- c_bind fd addrPtr (fromIntegral $ sizeOf addr)
-      if i < 0
-        then c_get_last_socket_error >>= throwIO
-        else return ()
+      i <- c_bind fd addrPtr (fromIntegral $ sizeOf addr) errPtr
+      when (i /= 0) (SocketException <$> peek errPtr >>= throwIO)
 
 -- | Starts listening and queueing connection requests on a connection-mode
 --   socket.
