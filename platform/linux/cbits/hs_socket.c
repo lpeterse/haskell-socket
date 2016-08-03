@@ -73,3 +73,27 @@ int hs_close (int fd, int *err) {
   *err = errno;
   return i;
 }
+
+int hs_send (int fd, const void *buf, size_t len, int flags, int *err) {
+  int i = send(fd, buf, len, flags);
+  *err = errno;
+  return i;
+}
+
+int hs_recv (int fd, void *buf, size_t len, int flags, int *err) {
+  int i = recv(fd, buf, len, flags);
+  *err = errno;
+  return i;
+}
+
+int hs_sendto (int fd, const void *buf, size_t len, int flags, const struct sockaddr *dest_addr, int addrlen, int *err) {
+  int i = sendto(fd, buf, len, flags, dest_addr, addrlen);
+  *err = errno;
+  return i;
+}
+
+int hs_recvfrom (int fd, void *buf, size_t len, int flags, struct sockaddr *src_addr, int *addrlen, int *err) {
+  int i = recvfrom(fd, buf, len, flags, src_addr, addrlen);
+  *err = errno;
+  return i;
+}

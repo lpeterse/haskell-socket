@@ -123,22 +123,36 @@ int hs_close(int sockfd, int *err) {
   return i;
 };
 
-int hs_send    (int sockfd, const void *buf, size_t len, int flags) {
-  return send(sockfd, buf, len, flags);
+int hs_send    (int sockfd, const void *buf, size_t len, int flags, int *err) {
+  int i = send(sockfd, buf, len, flags);
+  if (i < 0) {
+    *err = WSAGetLastError();
+  }
+  return i;
 };
 
-int hs_recv    (int sockfd,       void *buf, size_t len, int flags) {
-  return recv(sockfd, buf, len, flags);
+int hs_recv    (int sockfd,       void *buf, size_t len, int flags, int *err) {
+  int i = recv(sockfd, buf, len, flags);
+  if (i < 0) {
+    *err = WSAGetLastError();
+  }
+  return i;
 };
 
-int hs_sendto  (int sockfd, const void *buf, size_t len, int flags,
-                const struct sockaddr *dest_addr, int addrlen) {
-  return sendto(sockfd, buf, len, flags, dest_addr, addrlen);
+int hs_sendto  (int sockfd, const void *buf, size_t len, int flags, const struct sockaddr *dest_addr, int addrlen, int *err) {
+  int i = sendto(sockfd, buf, len, flags, dest_addr, addrlen);
+  if (i < 0) {
+    *err = WSAGetLastError();
+  }
+  return i;
 };
 
-int hs_recvfrom(int sockfd,       void *buf, size_t len, int flags,
-                      struct sockaddr *src_addr, int *addrlen) {
-  return recvfrom(sockfd, buf, len, flags, src_addr, addrlen);
+int hs_recvfrom(int sockfd,       void *buf, size_t len, int flags, struct sockaddr *src_addr, int *addrlen, int *err) {
+  int i = recvfrom(sockfd, buf, len, flags, src_addr, addrlen);
+  if (i < 0) {
+    *err = WSAGetLastError();
+  }
+  return i;
 };
 
 int hs_getsockopt(int sockfd, int level, int option_name,       void *option_value, int *option_len) {

@@ -66,16 +66,16 @@ foreign import ccall unsafe "hs_listen"
   c_listen  :: Fd -> CInt -> Ptr CInt -> IO CInt
 
 foreign import ccall unsafe "hs_send"
-  c_send    :: Fd -> Ptr a -> CSize -> MessageFlags -> IO CSSize
+  c_send    :: Fd -> Ptr a -> CSize -> MessageFlags -> Ptr CInt -> IO CSSize
 
 foreign import ccall unsafe "hs_sendto"
-  c_sendto  :: Fd -> Ptr a -> CSize -> MessageFlags -> Ptr b -> CInt -> IO CSSize
+  c_sendto  :: Fd -> Ptr a -> CSize -> MessageFlags -> Ptr b -> CInt -> Ptr CInt -> IO CSSize
 
 foreign import ccall unsafe "hs_recv"
-  c_recv    :: Fd -> Ptr a -> CSize -> MessageFlags -> IO CSSize
+  c_recv    :: Fd -> Ptr a -> CSize -> MessageFlags -> Ptr CInt -> IO CSSize
 
 foreign import ccall unsafe "hs_recvfrom"
-  c_recvfrom :: Fd -> Ptr a -> CSize -> MessageFlags -> Ptr b -> Ptr CInt -> IO CSSize
+  c_recvfrom :: Fd -> Ptr a -> CSize -> MessageFlags -> Ptr b -> Ptr CInt -> Ptr CInt -> IO CSSize
 
 foreign import ccall unsafe "hs_getsockopt"
   c_getsockopt  :: Fd -> CInt -> CInt -> Ptr a -> Ptr CInt -> IO CInt

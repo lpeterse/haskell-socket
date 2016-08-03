@@ -36,12 +36,15 @@ module System.Socket.Unsafe (
 
 import Data.Function
 
+import Control.Applicative ((<$>))
 import Control.Monad
 import Control.Exception
 import Control.Concurrent.MVar
 
 import Foreign.C.Types
 import Foreign.Ptr
+import Foreign.Storable
+import Foreign.Marshal.Alloc
 
 import System.Socket.Internal.Socket
 import System.Socket.Internal.Platform
@@ -68,26 +71,21 @@ unsafeReceiveFrom :: Socket f t p -> Ptr b -> CSize -> MessageFlags -> Ptr (Sock
 unsafeReceiveFrom s bufPtr bufSize flags addrPtr addrSizePtr = do
   tryWaitRetryLoop s unsafeSocketWaitRead (\fd-> c_recvfrom fd bufPtr bufSize flags addrPtr addrSizePtr)
 
-tryWaitRetryLoop :: Socket f t p -> (Fd -> Int-> IO (IO ())) -> (Fd -> IO CInt) -> IO CInt
+tryWaitRetryLoop :: Socket f t p -> (Fd -> Int-> IO (IO ())) -> (Fd -> Ptr CInt -> IO CInt) -> IO CInt
 tryWaitRetryLoop (Socket mfd) getWaitAction action = loop 0
   where
     loop iteration = do
-      ewr <- withMVar mfd $ \fd-> do
-          when (fd < 0) $ do
-            throwIO eBadFileDescriptor
-          fix $ \retry-> do
-            i <- action fd
-            if (i < 0) then do
-              e <- c_get_last_socket_error
-              if e == eWouldBlock || e == eAgain then do
-                getWaitAction fd iteration >>= return . Left
-              else if e == eInterrupted
-                then retry
-                else throwIO e
-            else do
-              -- The following is quite interesting for debugging:
-              -- when (iteration /= 0) (print iteration)
-              return (Right i)
+      ewr <- withMVar mfd $ \fd-> alloca $ \errPtr-> do
+          when (fd < 0) (throwIO eBadFileDescriptor)
+          i <- action fd errPtr
+          if (i < 0) then do
+            err <- SocketException <$> peek errPtr
+            unless (err == eWouldBlock || err == eAgain) (throwIO err)
+            Left <$> getWaitAction fd iteration
+          else
+            -- The following is quite interesting for debugging:
+            -- when (iteration /= 0) (print iteration)
+            return (Right i)
       case ewr of
         Left  wait   -> do
           wait
