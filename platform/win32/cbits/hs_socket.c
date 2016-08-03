@@ -21,8 +21,12 @@ int hs_socket(int domain, int type, int protocol, int *err) {
   if (!hs_socket_init()) {
     u_long iMode = 1;
     int fd = socket(domain, type, protocol);
-    if (fd >= 0 && !ioctlsocket(fd, FIONBIO, &iMode)) {
-      return fd;
+    if (fd >= 0) {
+      if (!ioctlsocket(fd, FIONBIO, &iMode) {
+        return fd;
+      } else {
+        closesocket(fd);
+      }
     }
   }
   *err = WSAGetLastError();
