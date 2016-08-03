@@ -1,5 +1,9 @@
 #include <hs_socket.h>
 
+int hs_get_last_socket_error() {
+  return WSAGetLastError();
+}
+
 int hs_socket_init() {
   static int has_already_been_initialised = 0;
 
@@ -97,24 +101,22 @@ int hs_listen (int sockfd, int backlog, int *err) {
   return i;
 };
 
-int hs_accept(int sockfd, struct sockaddr *addr, int *addrlen) {
-  //printf("accepting");
-  int x = accept(sockfd, addr, addrlen);
-  //printf("accepted");
-  return x;
+int hs_accept(int fd, struct sockaddr *addr, int *addrlen, int *err) {
+  u_long iMode = 1;
+  int ft = accept(fd, addr, addrlen);
+  if (ft >= 0) {
+    if (!ioctlsocket(ft, FIONBIO, &iMode)) {
+      return ft;
+    } else {
+      closesocket(ft);
+    }
+  }
+  *err = WSAGetLastError();
+  return ft;
 }
 
 int hs_close(int sockfd) {
   return closesocket(sockfd);
-};
-
-
-int hs_setnonblocking(int fd) {
-  // If iMode = 0, blocking is enabled;
-  // If iMode != 0, non-blocking mode is enabled.
-  u_long iMode = 1;
-  return ioctlsocket(fd, FIONBIO, &iMode);
-  //return 0;
 };
 
 int hs_send    (int sockfd, const void *buf, size_t len, int flags) {
@@ -133,10 +135,6 @@ int hs_sendto  (int sockfd, const void *buf, size_t len, int flags,
 int hs_recvfrom(int sockfd,       void *buf, size_t len, int flags,
                       struct sockaddr *src_addr, int *addrlen) {
   return recvfrom(sockfd, buf, len, flags, src_addr, addrlen);
-};
-
-int hs_get_last_socket_error(void) {
-  return WSAGetLastError();
 };
 
 int hs_getsockopt(int sockfd, int level, int option_name,       void *option_value, int *option_len) {

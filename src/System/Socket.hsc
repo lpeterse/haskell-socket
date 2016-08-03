@@ -293,40 +293,34 @@ accept s@(Socket mfd) = accept'
     accept' = do
       -- Allocate local (!) memory for the address.
       alloca $ \addrPtr-> do
-        alloca $ \addrPtrLen-> do
+        alloca $ \addrPtrLen-> alloca $ \errPtr-> do
           poke addrPtrLen (fromIntegral $ sizeOf (undefined :: SocketAddress f))
           ( fix $ \again iteration-> do
               -- We mask asynchronous exceptions during this critical section.
-              ews <- withMVarMasked mfd $ \fd-> do
-                fix $ \retry-> do
-                  ft <- c_accept fd addrPtr addrPtrLen
-                  if ft < 0 then do
-                    e <- c_get_last_socket_error
-                    if e == eWouldBlock || e == eAgain
-                      then do
-                        unsafeSocketWaitRead fd iteration >>= return . Left
-                      else if e == eInterrupted
-                        -- On EINTR it is good practice to just retry.
-                        then retry
-                        else throwIO e
-                  -- This is the critical section: We got a valid descriptor we have not yet returned.
-                  else do
-                    i <- c_setnonblocking ft
-                    if i < 0 then do
-                      c_get_last_socket_error >>= throwIO
+              ews <- withMVar mfd $ \fd-> do
+                when (fd < 0) (throwIO eBadFileDescriptor)
+                bracketOnError
+                  ( c_accept fd addrPtr addrPtrLen errPtr )
+                  ( \ft-> when (ft >= 0) (void $ c_close ft) )
+                  ( \ft-> if ft < 0
+                    then do
+                      err <- SocketException <$> peek errPtr
+                      unless (err == eWouldBlock || err == eAgain) (throwIO err)
+                      wait <- unsafeSocketWaitRead fd iteration
+                      return $ Left wait
                     else do
-                      -- This peek operation might be a little expensive, but I don't see an alternative.
                       addr <- peek addrPtr :: IO (SocketAddress f)
                       -- newMVar is guaranteed to be not interruptible.
                       mft <- newMVar ft
                       -- Register a finalizer on the new socket.
                       _ <- mkWeakMVar mft (close (Socket mft `asTypeOf` s))
-                      return (Right (Socket mft, addr))
+                      return $ Right (Socket mft, addr)
+                  )
               -- If ews is Left we got EAGAIN or EWOULDBLOCK and retry after the next event.
               case ews of
                 Left  wait -> wait >> (again $! iteration + 1)
                 Right sock -> return sock
-              ) 0 -- This is the initial iteration value.
+            ) 0 -- This is the initial iteration value.
 
 -- | Send a message on a connected socket.
 --

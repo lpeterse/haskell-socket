@@ -60,7 +60,7 @@ foreign import ccall unsafe "hs_connect_status"
   c_connect_status :: Fd -> Ptr CInt -> IO CInt
 
 foreign import ccall unsafe "hs_accept"
-  c_accept  :: Fd -> Ptr a -> Ptr CInt -> IO Fd
+  c_accept  :: Fd -> Ptr a -> Ptr CInt -> Ptr CInt -> IO Fd
 
 foreign import ccall unsafe "hs_listen"
   c_listen  :: Fd -> CInt -> Ptr CInt -> IO CInt
@@ -83,12 +83,6 @@ foreign import ccall unsafe "hs_getsockopt"
 foreign import ccall unsafe "hs_setsockopt"
   c_setsockopt  :: Fd -> CInt -> CInt -> Ptr a -> CInt -> IO CInt
 
-foreign import ccall unsafe "hs_setnonblocking"
-  c_setnonblocking :: Fd -> IO CInt
-
-foreign import ccall unsafe "hs_get_last_socket_error"
-  c_get_last_socket_error :: IO SocketException
-
 foreign import ccall unsafe "memset"
   c_memset       :: Ptr a -> CInt -> CSize -> IO ()
 
@@ -103,3 +97,6 @@ foreign import ccall safe "hs_getnameinfo"
 
 foreign import ccall unsafe "hs_gai_strerror"
   c_gai_strerror  :: CInt -> IO CString
+
+foreign import ccall unsafe "hs_get_last_socket_error"
+  c_get_last_socket_error :: IO SocketException

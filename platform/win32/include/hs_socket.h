@@ -73,8 +73,7 @@
 #define AI_RETURN_PREFERRED_NAMES   0x00010000
 #endif
 
-
-int hs_setnonblocking(int fd);
+int hs_get_last_socket_error();
 
 int hs_socket_init();
 
@@ -83,7 +82,7 @@ int hs_bind    (int sockfd, const struct sockaddr *name, int namelen, int *err);
 int hs_connect (int sockfd, const struct sockaddr *name, int namelen, int *err);
 int hs_connect_status (int sockfd, int *err);
 int hs_listen  (int sockfd, int backlog, int *err);
-int hs_accept  (int sockfd, struct sockaddr *addr, int *addrlen);
+int hs_accept  (int sockfd, struct sockaddr *addr, int *addrlen, int *err);
 int hs_close   (int sockfd);
 
 int hs_send    (int sockfd, const void *buf, size_t len, int flags);
@@ -107,10 +106,6 @@ int  hs_getnameinfo(const struct sockaddr *sa, int salen,
 void hs_freeaddrinfo(struct addrinfo *res);
 
 const char *hs_gai_strerror(int errcode);
-
-/* SocketException */
-
-int hs_get_last_socket_error(void);
 
 #define SEOK                   0
 #define SEINTR                 WSAEINTR
