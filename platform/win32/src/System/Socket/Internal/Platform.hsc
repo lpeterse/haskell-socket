@@ -45,7 +45,7 @@ type CSSize
    = CInt
 
 foreign import ccall unsafe "hs_socket"
-  c_socket  :: CInt -> CInt -> CInt -> IO Fd
+  c_socket  :: CInt -> CInt -> CInt -> Ptr CInt -> IO Fd
 
 foreign import ccall unsafe "hs_close"
   c_close   :: Fd -> IO CInt

@@ -17,12 +17,16 @@ int hs_socket_init() {
   return 0;
 };
 
-int hs_socket(int domain, int type, int protocol) {
-  if (hs_socket_init() != 0) {
-    return -1;
+int hs_socket(int domain, int type, int protocol, int *err) {
+  if (!hs_socket_init()) {
+    u_long iMode = 1;
+    int fd = socket(domain, type, protocol);
+    if (fd >= 0 && !ioctlsocket(fd, FIONBIO, &iMode)) {
+      return fd;
+    }
   }
-
-  return socket(domain, type, protocol);
+  *err = WSAGetLastError();
+  return -1;
 };
 
 int hs_bind(int sockfd, const struct sockaddr *name, int namelen) {

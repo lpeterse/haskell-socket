@@ -78,7 +78,7 @@ int hs_setnonblocking(int fd);
 
 int hs_socket_init();
 
-int hs_socket  (int domain, int type, int protocol);
+int hs_socket  (int domain, int type, int protocol, int *err);
 int hs_bind    (int sockfd, const struct sockaddr *name, int namelen);
 int hs_connect (int sockfd, const struct sockaddr *name, int namelen, int *err);
 int hs_connect_status (int sockfd, int *err);

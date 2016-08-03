@@ -44,8 +44,8 @@ unsafeSocketWaitConnected fd = do
 type CSSize
    = CInt
 
-foreign import ccall unsafe "socket"
-  c_socket  :: CInt -> CInt -> CInt -> IO Fd
+foreign import ccall unsafe "hs_socket"
+  c_socket  :: CInt -> CInt -> CInt -> Ptr CInt -> IO Fd
 
 foreign import ccall unsafe "close"
   c_close   :: Fd -> IO CInt

@@ -185,28 +185,20 @@ socket :: (Family f, Type t, Protocol  p) => IO (Socket f t p)
 socket = socket'
  where
    socket' :: forall f t p. (Family f, Type t, Protocol  p) => IO (Socket f t p)
-   socket'  = do
+   socket'  = alloca $ \errPtr-> do
      bracketOnError
        -- Try to acquire the socket resource. This part has exceptions masked.
-       ( c_socket (familyNumber (undefined :: f)) (typeNumber (undefined :: t)) (protocolNumber (undefined :: p)) )
+       ( c_socket (familyNumber (undefined :: f)) (typeNumber (undefined :: t)) (protocolNumber (undefined :: p)) errPtr )
        -- On failure after the c_socket call we try to close the socket to not leak file descriptors.
        -- If closing fails we cannot really do something about it. We tried at least.
-       -- This part has exceptions masked as well. c_close is an unsafe FFI call.
+       -- c_close is an unsafe FFI call.
        ( \fd-> when (fd >= 0) (c_close fd >> return ()) )
-       -- If an exception is raised, it is reraised after the socket has been closed.
-       -- This part has async exceptions unmasked (via restore).
-       ( \fd-> if fd < 0 then do
-                c_get_last_socket_error >>= throwIO
-              else do
-                -- setNonBlockingFD calls c_fcntl_write which is an unsafe FFI call.
-                i <- c_setnonblocking fd
-                if i < 0 then do
-                  c_get_last_socket_error >>= throwIO
-                else do
-                  mfd <- newMVar fd
-                  let s = Socket mfd
-                  _ <- mkWeakMVar mfd (close s)
-                  return s
+       ( \fd-> do
+           when (fd < 0) (SocketException <$> peek errPtr >>= throwIO)
+           mfd <- newMVar fd
+           let s = Socket mfd
+           _ <- mkWeakMVar mfd (close s)
+           return s
        )
 
 -- | Connects to a remote address.
