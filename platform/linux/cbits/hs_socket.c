@@ -47,3 +47,9 @@ int hs_connect (int sockfd, const struct sockaddr *name, int namelen, int *err) 
   *err = errno;
   return i;
 }
+
+int hs_listen (int sockfd, int backlog, int *err) {
+  int i = listen(sockfd, backlog);
+  *err = errno;
+  return i;
+};

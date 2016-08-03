@@ -59,8 +59,8 @@ foreign import ccall unsafe "hs_connect"
 foreign import ccall unsafe "accept"
   c_accept  :: Fd -> Ptr a -> Ptr CInt -> IO Fd
 
-foreign import ccall unsafe "listen"
-  c_listen  :: Fd -> CInt -> IO CInt
+foreign import ccall unsafe "hs_listen"
+  c_listen  :: Fd -> CInt -> Ptr CInt -> IO CInt
 
 foreign import ccall unsafe "send"
   c_send    :: Fd -> Ptr a -> CSize -> MessageFlags -> IO CSSize

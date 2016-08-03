@@ -267,13 +267,10 @@ bind (Socket mfd) addr =
 --   - This operation throws `SocketException`s. Consult your @man@ page for
 --     details and specific @errno@s.
 listen :: Socket f t p -> Int -> IO ()
-listen (Socket ms) backlog = do
-  i <- withMVar ms $ \s-> do
-    c_listen s (fromIntegral backlog)
-  if i < 0 then do
-    c_get_last_socket_error >>= throwIO
-  else do
-    return ()
+listen (Socket ms) backlog =
+  withMVar ms $ \s-> alloca $ \errPtr-> do
+    i <- c_listen s (fromIntegral backlog) errPtr
+    when (i /= 0) (SocketException <$> peek errPtr >>= throwIO)
 
 -- | Accept a new connection.
 --

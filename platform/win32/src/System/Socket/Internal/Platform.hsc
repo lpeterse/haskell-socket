@@ -63,7 +63,7 @@ foreign import ccall unsafe "hs_accept"
   c_accept  :: Fd -> Ptr a -> Ptr CInt -> IO Fd
 
 foreign import ccall unsafe "hs_listen"
-  c_listen  :: Fd -> CInt -> IO CInt
+  c_listen  :: Fd -> CInt -> Ptr CInt -> IO CInt
 
 foreign import ccall unsafe "hs_send"
   c_send    :: Fd -> Ptr a -> CSize -> MessageFlags -> IO CSSize

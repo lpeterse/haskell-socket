@@ -89,8 +89,12 @@ int hs_connect_status (int sockfd, int *err) {
   }
 }
 
-int hs_listen (int sockfd, int backlog) {
-  return listen(sockfd, backlog);
+int hs_listen (int sockfd, int backlog, int *err) {
+  int i = listen(sockfd, backlog);
+  if (i) {
+    *err = WSAGetLastError();
+  }
+  return i;
 };
 
 int hs_accept(int sockfd, struct sockaddr *addr, int *addrlen) {
