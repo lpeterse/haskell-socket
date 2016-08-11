@@ -1,6 +1,38 @@
+0.6.1.0 Lars Petersen <info@lars-petersen.net> 2016-08-11
+
+ * A potential race condition has been fixed (issue #18): `c_get_last_error`
+   was supposed to return the error code of the last operation (if any).
+   On Linux et.al. it just returned `errno` whereas on Windows it wrapped
+   a call to `WSAGetLastError`.
+   The problem was that the value of `errno` and `WSAGetLastError` is only
+   valid when sampled immediately after the failed call. This could not be
+   easily guaranteed the way it was implemented: GHC's RTS is potentially
+   allowed to interrupt the thread between the failed call and the call to
+   `c_get_last_error` (although this is very unlikely when no memory allocation
+   is necessary). The content of `errno` might have been reset of overridden
+   by another thread.
+   The solution for this is that all FFI calls now take a pointer with a reserved
+   memory location (allocated on the stack, so it's quite cheap) and the C
+   functions immediately save the errno (if necessary). The `unsafe ccall`s are
+   guaranteed to be uninterruptible.
+
+ * All tests have been ported to `tasty` as previously proposed by
+   Roman Cheplyaka.
+
+ * Fixed `connect` operation to use `getsockopt` with SO_ERROR to determine
+   socket connection status / error code instead of issuing a second connection
+   attempt (see issue #15).
+   On Windows, the solution is a bit more difficult: `getsockopt` return 0
+   unless the operation has either succeeded or failed.
+   Unfortunately, there did not exist a mechanism to wait for this condition
+   (GHC's IO manager lacks this feature). This has been circumvented by
+   calling `select` for the socket with minimal timeout several times with
+   an exponential back-off. Tests have been added to validate different aspects
+   of this.
+
 0.6.0.1 Lars Petersen <info@lars-petersen.net> 2016-04-10
 
- * Adapted the `AddrInfo` test suite to not depend on specific nameresolution
+ * Adapted the `AddrInfo` test suite to not depend on specific name resolution
    features that aren't available in a `chroot()` environment (see issue #12).
 
 0.6.0.0 Lars Petersen <info@lars-petersen.net> 2016-03-26

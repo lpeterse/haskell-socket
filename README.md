@@ -19,20 +19,17 @@ POSIX compliant networking code.
   - Absolutely no conditional exports.
 
   - No `#ifdef` madness in the Haskell sources. The Haskell binding code
-    uses the FFI to reference the platform's native networking functions.
-    If they are not POSIX compliant (i.e. on Windows) a level of
-    indirection is introduced to create a POSIX compliant equivalent in C
-    using whatever the platform specific building blocks are.
+    uses the FFI to reference platform dependant C functions for each operation.
+    If a platform is not POSIX compliant (i.e. Windows) equivalent functionality
+    is implemented by using whatever the platform specific building blocks are.
 
 ### Platform Support
 
 #### Linux
 
-Working.
-
-#### MacOS
-
-Working.
+Platform is fully supported. Each commit and release is automatically tested with
+[Travis CI](https://travis-ci.org/lpeterse/haskell-socket) and several versions
+of GHC.
 
 #### Windows
 
@@ -54,6 +51,15 @@ won't wait at all if there are several connection requests queued.
 This workaround may be removed if someone is willing to sacrifice to improve
 the IO manager on Windows.
 
+Each release is manually tested on a Windows 10 virtual machine with the
+latest Haskell Platform (64bit).
+
+#### MacOS
+
+Working, but not regularly tested.
+
+Please report when it is no longer working on MacOS.
+
 ### Dependencies
 
    - base
@@ -61,10 +67,17 @@ the IO manager on Windows.
 
 ### Tests
 
-Run the default test suites:
+The project uses [tasty](http://documentup.com/feuerbach/tasty) for testing.
+
+There are two test suites: `default` and `threaded` which are using the same
+code. Only difference is that one is compiled against GHC's single threaded RTS
+and the other against the multi-threaded one. Run `cabal test` to run both
+in sequence.
+
+In order to see details and colored output you may also want to try
 
 ```bash
-cabal test
+ghc --make test/test.hs && ./test/test
 ```
 
 [badge-travis]: https://img.shields.io/travis/lpeterse/haskell-socket.svg
