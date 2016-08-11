@@ -25,7 +25,14 @@ import System.Socket.Protocol.TCP
 import System.Socket.Protocol.UDP
 
 main :: IO ()
-main  = defaultMain $ testGroup "Tests" [ group00, group01, group02, group03, group07, group80, group99 ]
+main  = defaultMain $ testGroup "System.Socket"
+  [ group00
+  , group01
+  , group02
+  , group03
+  , group07
+  , group80
+  , group99 ]
 
 port :: InetPort
 port  = 39000
@@ -153,6 +160,13 @@ group02  = testGroup "listen"
               listen sock 5 `catch` \e-> case e of
                 _ | e == eOperationNotSupported -> return ()
                 _                               -> assertFailure "expected eOperationNotSupported"
+      ]
+  , testGroup "Inet/Stream/TCP"
+      [ testCase "listen on bound socket" $ bracket
+          ( socket :: IO (Socket Inet Stream TCP) ) close $ \sock-> do
+              bind sock (SocketAddressInet inetLoopback port)
+              setSocketOption sock (ReuseAddress True)
+              listen sock 5
       ]
   ]
 
