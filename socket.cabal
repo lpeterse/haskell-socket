@@ -1,8 +1,8 @@
 name:                socket
-version:             0.6.1.0
+version:             0.6.2.0
 synopsis:            An extensible socket library.
 description:
-  This library is a minimal cross platform interface for
+  This library is a minimal cross-platform interface for
   BSD style networking.
 
 license:             MIT
