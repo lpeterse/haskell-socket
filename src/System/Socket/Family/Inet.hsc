@@ -17,7 +17,12 @@ module System.Socket.Family.Inet
   , InetPort
     -- ** SocketAddress Inet
   , SocketAddress (SocketAddressInet, inetAddress, inetPort)
-  -- * Special Addresses
+  -- * Custom addresses
+  -- ** inetAddressFromTuple
+  , inetAddressFromTuple
+  -- ** inetAddressToTuple
+  , inetAddressToTuple
+  -- * Special addresses
   -- ** inetAllHostsGroup
   , inetAllHostsGroup
   -- ** inetAny
@@ -66,8 +71,11 @@ data instance SocketAddress Inet
 
 -- | To avoid errors with endianess it was decided to keep this type abstract.
 --
---   Hint: Use the `Foreign.Storable.Storable` instance if you really need to access. It exposes it
---   exactly as found within an IP packet (big endian if you insist
+--   Use `inetAddressFromTuple` and `inetAddressToTuple` for constructing and
+--   deconstructing custom addresses.
+--
+--   Hint: Use the `Foreign.Storable.Storable` instance.
+--   It exposes it exactly as found within an IP packet (big endian if you insist
 --   on interpreting it as a number).
 --
 --   Another hint: Use `System.Socket.getAddressInfo` for parsing and suppress
@@ -81,6 +89,25 @@ newtype InetAddress
 
 newtype InetPort = InetPort Word16
       deriving (Eq, Ord, Show, Num)
+
+-- | Constructs a custom `InetAddress`.
+--
+--   > inetAddressFromTuple (127,0,0,1) == inetLoopback
+inetAddressFromTuple :: (Word8, Word8, Word8, Word8) -> InetAddress
+inetAddressFromTuple (w0, w1, w2, w3)
+  = InetAddress $ foldl1' (\x y->x*256+y) [f w0, f w1, f w2, f w3]
+  where
+    f = fromIntegral
+
+-- | Deconstructs an `InetAddress`.
+inetAddressToTuple :: InetAddress -> (Word8, Word8, Word8, Word8)
+inetAddressToTuple (InetAddress a)
+  = (w0, w1, w2, w3)
+  where
+    w0 = fromIntegral $ rem (quot a $ 256*256*256) 256
+    w1 = fromIntegral $ rem (quot a $     256*256) 256
+    w2 = fromIntegral $ rem (quot a $         256) 256
+    w3 = fromIntegral $ rem       a $              256
 
 -- | @0.0.0.0@
 inetAny             :: InetAddress

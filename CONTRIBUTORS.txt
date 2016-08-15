@@ -1,3 +1,4 @@
+Erik Rantapaa (issue #19)
 Mathieu Boespflug (issue #15)
 Ben Gamari (issue #10)
 Niklas Hambüchen (issue #9)

@@ -1,3 +1,9 @@
+0.6.2.0 Lars Petersen <info@lars-petersen.net> 2016-08-15
+
+ * Added functions for constructing internet addresses without the need for IO
+   (`inetAddressToTuple`, `inetAddressFromTuple`, `inet6AddressToTuple`,
+    `inet6AddressFromTuple`) as proposed by Erik Rantapaa.
+
 0.6.1.0 Lars Petersen <info@lars-petersen.net> 2016-08-11
 
  * A potential race condition has been fixed (issue #18): `c_get_last_error`

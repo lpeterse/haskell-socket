@@ -22,16 +22,22 @@ module System.Socket.Family.Inet6
     -- ** SocketAddress Inet6
   , SocketAddress (SocketAddressInet6, inet6Address, inet6Port,
                                        inet6FlowInfo, inet6ScopeId)
-  -- * Special Addresses
-  -- ** inet6Any
+    -- * Custom addresses
+    -- ** inet6AddressFromTuple
+  , inet6AddressFromTuple
+    -- ** inet6AddressToTuple
+  , inet6AddressToTuple
+    -- * Special addresses
+    -- ** inet6Any
   , inet6Any
-  -- ** inet6Loopback
+    -- ** inet6Loopback
   , inet6Loopback
-  -- * Socket Options
-  -- ** V6Only
+    -- * Socket options
+    -- ** V6Only
   , V6Only (..)
   ) where
 
+import Data.Bits ((.|.))
 import Data.Word
 import Control.Applicative as A
 
@@ -67,7 +73,10 @@ data instance SocketAddress Inet6
 
 -- | To avoid errors with endianess it was decided to keep this type abstract.
 --
---   Hint: Use the `Foreign.Storable.Storable` instance if you really need to access. It exposes it
+--   Use `inet6AddressFromTuple` and `inet6AddressToTuple` for constructing and
+--   deconstructing custom addresses.
+--
+--   Hint: Use the `Foreign.Storable.Storable` instance. It exposes it
 --   exactly as found within an IP packet (big endian if you insist
 --   on interpreting it as a number).
 --
@@ -90,6 +99,33 @@ newtype Inet6FlowInfo = Inet6FlowInfo Word32
 
 newtype Inet6ScopeId  = Inet6ScopeId Word32
       deriving (Eq, Ord, Show, Num)
+
+-- | Deconstructs an `Inet6Address`.
+inet6AddressToTuple :: Inet6Address -> (Word16,Word16,Word16,Word16,Word16,Word16,Word16,Word16)
+inet6AddressToTuple (Inet6Address hb lb) =
+  (w0 hb, w1 hb, w2 hb, w3 hb, w0 lb, w1 lb, w2 lb, w3 lb)
+  where
+    w0, w1, w2, w3 :: Word64 -> Word16
+    w0 x = fromIntegral $ rem (quot x $ 65536 * 65536 * 65536) 65536
+    w1 x = fromIntegral $ rem (quot x $         65536 * 65536) 65536
+    w2 x = fromIntegral $ rem (quot x $                 65536) 65536
+    w3 x = fromIntegral $ rem       x                          65536
+
+-- | Constructs a custom `Inet6Address`.
+--
+--   > inet6AddressFromTuple (0,0,0,0,0,0,0,1) == inet6Loopback
+inet6AddressFromTuple :: (Word16,Word16,Word16,Word16,Word16,Word16,Word16,Word16) -> Inet6Address
+inet6AddressFromTuple (w0, w1, w2, w3, w4, w5, w6, w7) =
+  Inet6Address hb lb
+  where
+    hb =  fromIntegral w0 * 65536 * 65536 * 65536
+      .|. fromIntegral w1 *         65536 * 65536
+      .|. fromIntegral w2 *                 65536
+      .|. fromIntegral w3
+    lb =  fromIntegral w4 * 65536 * 65536 * 65536
+      .|. fromIntegral w5 *         65536 * 65536
+      .|. fromIntegral w6 *                 65536
+      .|. fromIntegral w7
 
 -- | @::@
 inet6Any      :: Inet6Address

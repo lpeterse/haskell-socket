@@ -15,6 +15,7 @@ import qualified Data.ByteString.Lazy as LBS
 
 import Test.Tasty
 import Test.Tasty.HUnit
+import Test.Tasty.QuickCheck as QC
 
 import System.Socket
 import System.Socket.Family.Inet
@@ -25,14 +26,21 @@ import System.Socket.Protocol.TCP
 import System.Socket.Protocol.UDP
 
 main :: IO ()
-main  = defaultMain $ testGroup "System.Socket"
-  [ group00
-  , group01
-  , group02
-  , group03
-  , group07
-  , group80
-  , group99 ]
+main  = defaultMain $ testGroup "socket"
+  [ testGroup "System.Socket"
+    [ group00
+    , group01
+    , group02
+    , group03
+    , group07
+    , group80
+    , group99
+    ]
+  , testGroup "System.Socket.Inet" [
+      group200
+    , group201
+    ]
+  ]
 
 port :: InetPort
 port  = 39000
@@ -358,4 +366,24 @@ group99  = testGroup "getAddrInfo" [
             _ | e == eaiNoName -> return ()
             _                  -> assertFailure "expected eaiNoName"
 
+  ]
+
+group200 :: TestTree
+group200 = testGroup "System.Socket.Family.Inet" [
+
+    testCase "inetAddressFromTuple (127,0,0,1) == inetLoopback" $
+      assertEqual "" ( inetAddressFromTuple (127,0,0,1) ) inetLoopback
+
+  , QC.testProperty  "inetAddressToTuple (inetAddressFromTuple x) == x" $ \x->
+      inetAddressToTuple (inetAddressFromTuple x) === x
+  ]
+
+group201 :: TestTree
+group201 = testGroup "System.Socket.Family.Inet6" [
+
+    testCase "inet6AddressFromTuple (0,0,0,0,0,0,0,1) == inet6Loopback" $
+      assertEqual "" ( inet6AddressFromTuple (0,0,0,0,0,0,0,1) ) inet6Loopback
+
+  , QC.testProperty  "inet6AddressToTuple (inet6AddressFromTuple x) == x" $ \x->
+      inet6AddressToTuple (inet6AddressFromTuple x) === x
   ]
