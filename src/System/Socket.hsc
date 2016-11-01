@@ -87,7 +87,7 @@ module System.Socket (
   , HasNameInfo (..)
   -- * Flags
   -- ** MessageFlags
-  , MessageFlags ()
+  , MessageFlags (..)
   , msgEndOfRecord
   , msgNoSignal
   , msgOutOfBand
