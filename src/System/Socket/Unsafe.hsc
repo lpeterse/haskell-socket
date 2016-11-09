@@ -55,7 +55,7 @@ import System.Posix.Types (Fd)
 
 #include "hs_socket.h"
 
-unsafeSend :: Socket a t p -> Ptr a -> CSize -> MessageFlags -> IO CInt
+unsafeSend :: Socket a t p -> Ptr b -> CSize -> MessageFlags -> IO CInt
 unsafeSend s bufPtr bufSize flags = do
   tryWaitRetryLoop s unsafeSocketWaitWrite (\fd-> c_send fd bufPtr bufSize flags )
 
