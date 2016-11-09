@@ -77,7 +77,7 @@ sendAllLazy s lbs flags =
 --   The count of all bytes sent is returned as there is no other efficient
 --   way to determine a `BB.Builder`s size without actually building it.
 sendAllBuilder :: Socket f Stream p -> Int -> BB.Builder -> MessageFlags -> IO Int64
-sendAllBuilder s bufsize builder flags =
+sendAllBuilder s bufsize builder flags = do
   allocaBytes bufsize g
   where
     g ptr = writeStep (BB.runPut $ BB.putBuilder builder) 0
@@ -96,7 +96,7 @@ sendAllBuilder s bufsize builder flags =
               | otherwise =
                   pure alreadySent
               where
-                len = minusPtr ptr ptrToNextFreeByte
+                len = minusPtr ptrToNextFreeByte ptr
             whenFull ptrToNextFreeByte minBytesRequired nextStep
               | minBytesRequired > bufsize =
                   throwIO eNoBufferSpace
@@ -104,7 +104,7 @@ sendAllBuilder s bufsize builder flags =
                   sendAllPtr ptr len
                   writeStep nextStep $! alreadySent + fromIntegral len
               where
-                len = minusPtr ptr ptrToNextFreeByte
+                len = minusPtr ptrToNextFreeByte ptr
             whenChunk ptrToNextFreeByte bs nextStep = do
               sendAllPtr ptr len
               if BS.null bs
@@ -114,7 +114,7 @@ sendAllBuilder s bufsize builder flags =
                   sendAll s bs flags
                   writeStep nextStep $! alreadySent + fromIntegral (len + BS.length bs)
               where
-                len = minusPtr ptr ptrToNextFreeByte
+                len = minusPtr ptrToNextFreeByte ptr
     sendAllPtr :: Ptr Word8 -> Int -> IO ()
     sendAllPtr ptr len = do
       sent <- fromIntegral <$> unsafeSend s ptr (fromIntegral len) flags
