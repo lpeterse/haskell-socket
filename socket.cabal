@@ -70,10 +70,10 @@ test-suite default
     test.hs
   build-depends:
       base >= 4.7 && < 5
-    , tasty >= 0.11
+    , tasty
     , tasty-hunit
     , tasty-quickcheck
-    , QuickCheck >= 2.9 && <3
+    , QuickCheck >= 2.9
     , async
     , bytestring
     , socket
@@ -91,10 +91,10 @@ test-suite threaded
     -threaded
   build-depends:
       base >= 4.7 && < 5
-    , tasty >= 0.11
+    , tasty
     , tasty-hunit
     , tasty-quickcheck
-    , QuickCheck >= 2.9 && <3
+    , QuickCheck >= 2.9
     , async
     , bytestring
     , socket

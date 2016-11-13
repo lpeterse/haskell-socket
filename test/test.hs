@@ -1,29 +1,27 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Main where
 
-import Control.Concurrent ( threadDelay )
-import Control.Concurrent.Async ( async, race, poll, cancel, concurrently, wait )
-import Control.Exception ( try, bracket, throwIO, catch )
-import Control.Monad ( when, unless, void )
-
-import Prelude hiding ( head )
-
-import Data.Maybe ( isJust )
-import Data.Monoid ( mempty )
-import Data.Int ( Int64 )
-import qualified Data.ByteString.Lazy as LBS
-
-import Test.Tasty
-import Test.Tasty.HUnit
-import Test.Tasty.QuickCheck as QC
-
-import System.Socket
-import System.Socket.Family.Inet
-import System.Socket.Family.Inet6
-import System.Socket.Type.Stream
-import System.Socket.Type.Datagram
-import System.Socket.Protocol.TCP
-import System.Socket.Protocol.UDP
+import           Control.Concurrent          (threadDelay)
+import           Control.Concurrent.Async    (async, cancel, concurrently, poll,
+                                              race, wait)
+import           Control.Exception           (bracket, catch, throwIO, try)
+import           Control.Monad               (unless, void, when)
+import qualified Data.ByteString.Builder     as BB
+import qualified Data.ByteString.Lazy        as LBS
+import           Data.Int                    (Int64)
+import           Data.Maybe                  (isJust)
+import           Data.Monoid                 (mempty)
+import           Prelude                     hiding (head)
+import           System.Socket
+import           System.Socket.Family.Inet
+import           System.Socket.Family.Inet6
+import           System.Socket.Protocol.TCP
+import           System.Socket.Protocol.UDP
+import           System.Socket.Type.Datagram
+import           System.Socket.Type.Stream
+import           Test.Tasty
+import           Test.Tasty.HUnit
+import           Test.Tasty.QuickCheck       as QC
 
 main :: IO ()
 main  = defaultMain $ testGroup "socket"
@@ -71,7 +69,7 @@ group00 = testGroup "accept"
             case p of
               Just (Left ex) -> assertFailure "unexpected exception"
               Just (Right _) -> assertFailure "unexpected connect"
-              Nothing ->  void $ cancel a
+              Nothing        ->  void $ cancel a
       ]
   ]
 
@@ -167,7 +165,7 @@ group02  = testGroup "listen"
               setSocketOption sock (ReuseAddress True)
               listen sock 5 `catch` \e-> case e of
                 _ | e == eOperationNotSupported -> return ()
-                _                               -> assertFailure "expected eOperationNotSupported"
+                _ -> assertFailure "expected eOperationNotSupported"
       ]
   , testGroup "Inet/Stream/TCP"
       [ testCase "listen on bound socket" $ bracket
@@ -267,7 +265,7 @@ group03 = testGroup "send/receive"
 group07 :: TestTree
 group07 = testGroup "sendAll/receiveAll"
   [ testGroup "Inet/Stream/TCP"
-    [ testCase "send and receive a 128MB chunk" $ bracket
+    [ testCase "sendAll and receiveAll a 128MB chunk" $ bracket
         ( do
           server <- socket :: IO (Socket Inet Stream TCP)
           client <- socket :: IO (Socket Inet Stream TCP)
@@ -289,7 +287,61 @@ group07 = testGroup "sendAll/receiveAll"
             receiveAll peerSock msgSize mempty
           threadDelay 100000
           connect client addr
-          sendAll client msg mempty
+          sendAll client (LBS.toStrict msg) mempty
+          close client
+          msgReceived <- wait serverRecv
+          when (msgReceived /= msg) (assertFailure "Received message was bogus.")
+        )
+    , testCase "sendAllLazy and receiveAll a 128MB chunk" $ bracket
+        ( do
+          server <- socket :: IO (Socket Inet Stream TCP)
+          client <- socket :: IO (Socket Inet Stream TCP)
+          return (server, client)
+        )
+        ( \(server,client)-> do
+          close server
+          close client
+        )
+        ( \(server,client)-> do
+          let addr    = SocketAddressInet inetLoopback port
+          let msgSize = 128*1024*1024 + 1 :: Int64
+          let msg     = LBS.replicate msgSize 23
+          setSocketOption server (ReuseAddress True)
+          bind server addr
+          listen server 5
+          serverRecv <- async $ do
+            (peerSock, peerAddr) <- accept server
+            receiveAll peerSock msgSize mempty
+          threadDelay 100000
+          connect client addr
+          sendAllLazy client msg mempty
+          close client
+          msgReceived <- wait serverRecv
+          when (msgReceived /= msg) (assertFailure "Received message was bogus.")
+        )
+    , testCase "sendAllBuilder and receiveAll a 128MB chunk" $ bracket
+        ( do
+          server <- socket :: IO (Socket Inet Stream TCP)
+          client <- socket :: IO (Socket Inet Stream TCP)
+          return (server, client)
+        )
+        ( \(server,client)-> do
+          close server
+          close client
+        )
+        ( \(server,client)-> do
+          let addr    = SocketAddressInet inetLoopback port
+          let msgSize = 128*1024*1024 + 1 :: Int64
+          let msg     = LBS.replicate msgSize 23
+          setSocketOption server (ReuseAddress True)
+          bind server addr
+          listen server 5
+          serverRecv <- async $ do
+            (peerSock, peerAddr) <- accept server
+            receiveAll peerSock msgSize mempty
+          threadDelay 100000
+          connect client addr
+          sendAllBuilder client 512 (foldr (\bs-> (BB.byteString bs `mappend`)) mempty $ LBS.toChunks msg) mempty
           close client
           msgReceived <- wait serverRecv
           when (msgReceived /= msg) (assertFailure "Received message was bogus.")
@@ -318,7 +370,7 @@ group80 = testGroup "setSocketOption" [ testGroup "V6Only"
             ( void $ receiveFrom server 4096 mempty )
             ( threadDelay 1000000 )
           case eith of
-            Left () -> assertFailure "expected timeout"
+            Left ()  -> assertFailure "expected timeout"
             Right () -> return ()  -- timeout is the expected behaviour
         )
     , testCase "absent" $ bracket
@@ -340,7 +392,7 @@ group80 = testGroup "setSocketOption" [ testGroup "V6Only"
             ( void $ receiveFrom server 4096 mempty )
             ( threadDelay 1000000 )
           case eith of
-            Left () -> return ()
+            Left ()  -> return ()
             Right () -> assertFailure "expected packet"
         )
     ]
@@ -364,7 +416,7 @@ group99  = testGroup "getAddrInfo" [
   , testCase "getAddrInfo \"\" \"\"" $
       void (getAddressInfo Nothing Nothing mempty :: IO [AddressInfo Inet Stream TCP]) `catch` \e-> case e of
             _ | e == eaiNoName -> return ()
-            _                  -> assertFailure "expected eaiNoName"
+            _ -> assertFailure "expected eaiNoName"
 
   ]
 
