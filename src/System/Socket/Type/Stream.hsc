@@ -30,6 +30,7 @@ import Data.Monoid
 import Foreign.Ptr
 import Foreign.Marshal.Alloc
 import qualified Data.ByteString as BS
+import qualified Data.ByteString.Unsafe as BS
 import qualified Data.ByteString.Builder as BB
 import qualified Data.ByteString.Builder.Internal as BB
 import qualified Data.ByteString.Lazy as LBS
@@ -44,29 +45,32 @@ data Stream
 instance Type Stream where
   typeNumber _ = (#const SOCK_STREAM)
 
--------------------------------------------------------------------------------
--- Convenience Operations
--------------------------------------------------------------------------------
-
-sendAll :: Socket f Stream p -> BS.ByteString -> MessageFlags -> IO ()
-sendAll s bs flags = sendAll' bs
+-- | Sends a whole `BS.ByteString` with as many system calls as necessary
+--   and returns the bytes sent (in this case just the `BS.ByteString`s
+--   `BS.length`).
+sendAll :: Socket f Stream p -> BS.ByteString -> MessageFlags -> IO Int64
+sendAll s bs flags = do
+  BS.unsafeUseAsCStringLen bs (uncurry sendAllPtr)
+  return $! fromIntegral (BS.length bs)
   where
-    -- The `send` operation returns the bytes actually sent. This might be
-    -- less than the ByteString is long in case the kernel buffer is full.
-    -- In this case we will truncate the bytes already sent and recursively
-    -- try again with the remains.
-    sendAll' bs' = do
-      sent <-  send s bs' flags
-      when (sent < BS.length bs') $ sendAll' (BS.drop sent bs')
+    sendAllPtr :: Ptr a -> Int -> IO ()
+    sendAllPtr ptr len = do
+      sent <- fromIntegral `fmap` unsafeSend s ptr (fromIntegral len) flags
+      when (sent < len) $ sendAllPtr (plusPtr ptr sent) (len - sent)
 
 -- | Like `sendAll`, but operates on lazy `Data.ByteString.Lazy.ByteString`s.
 --
 --   It uses `sendAll` internally to send all chunks sequentially. The lock on
 --   the socket is acquired for each chunk separately, so the socket can be read
 --   from in an interleaving fashion.
-sendAllLazy :: Socket f Stream p -> LBS.ByteString -> MessageFlags -> IO ()
+sendAllLazy :: Socket f Stream p -> LBS.ByteString -> MessageFlags -> IO Int64
 sendAllLazy s lbs flags =
-  LBS.foldlChunks (\x bs-> x >> sendAll s bs flags) (return ()) lbs
+  LBS.foldlChunks f (return 0) lbs
+  where
+    f action bs = do
+      sent  <- action
+      sent' <- sendAll s bs flags
+      pure $! sent + sent'
 
 -- | Sends a whole `BB.Builder` without allocating `BS.ByteString`s.
 --   If performance is an issue, this operation should be preferred over all
@@ -111,8 +115,8 @@ sendAllBuilder s bufsize builder flags = do
                 then
                   writeStep nextStep $! alreadySent + fromIntegral len
                 else do
-                  sendAll s bs flags
-                  writeStep nextStep $! alreadySent + fromIntegral (len + BS.length bs)
+                  bsLen <- sendAll s bs flags
+                  writeStep nextStep $! alreadySent + bsLen + fromIntegral len
               where
                 len = minusPtr ptrToNextFreeByte ptr
     sendAllPtr :: Ptr Word8 -> Int -> IO ()
