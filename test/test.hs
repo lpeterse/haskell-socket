@@ -287,9 +287,10 @@ group07 = testGroup "sendAll/receiveAll"
             receiveAll peerSock msgSize mempty
           threadDelay 100000
           connect client addr
-          sendAll client (LBS.toStrict msg) mempty
+          sent <- sendAll client (LBS.toStrict msg) mempty
           close client
           msgReceived <- wait serverRecv
+          when (fromIntegral sent /= LBS.length msg) (assertFailure "sendAll reported wrong size.")
           when (msgReceived /= msg) (assertFailure "Received message was bogus.")
         )
     , testCase "sendAllLazy and receiveAll a 128MB chunk" $ bracket
@@ -314,9 +315,10 @@ group07 = testGroup "sendAll/receiveAll"
             receiveAll peerSock msgSize mempty
           threadDelay 100000
           connect client addr
-          sendAllLazy client msg mempty
+          sent <- sendAllLazy client msg mempty
           close client
           msgReceived <- wait serverRecv
+          when (sent /= LBS.length msg) (assertFailure "sendAllLazy reported wrong size.")
           when (msgReceived /= msg) (assertFailure "Received message was bogus.")
         )
     , testCase "sendAllBuilder and receiveAll a 128MB chunk" $ bracket
@@ -341,9 +343,10 @@ group07 = testGroup "sendAll/receiveAll"
             receiveAll peerSock msgSize mempty
           threadDelay 100000
           connect client addr
-          sendAllBuilder client 512 (foldr (\bs-> (BB.byteString bs `mappend`)) mempty $ LBS.toChunks msg) mempty
+          sent <- sendAllBuilder client 512 (foldr (\bs-> (BB.byteString bs `mappend`)) mempty $ LBS.toChunks msg) mempty
           close client
           msgReceived <- wait serverRecv
+          when (sent /= LBS.length msg) (assertFailure "sendAllBuilder reported wrong size.")
           when (msgReceived /= msg) (assertFailure "Received message was bogus.")
         )
     ]

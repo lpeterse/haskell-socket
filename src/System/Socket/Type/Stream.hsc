@@ -48,10 +48,10 @@ instance Type Stream where
 -- | Sends a whole `BS.ByteString` with as many system calls as necessary
 --   and returns the bytes sent (in this case just the `BS.ByteString`s
 --   `BS.length`).
-sendAll :: Socket f Stream p -> BS.ByteString -> MessageFlags -> IO Int64
+sendAll :: Socket f Stream p -> BS.ByteString -> MessageFlags -> IO Int
 sendAll s bs flags = do
   BS.unsafeUseAsCStringLen bs (uncurry sendAllPtr)
-  return $! fromIntegral (BS.length bs)
+  return (BS.length bs)
   where
     sendAllPtr :: Ptr a -> Int -> IO ()
     sendAllPtr ptr len = do
@@ -69,7 +69,7 @@ sendAllLazy s lbs flags =
   where
     f action bs = do
       sent  <- action
-      sent' <- sendAll s bs flags
+      sent' <- fromIntegral `fmap` sendAll s bs flags
       pure $! sent + sent'
 
 -- | Sends a whole `BB.Builder` without allocating `BS.ByteString`s.
@@ -116,7 +116,7 @@ sendAllBuilder s bufsize builder flags = do
                   writeStep nextStep $! alreadySent + fromIntegral len
                 else do
                   bsLen <- sendAll s bs flags
-                  writeStep nextStep $! alreadySent + bsLen + fromIntegral len
+                  writeStep nextStep $! alreadySent + fromIntegral (len + bsLen)
               where
                 len = minusPtr ptrToNextFreeByte ptr
     sendAllPtr :: Ptr Word8 -> Int -> IO ()
