@@ -10,7 +10,7 @@ import qualified Data.ByteString.Builder     as BB
 import qualified Data.ByteString.Lazy        as LBS
 import           Data.Int                    (Int64)
 import           Data.Maybe                  (isJust)
-import           Data.Monoid                 (mempty)
+import           Data.Monoid                 (mempty, mappend)
 import           Prelude                     hiding (head)
 import           System.Socket
 import           System.Socket.Family.Inet
@@ -363,6 +363,7 @@ group80 = testGroup "setSocketOption" [ testGroup "V6Only"
         )
         ( \(server,client)-> do
           setSocketOption server (V6Only True)
+          setSocketOption server (ReuseAddress True)
           bind server (SocketAddressInet6 inet6Any port6 0 0)
           threadDelay 1000000 -- wait for the listening socket being set up
           sendTo client "PING" mempty (SocketAddressInet inetLoopback port)
@@ -385,6 +386,7 @@ group80 = testGroup "setSocketOption" [ testGroup "V6Only"
         )
         ( \(server,client)-> do
           setSocketOption server (V6Only False)
+          setSocketOption server (ReuseAddress True)
           bind server (SocketAddressInet6 inet6Any port6 0 0)
           threadDelay 1000000 -- wait for the listening socket being set up
           sendTo client "PING" mempty (SocketAddressInet inetLoopback port)
