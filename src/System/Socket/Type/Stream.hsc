@@ -70,7 +70,7 @@ sendAllLazy s lbs flags =
     f action bs = do
       sent  <- action
       sent' <- fromIntegral `fmap` sendAll s bs flags
-      pure $! sent + sent'
+      return $! sent + sent'
 
 -- | Sends a whole `BB.Builder` without allocating `BS.ByteString`s.
 --   If performance is an issue, this operation should be preferred over all
