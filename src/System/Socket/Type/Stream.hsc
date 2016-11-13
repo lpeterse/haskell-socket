@@ -92,9 +92,9 @@ sendAllBuilder s bufsize builder flags = do
             whenDone ptrToNextFreeByte _
               | len > 0 = do
                   sendAllPtr ptr len
-                  pure $! alreadySent + fromIntegral len
+                  return $! alreadySent + fromIntegral len
               | otherwise =
-                  pure alreadySent
+                  return alreadySent
               where
                 len = minusPtr ptrToNextFreeByte ptr
             whenFull ptrToNextFreeByte minBytesRequired nextStep
@@ -117,7 +117,7 @@ sendAllBuilder s bufsize builder flags = do
                 len = minusPtr ptrToNextFreeByte ptr
     sendAllPtr :: Ptr Word8 -> Int -> IO ()
     sendAllPtr ptr len = do
-      sent <- fromIntegral <$> unsafeSend s ptr (fromIntegral len) flags
+      sent <- fromIntegral `fmap` unsafeSend s ptr (fromIntegral len) flags
       when (sent < len) $ sendAllPtr (plusPtr ptr sent) (len - sent)
 
 -- | Like `receive`, but operates on lazy `Data.ByteString.Lazy.ByteString`s and

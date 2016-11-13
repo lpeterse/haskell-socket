@@ -1,21 +1,12 @@
 module System.Socket.Internal.Platform where
 
-import Control.Applicative ((<$>))
-import Control.Exception
-import Control.Monad (when, join)
-
+import Control.Monad (join)
 import Foreign.Ptr
 import Foreign.C.Types
 import Foreign.C.String
-import Foreign.Storable
-import Foreign.Marshal.Alloc
-
 import GHC.Conc (threadWaitReadSTM, threadWaitWriteSTM, atomically)
-
 import System.Posix.Types ( Fd(..) )
-
 import System.Socket.Internal.Message
-import System.Socket.Internal.Exception
 
 #include "hs_socket.h"
 

@@ -34,8 +34,6 @@ module System.Socket.Unsafe (
   , tryWaitRetryLoop
   ) where
 
-import Data.Function
-
 import Control.Applicative ((<$>))
 import Control.Monad
 import Control.Exception
