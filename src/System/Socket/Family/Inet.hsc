@@ -49,7 +49,10 @@ import System.Socket.Internal.Socket
 import System.Socket.Internal.Platform
 
 #include "hs_socket.h"
+
+#if __GLASGOW_HASKELL__ < 800
 #let alignment t = "%lu", (unsigned long)offsetof(struct {char x__; t (y__); }, y__)
+#endif
 
 -- | The [Internet Protocol version 4](https://en.wikipedia.org/wiki/IPv4).
 data Inet
