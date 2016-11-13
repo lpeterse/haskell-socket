@@ -1,7 +1,7 @@
 #include <hs_socket.h>
 
 int hs_socket (int domain, int type, int protocol, int *err) {
-#ifdef SOCK_NONBLOCK
+#ifdef __USE_GNU
   // On Linux, there is an optimized way to set a socket non-blocking
   int fd = socket(domain, type | SOCK_NONBLOCK, protocol);
   if (fd >= 0) {
@@ -42,7 +42,7 @@ int hs_listen (int sockfd, int backlog, int *err) {
 }
 
 int hs_accept (int sockfd, struct sockaddr *addr, int *addrlen, int *err) {
-#ifdef SOCK_NONBLOCK
+#ifdef __USE_GNU
   // On Linux, there is an optimized way to set a socket non-blocking
   int fd = accept4(sockfd, addr, addrlen, SOCK_NONBLOCK);
   if (fd >= 0) {
