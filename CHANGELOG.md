@@ -1,3 +1,18 @@
+0.7.0.0 Lars Petersen <info@lars-petersen.net> 2016-11-13
+
+ * Added function `sendAllLazy` and `sendAllBuilder`. Changed the signature and
+   semantics of `sendAll` (thus the major version bump).
+
+ * The `MessageFlags` constructor is now exported (kudos to Shea Levy for noting
+   that this is necessary when writing extension libraries).
+
+ * GHC 8 introduces a built-in alignment macro which is now used when present.
+   This prevents re-definition warnings.
+
+ * Fixed implicit function declaration warning concerning accept4.
+   Defining `GNU_SOURCE` in the header file declares `accept4` when present
+   (see man accept4).
+
 0.6.2.0 Lars Petersen <info@lars-petersen.net> 2016-08-15
 
  * Added functions for constructing internet addresses without the need for IO
