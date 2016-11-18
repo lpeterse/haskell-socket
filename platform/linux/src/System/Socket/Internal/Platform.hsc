@@ -4,7 +4,7 @@ import Control.Monad (join)
 import Foreign.Ptr
 import Foreign.C.Types
 import Foreign.C.String
-import GHC.Conc (threadWaitReadSTM, threadWaitWriteSTM, atomically)
+import GHC.Conc (threadWaitRead, threadWaitWrite)
 import System.Posix.Types ( Fd(..) )
 import System.Socket.Internal.Message
 
@@ -12,7 +12,7 @@ import System.Socket.Internal.Message
 
 unsafeSocketWaitWrite :: Fd -> Int -> IO (IO ())
 unsafeSocketWaitWrite fd _ = do
-  threadWaitWriteSTM fd >>= return . atomically . fst
+  return $ threadWaitWrite fd
 
 -- | Blocks until a socket should be tried for reading.
 --
@@ -26,7 +26,7 @@ unsafeSocketWaitRead :: Fd   -- ^ Socket descriptor
                -> Int  -- ^ How many times has it been tried unsuccessfully so far? (currently only relevant on Windows)
                -> IO (IO ()) -- ^ The outer action registers the waiting, the inner does the actual wait.
 unsafeSocketWaitRead fd _ = do
-  threadWaitReadSTM fd >>= return . atomically . fst
+  return $ threadWaitRead fd
 
 unsafeSocketWaitConnected :: Fd -> IO ()
 unsafeSocketWaitConnected fd = do
