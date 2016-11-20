@@ -1,36 +1,48 @@
 module System.Socket.Internal.Platform where
 
-import Control.Monad (join)
+import Control.Exception
+import Control.Monad ( join, void, unless )
+import Control.Concurrent.MVar
+import Control.Concurrent ( threadWaitWrite )
 import Foreign.Ptr
 import Foreign.C.Types
 import Foreign.C.String
-import GHC.Conc (threadWaitReadSTM, threadWaitWriteSTM, atomically)
 import System.Posix.Types ( Fd(..) )
 import System.Socket.Internal.Message
+import System.Socket.Internal.Exception
+import Control.Exception ( throwIO )
+import GHC.Event
 
 #include "hs_socket.h"
 
-unsafeSocketWaitWrite :: Fd -> Int -> IO (IO ())
-unsafeSocketWaitWrite fd _ = do
-  threadWaitWriteSTM fd >>= return . atomically . fst
+threadWait' :: Exception e => Event -> ((Fd -> IO FdKey) -> IO FdKey) -> e -> IO ()
+threadWait' evt withFd e = do
+  mmgr  <- getSystemEventManager
+  case mmgr of
+    Nothing -> error "threadWait': requires threaded RTS."
+    Just mgr -> do
+      mevt <- newEmptyMVar
+      bracketOnError
+        ( withFd $ \fd->
+            registerFd mgr (\_ -> putMVar mevt) fd evt OneShot
+        )
+        ( void . unregisterFd_ mgr )
+        ( const $ do
+            evt' <- takeMVar mevt
+            unless (evt' == evt) (throwIO e)
+        )
 
--- | Blocks until a socket should be tried for reading.
---
--- > safeSocketWaitRead = do
--- >   wait <- withMVar msock $ \sock-> do
--- >     -- Register while holding a lock on the socket descriptor.
--- >     unsafeSocketWaitRead sock 0
--- >   -- Do the waiting without keeping the socket descriptor locked.
--- >   wait
-unsafeSocketWaitRead :: Fd   -- ^ Socket descriptor
-               -> Int  -- ^ How many times has it been tried unsuccessfully so far? (currently only relevant on Windows)
-               -> IO (IO ()) -- ^ The outer action registers the waiting, the inner does the actual wait.
-unsafeSocketWaitRead fd _ = do
-  threadWaitReadSTM fd >>= return . atomically . fst
+unsafeSocketWaitRead :: MVar Fd -> Int -> IO ()
+unsafeSocketWaitRead mfd _ = do
+  threadWait' evtRead (withMVar mfd) eBadFileDescriptor
+
+unsafeSocketWaitWrite :: MVar Fd -> Int -> IO ()
+unsafeSocketWaitWrite mfd _ = do
+  threadWait' evtWrite (withMVar mfd) eBadFileDescriptor
 
 unsafeSocketWaitConnected :: Fd -> IO ()
-unsafeSocketWaitConnected fd = do
-  join $ unsafeSocketWaitWrite fd 0
+unsafeSocketWaitConnected = do
+  threadWaitWrite
 
 type CSSize
    = CInt

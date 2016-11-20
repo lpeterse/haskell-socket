@@ -1,5 +1,5 @@
 name:                socket
-version:             0.7.0.0
+version:             0.7.0.1
 synopsis:            An extensible socket library.
 description:
   This library is a minimal cross-platform interface for

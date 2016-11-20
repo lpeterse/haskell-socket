@@ -69,24 +69,24 @@ unsafeReceiveFrom :: Socket f t p -> Ptr b -> CSize -> MessageFlags -> Ptr (Sock
 unsafeReceiveFrom s bufPtr bufSize flags addrPtr addrSizePtr = do
   tryWaitRetryLoop s unsafeSocketWaitRead (\fd-> c_recvfrom fd bufPtr bufSize flags addrPtr addrSizePtr)
 
-tryWaitRetryLoop :: Socket f t p -> (Fd -> Int-> IO (IO ())) -> (Fd -> Ptr CInt -> IO CInt) -> IO CInt
-tryWaitRetryLoop (Socket mfd) getWaitAction action = loop 0
+tryWaitRetryLoop :: Socket f t p -> (MVar Fd -> Int -> IO ()) -> (Fd -> Ptr CInt -> IO CInt) -> IO CInt
+tryWaitRetryLoop (Socket mfd) wait action = loop 0
   where
     loop iteration = do
-      ewr <- withMVar mfd $ \fd-> alloca $ \errPtr-> do
+      mi <- withMVar mfd $ \fd-> alloca $ \errPtr-> do
           when (fd < 0) (throwIO eBadFileDescriptor)
           i <- action fd errPtr
           if (i < 0) then do
             err <- SocketException <$> peek errPtr
             unless (err == eWouldBlock || err == eAgain) (throwIO err)
-            Left <$> getWaitAction fd iteration
+            return Nothing
           else
             -- The following is quite interesting for debugging:
             -- when (iteration /= 0) (print iteration)
-            return (Right i)
-      case ewr of
-        Left  wait   -> do
-          wait
+            return (Just i)
+      case mi of
+        Just i ->
+          return i
+        Nothing -> do
+          wait mfd iteration
           loop $! iteration + 1
-        Right result -> do
-          return result

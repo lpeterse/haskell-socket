@@ -306,20 +306,19 @@ accept s@(Socket mfd) = accept'
                     then do
                       err <- SocketException <$> peek errPtr
                       unless (err == eWouldBlock || err == eAgain) (throwIO err)
-                      wait <- unsafeSocketWaitRead fd iteration
-                      return $ Left wait
+                      return Nothing
                     else do
                       addr <- peek addrPtr :: IO (SocketAddress f)
                       -- newMVar is guaranteed to be not interruptible.
                       mft <- newMVar ft
                       -- Register a finalizer on the new socket.
                       _ <- mkWeakMVar mft (close (Socket mft `asTypeOf` s))
-                      return $ Right (Socket mft, addr)
+                      return $ Just (Socket mft, addr)
                   )
               -- If ews is Left we got EAGAIN or EWOULDBLOCK and retry after the next event.
               case ews of
-                Left  wait -> wait >> (again $! iteration + 1)
-                Right sock -> return sock
+                Just sa -> return sa
+                Nothing -> unsafeSocketWaitRead mfd iteration >> (again $! iteration + 1)
             ) 0 -- This is the initial iteration value.
 
 -- | Send a message on a connected socket.
