@@ -1,7 +1,7 @@
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeFamilies, FlexibleContexts #-}
 --------------------------------------------------------------------------------
 -- |
--- Module      :  System.Socket
+-- Module      :  System.Socket.Internal.Socket
 -- Copyright   :  (c) Lars Petersen 2015
 -- License     :  MIT
 --
@@ -10,7 +10,6 @@
 --------------------------------------------------------------------------------
 module System.Socket.Internal.Socket (
     Socket (..)
-  , SocketAddress
   , Family (..)
   , Type (..)
   , Protocol (..)
@@ -18,6 +17,7 @@ module System.Socket.Internal.Socket (
 
 import           Control.Concurrent.MVar
 import           Foreign.C.Types
+import           Foreign.Storable
 import           System.Posix.Types
 
 -- | A generic socket type. Use `System.Socket.socket` to create a new socket.
@@ -46,17 +46,16 @@ import           System.Posix.Types
 newtype Socket f t p
       = Socket (MVar Fd)
 
--- | The `SocketAddress` type is a [data family](https://wiki.haskell.org/GHC/Type_families#Detailed_definition_of_data_families).
---   This allows to provide different data constructors depending on the socket
---   family wihtout knowing all of them in advance or the need to patch this
---   core library.
---
--- > SocketAddressInet  inetLoopback  8080     :: SocketAddress Inet
--- > SocketAddressInet6 inet6Loopback 8080 0 0 :: SocketAddress Inet6
-data family SocketAddress f
-
-class Family f where
+class Storable (SocketAddress f) => Family f where
   familyNumber :: f -> CInt
+  -- | The `SocketAddress` type is a [data family](https://wiki.haskell.org/GHC/Type_families#Detailed_definition_of_data_families).
+  --   This allows to provide different data constructors depending on the socket
+  --   family without knowing all of them in advance or the need to extend this
+  --   core library.
+  --
+  -- > SocketAddressInet  inetLoopback  8080     :: SocketAddress Inet
+  -- > SocketAddressInet6 inet6Loopback 8080 0 0 :: SocketAddress Inet6
+  data SocketAddress f
 
 class Type t where
   typeNumber :: t -> CInt

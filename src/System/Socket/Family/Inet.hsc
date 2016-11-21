@@ -1,7 +1,7 @@
 {-# LANGUAGE TypeFamilies, FlexibleInstances, GeneralizedNewtypeDeriving #-}
 --------------------------------------------------------------------------------
 -- |
--- Module      :  System.Socket
+-- Module      :  System.Socket.Family.Inet
 -- Copyright   :  (c) Lars Petersen 2015
 -- License     :  MIT
 --
@@ -59,18 +59,17 @@ data Inet
 
 instance Family Inet where
   familyNumber _ = (#const AF_INET)
-
--- | An [IPv4](https://en.wikipedia.org/wiki/IPv4) socket address.
---
---   The socket address contains a port number that may be used by transport
---   protocols like [TCP](https://en.wikipedia.org/wiki/Transmission_Control_Protocol).
---
--- > SocketAddressInet inetLoopback 8080
-data instance SocketAddress Inet
-   = SocketAddressInet
-     { inetAddress   :: InetAddress
-     , inetPort      :: InetPort
-     } deriving (Eq, Show)
+  -- | An [IPv4](https://en.wikipedia.org/wiki/IPv4) socket address.
+  --
+  --   The socket address contains a port number that may be used by transport
+  --   protocols like [TCP](https://en.wikipedia.org/wiki/Transmission_Control_Protocol).
+  --
+  -- > SocketAddressInet inetLoopback 8080
+  data SocketAddress Inet
+     = SocketAddressInet
+       { inetAddress   :: InetAddress
+       , inetPort      :: InetPort
+       } deriving (Eq, Show)
 
 -- | To avoid errors with endianess it was decided to keep this type abstract.
 --

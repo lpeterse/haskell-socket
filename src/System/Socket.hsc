@@ -124,6 +124,7 @@ module System.Socket (
   , eaiSystem
   ) where
 
+import Control.Applicative ( (<$>) )
 import Control.Exception
 import Control.Monad
 import Control.Concurrent
@@ -209,7 +210,7 @@ socket = socket'
 --   - The operation throws `SocketException`s. Calling `connect` on a `close`d
 --     socket throws `eBadFileDescriptor` even if the former file descriptor has
 --     been reassigned.
-connect :: (Family f, Storable (SocketAddress f)) => Socket f t p -> SocketAddress f -> IO ()
+connect :: (Family f) => Socket f t p -> SocketAddress f -> IO ()
 connect s@(Socket mfd) addr =
   alloca $ \addrPtr-> alloca $ \errPtr-> do
     poke addrPtr addr
@@ -252,7 +253,7 @@ connect s@(Socket mfd) addr =
 --     [argued here](http://stackoverflow.com/a/14485305).
 --   - This operation throws `SocketException`s. Consult your @man@ page for
 --     details and specific @errno@s.
-bind :: (Family f, Storable (SocketAddress f)) => Socket f t p -> SocketAddress f -> IO ()
+bind :: (Family f) => Socket f t p -> SocketAddress f -> IO ()
 bind (Socket mfd) addr =
   alloca $ \addrPtr-> alloca $ \errPtr-> do
     poke addrPtr addr
@@ -289,10 +290,10 @@ listen (Socket ms) backlog =
 --   - This operation throws `SocketException`s.
 --   - This operation catches `eAgain`, `eWouldBlock` and `eInterrupted`
 --     internally and retries automatically.
-accept :: (Family f, Storable (SocketAddress f)) => Socket f t p -> IO (Socket f t p, SocketAddress f)
+accept :: (Family f) => Socket f t p -> IO (Socket f t p, SocketAddress f)
 accept s@(Socket mfd) = accept'
   where
-    accept' :: forall f t p. (Family f, Storable (SocketAddress f)) => IO (Socket f t p, SocketAddress f)
+    accept' :: forall f t p. (Family f) => IO (Socket f t p, SocketAddress f)
     accept' = do
       -- Allocate local (!) memory for the address.
       alloca $ \addrPtr-> alloca $ \addrPtrLen-> alloca $ \errPtr-> do
@@ -344,7 +345,7 @@ send s bs flags = do
   return (fromIntegral bytesSent)
 
 -- | Like `send`, but allows to specify a destination address.
-sendTo ::(Family f, Storable (SocketAddress f)) => Socket f t p -> BS.ByteString -> MessageFlags -> SocketAddress f -> IO Int
+sendTo ::(Family f) => Socket f t p -> BS.ByteString -> MessageFlags -> SocketAddress f -> IO Int
 sendTo s bs flags addr = do
   bytesSent <- alloca $ \addrPtr-> do
     poke addrPtr addr
@@ -373,10 +374,10 @@ receive s bufSize flags =
     )
 
 -- | Like `receive`, but additionally yields the peer address.
-receiveFrom :: (Family f, Storable (SocketAddress f)) => Socket f t p -> Int -> MessageFlags -> IO (BS.ByteString, SocketAddress f)
+receiveFrom :: (Family f) => Socket f t p -> Int -> MessageFlags -> IO (BS.ByteString, SocketAddress f)
 receiveFrom = receiveFrom'
   where
-    receiveFrom' :: forall f t p. (Family f, Storable (SocketAddress f)) => Socket f t p -> Int -> MessageFlags -> IO (BS.ByteString, SocketAddress f)
+    receiveFrom' :: forall f t p. (Family f) => Socket f t p -> Int -> MessageFlags -> IO (BS.ByteString, SocketAddress f)
     receiveFrom' s bufSize flags = do
       alloca $ \addrPtr-> do
         alloca $ \addrSizePtr-> do

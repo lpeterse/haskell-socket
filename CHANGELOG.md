@@ -14,8 +14,10 @@
  * Refactored and adapted the `accept` operation for changes caused by issue 27.
    Operation semantics shouldn't have changed.
 
- * 
-
+ * Made `SocketAddress` an associated data family and added a
+   `Storable (SocketAddress f)` constraint to the `Family` class. This allows
+   omitting the `Storable` in socket operations (`Family` suffices now). It
+   should be compatible with all existing code and not require any changes.
 
 0.7.0.0 Lars Petersen <info@lars-petersen.net> 2016-11-13
 

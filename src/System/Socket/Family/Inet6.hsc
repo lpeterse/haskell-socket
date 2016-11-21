@@ -1,7 +1,7 @@
 {-# LANGUAGE TypeFamilies, FlexibleInstances, GeneralizedNewtypeDeriving #-}
 --------------------------------------------------------------------------------
 -- |
--- Module      :  System.Socket
+-- Module      :  System.Socket.Family.Inet6
 -- Copyright   :  (c) Lars Petersen 2015
 -- License     :  MIT
 --
@@ -60,20 +60,19 @@ data Inet6
 
 instance Family Inet6 where
   familyNumber _ = (#const AF_INET6)
-
--- | An [IPv6](https://en.wikipedia.org/wiki/IPv6) socket address.
---
---   The socket address contains a port number that may be used by transport
---   protocols like [TCP](https://en.wikipedia.org/wiki/Transmission_Control_Protocol).
---
--- > SocketAddressInet6 inet6Loopback 8080 0 0
-data instance SocketAddress Inet6
-   = SocketAddressInet6
-     { inet6Address   :: Inet6Address
-     , inet6Port      :: Inet6Port
-     , inet6FlowInfo  :: Inet6FlowInfo
-     , inet6ScopeId   :: Inet6ScopeId
-     } deriving (Eq, Show)
+  -- | An [IPv6](https://en.wikipedia.org/wiki/IPv6) socket address.
+  --
+  --   The socket address contains a port number that may be used by transport
+  --   protocols like [TCP](https://en.wikipedia.org/wiki/Transmission_Control_Protocol).
+  --
+  -- > SocketAddressInet6 inet6Loopback 8080 0 0
+  data SocketAddress Inet6
+     = SocketAddressInet6
+       { inet6Address   :: Inet6Address
+       , inet6Port      :: Inet6Port
+       , inet6FlowInfo  :: Inet6FlowInfo
+       , inet6ScopeId   :: Inet6ScopeId
+       } deriving (Eq, Show)
 
 -- | To avoid errors with endianess it was decided to keep this type abstract.
 --
