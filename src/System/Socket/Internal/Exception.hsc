@@ -13,8 +13,13 @@ module System.Socket.Internal.Exception where
 import Control.Exception
 import Data.Typeable
 import Foreign.C.Types
+import Foreign.C.String
+import System.IO.Unsafe
 
 #include "hs_socket.h"
+
+foreign import ccall unsafe "strerror"
+  c_strerror  :: CInt -> IO CString
 
 newtype SocketException
       = SocketException CInt
@@ -23,43 +28,11 @@ newtype SocketException
 instance Exception SocketException
 
 instance Show SocketException where
-  show e@(SocketException i)
-    | e == eOk                         = "eOk"
-    | e == eInterrupted                = "eInterrupted"
-    | e == eBadFileDescriptor          = "eBadFileDescriptor"
-    | e == eInvalid                    = "eInvalid"
-    | e == ePipe                       = "ePipe"
-    | e == eWouldBlock                 = "eWouldBlock"
-    | e == eAgain                      = "eAgain"
-    | e == eNotSocket                  = "eNotSocket"
-    | e == eDestinationAddressRequired = "eDestinationAddressRequired"
-    | e == eMessageSize                = "eMessageSize"
-    | e == eProtocolType               = "eProtocolType"
-    | e == eNoProtocolOption           = "eNoProtocolOption"
-    | e == eProtocolNotSupported       = "eProtocolNotSupported"
-    | e == eSocketTypeNotSupported     = "eSocketTypeNotSupported"
-    | e == eOperationNotSupported      = "eOperationNotSupported"
-    | e == eProtocolFamilyNotSupported = "eProtocolFamilyNotSupported"
-    | e == eAddressFamilyNotSupported  = "eAddressFamilyNotSupported"
-    | e == eAddressInUse               = "eAddressInUse"
-    | e == eAddressNotAvailable        = "eAddressNotAvailable"
-    | e == eNetworkDown                = "eNetworkDown"
-    | e == eNetworkUnreachable         = "eNetworkUnreachable"
-    | e == eNetworkReset               = "eNetworkReset"
-    | e == eConnectionAborted          = "eConnectionAborted"
-    | e == eConnectionReset            = "eConnectionReset"
-    | e == eNoBufferSpace              = "eNoBufferSpace"
-    | e == eIsConnected                = "eIsConnected"
-    | e == eNotConnected               = "eNotConnected"
-    | e == eShutdown                   = "eShutdown"
-    | e == eTooManyReferences          = "eTooManyReferences"
-    | e == eTimedOut                   = "eTimedOut"
-    | e == eConnectionRefused          = "eConnectionRefused"
-    | e == eHostDown                   = "eHostDown"
-    | e == eHostUnreachable            = "eHostUnreachable"
-    | e == eAlready                    = "eAlready"
-    | e == eInProgress                 = "eInProgress"
-    | otherwise                        = "SocketException " ++ show i
+  show (SocketException e)  = "SocketException \"" ++ s ++ "\""
+    where
+      s = unsafePerformIO $ do
+        msgPtr <- c_strerror e
+        peekCString msgPtr
 
 eOk                         :: SocketException
 eOk                          = SocketException (#const SEOK)
