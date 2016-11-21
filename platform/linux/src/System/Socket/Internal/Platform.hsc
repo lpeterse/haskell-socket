@@ -7,16 +7,23 @@
 -- Maintainer  :  info@lars-petersen.net
 -- Stability   :  experimental
 --------------------------------------------------------------------------------
-module System.Socket.Internal.Platform where
+module System.Socket.Internal.Platform
+  ( waitRead, waitWrite, waitConnected, c_socket, c_close, c_connect,
+    c_accept, c_bind, c_listen, c_recv, c_recvfrom, c_send, c_sendto,
+    c_freeaddrinfo, c_getaddrinfo, c_getnameinfo, c_memset, c_gai_strerror,
+    c_setsockopt, c_getsockopt) where
 
-import Control.Monad ( when )
+import Control.Monad ( when, unless )
 import Control.Concurrent.MVar
-import Control.Concurrent ( threadWaitReadSTM, threadWaitWriteSTM )
-import Control.Exception ( bracketOnError, mapException, throwIO )
+import Control.Concurrent ( threadWaitRead, threadWaitWrite,
+                            threadWaitReadSTM, threadWaitWriteSTM,
+                            forkIO, rtsSupportsBoundThreads, killThread )
+import Control.Exception ( bracketOnError, mapException, throwIO,
+                           catch, SomeException(..) )
 import Foreign.Ptr
 import Foreign.C.Types
 import Foreign.C.String
-import GHC.Conc.Sync ( atomically )
+import GHC.Conc.Sync ( STM, atomically )
 import System.Posix.Types ( Fd(..) )
 import System.Socket.Internal.Socket
 import System.Socket.Internal.Message
@@ -25,27 +32,34 @@ import System.Socket.Internal.Exception
 #include "hs_socket.h"
 
 waitRead :: Socket f t p -> Int -> IO ()
-waitRead (Socket mfd) _ = mapException
-  ( const eBadFileDescriptor :: IOError -> SocketException )
-  ( bracketOnError
-      ( withMVar mfd $ \fd -> do
-          when (fd < 0) (throwIO eBadFileDescriptor)
-          threadWaitReadSTM fd
-      ) snd ( atomically . fst )
-  )
+waitRead s _ = wait s threadWaitRead threadWaitReadSTM
 
 waitWrite :: Socket f t p -> Int -> IO ()
-waitWrite (Socket mfd) _ = mapException
-  ( const eBadFileDescriptor :: IOError -> SocketException )
-  ( bracketOnError
-      ( withMVar mfd $ \fd -> do
-          when (fd < 0) (throwIO eBadFileDescriptor)
-          threadWaitWriteSTM fd
-      ) snd ( atomically . fst )
-  )
+waitWrite s _ = wait s threadWaitWrite threadWaitWriteSTM
 
 waitConnected :: Socket f t p -> IO ()
 waitConnected  = flip waitWrite 0
+
+wait :: Socket f t p -> (Fd -> IO ()) -> (Fd -> IO (STM (), IO ())) -> IO ()
+wait (Socket mfd) threadWait threadWaitSTM
+  | rtsSupportsBoundThreads = mapException
+    ( const eBadFileDescriptor :: IOError -> SocketException )
+    ( bracketOnError
+        ( withMVar mfd $ \fd -> do
+            when (fd < 0) (throwIO eBadFileDescriptor)
+            threadWaitSTM fd
+        ) snd ( atomically . fst )
+    )
+  | otherwise = do
+      m <- newEmptyMVar
+      bracketOnError
+        ( withMVar mfd $ \fd-> do
+            when (fd < 0) (throwIO eBadFileDescriptor)
+            forkIO $ catch
+              ( threadWait fd >> putMVar m True )
+              ( \(SomeException _)-> putMVar m False )
+        ) killThread
+        ( const $ takeMVar m >>= flip unless (throwIO eBadFileDescriptor) )
 
 type CSSize
    = CInt
