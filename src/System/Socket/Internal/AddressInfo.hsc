@@ -67,10 +67,6 @@ import System.Socket.Internal.Platform
 #let alignment t = "%lu", (unsigned long)offsetof(struct {char x__; t (y__); }, y__)
 #endif
 
--------------------------------------------------------------------------------
--- AddressInfo
--------------------------------------------------------------------------------
-
 data AddressInfo f t p
    = AddressInfo
      { addressInfoFlags :: AddressInfoFlags
