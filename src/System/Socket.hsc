@@ -126,14 +126,13 @@ module System.Socket (
 
 import Control.Exception
 import Control.Monad
-import Control.Applicative
 import Control.Concurrent
 
 import Data.Function
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Unsafe as BS
 
-import GHC.Conc (closeFdWith)
+import GHC.Conc ( closeFdWith )
 
 import Foreign.Ptr
 import Foreign.Storable
@@ -142,6 +141,7 @@ import Foreign.Marshal.Alloc
 import System.Socket.Unsafe
 
 import System.Socket.Internal.Socket
+import System.Socket.Internal.SocketOption
 import System.Socket.Internal.Exception
 import System.Socket.Internal.Message
 import System.Socket.Internal.AddressInfo
@@ -206,37 +206,41 @@ socket = socket'
 --   - This operation returns as soon as a connection has been established (as
 --     if the socket were blocking). The connection attempt has either failed or
 --     succeeded after this operation threw an exception or returned.
---   - The socket is locked throughout the whole operation.
 --   - The operation throws `SocketException`s. Calling `connect` on a `close`d
 --     socket throws `eBadFileDescriptor` even if the former file descriptor has
 --     been reassigned.
 connect :: (Family f, Storable (SocketAddress f)) => Socket f t p -> SocketAddress f -> IO ()
-connect (Socket mfd) addr =
-  withMVar mfd $ \fd-> do
-    when (fd < 0) (throwIO eBadFileDescriptor)
-    alloca $ \addrPtr-> alloca $ \errPtr-> do
-      poke addrPtr addr
-      let addrLen = fromIntegral (sizeOf addr)
-      -- The actual connection attempt.
-      i <- c_connect fd addrPtr addrLen errPtr
-      -- On non-blocking sockets we expect to get EINPROGRESS or EWOULDBLOCK.
-      when (i /= 0) $ do
-        err <- SocketException <$> peek errPtr
-        if err == eInProgress || err == eWouldBlock
-          then do
-            -- The manpage says that in this case the connection
-            -- shall be established asynchronously and one is
-            -- supposed to wait.
-            unsafeSocketWaitConnected fd
-            -- At least on Linux a second connect after signaled writeability
-            -- will not fail (the next one would).
-            i' <- c_connect fd addrPtr addrLen errPtr
-            when (i' /= 0) $ do
-              err' <- SocketException <$> peek errPtr
-              -- On Windows, the second connect fails with `eIsConnected`.
-              -- In our case this is not an error condition - other errors are.
-              when (err' /= eIsConnected) (throwIO err')
-          else throwIO err
+connect s@(Socket mfd) addr =
+  alloca $ \addrPtr-> alloca $ \errPtr-> do
+    poke addrPtr addr
+    let addrLen = fromIntegral (sizeOf addr)
+    -- The actual connection attempt.
+    i <- withMVar mfd $ \fd-> do
+      when (fd < 0) (throwIO eBadFileDescriptor)
+      c_connect fd addrPtr addrLen errPtr
+    -- On non-blocking sockets we expect to get EINPROGRESS or EWOULDBLOCK.
+    when (i /= 0) $ do
+      err <- SocketException <$> peek errPtr
+      if err == eInProgress || err == eWouldBlock
+        then do
+          -- The manpage says that in this case the connection
+          -- shall be established asynchronously and one is
+          -- supposed to wait.
+          waitConnected s
+          -- We need to issue a second connect call to get the correct error
+          -- code in case the connection has been refused etc.
+          -- At least on Linux a second connect after signaled writeability
+          -- will not fail in case the connection has been established
+          -- sucessfully (the next one would).
+          i' <- withMVar mfd $ \fd-> do
+            when (fd < 0) (throwIO eBadFileDescriptor)
+            c_connect fd addrPtr addrLen errPtr
+          when (i' /= 0) $ do
+            err' <- SocketException <$> peek errPtr
+            -- On Windows, the second connect fails with `eIsConnected`.
+            -- In our case this is not an error condition - other errors are.
+            when (err' /= eIsConnected) (throwIO err')
+        else throwIO err
 
 -- | Bind a socket to an address.
 --
@@ -257,10 +261,10 @@ bind (Socket mfd) addr =
       when (i /= 0) (SocketException <$> peek errPtr >>= throwIO)
 
 -- | Starts listening and queueing connection requests on a connection-mode
---   socket.
+--   socket. The second parameter sets the queue size.
 --
---   - Calling `listen` on a `close`d socket throws `eBadFileDescriptor` even if the former
---     file descriptor has been reassigned.
+--   - Calling `listen` on a `close`d socket throws `eBadFileDescriptor` even
+--     if the former file descriptor has been reassigned.
 --   - The second parameter is called /backlog/ and sets a limit on how many
 --     unaccepted connections the socket implementation shall queue. A value
 --     of @0@ leaves the decision to the implementation.
@@ -274,52 +278,51 @@ listen (Socket ms) backlog =
 
 -- | Accept a new connection.
 --
---   - Calling `accept` on a `close`d socket throws `eBadFileDescriptor` even if the former
---     file descriptor has been reassigned.
---   - This operation configures the new socket non-blocking (TODO: use `accept4` if available).
+--   - Calling `accept` on a `close`d socket throws `eBadFileDescriptor` even
+--     if the former file descriptor has been reassigned.
+--   - This operation configures the new socket non-blocking.
 --   - This operation sets up a finalizer for the new socket that automatically
 --     closes the new socket when the garbage collection decides to collect it.
 --     This is just a fail-safe. You might still run out of file descriptors as
 --     there's no guarantee about when the finalizer is run. You're advised to
 --     manually `close` the socket when it's no longer needed.
---   - This operation throws `SocketException`s. Consult your @man@ page for
---     details and specific @errno@s.
---   - This operation catches `eAgain`, `eWouldBlock` and `eInterrupted` internally
---     and retries automatically.
+--   - This operation throws `SocketException`s.
+--   - This operation catches `eAgain`, `eWouldBlock` and `eInterrupted`
+--     internally and retries automatically.
 accept :: (Family f, Storable (SocketAddress f)) => Socket f t p -> IO (Socket f t p, SocketAddress f)
 accept s@(Socket mfd) = accept'
   where
     accept' :: forall f t p. (Family f, Storable (SocketAddress f)) => IO (Socket f t p, SocketAddress f)
     accept' = do
       -- Allocate local (!) memory for the address.
-      alloca $ \addrPtr-> do
-        alloca $ \addrPtrLen-> alloca $ \errPtr-> do
-          poke addrPtrLen (fromIntegral $ sizeOf (undefined :: SocketAddress f))
-          ( fix $ \again iteration-> do
-              -- We mask asynchronous exceptions during this critical section.
-              ews <- withMVar mfd $ \fd-> do
-                when (fd < 0) (throwIO eBadFileDescriptor)
-                bracketOnError
-                  ( c_accept fd addrPtr addrPtrLen errPtr )
-                  ( \ft-> when (ft >= 0) $ alloca $ void . c_close ft )
-                  ( \ft-> if ft < 0
-                    then do
-                      err <- SocketException <$> peek errPtr
-                      unless (err == eWouldBlock || err == eAgain) (throwIO err)
-                      return Nothing
-                    else do
-                      addr <- peek addrPtr :: IO (SocketAddress f)
-                      -- newMVar is guaranteed to be not interruptible.
-                      mft <- newMVar ft
-                      -- Register a finalizer on the new socket.
-                      _ <- mkWeakMVar mft (close (Socket mft `asTypeOf` s))
-                      return $ Just (Socket mft, addr)
-                  )
-              -- If ews is Left we got EAGAIN or EWOULDBLOCK and retry after the next event.
-              case ews of
-                Just sa -> return sa
-                Nothing -> unsafeSocketWaitRead mfd iteration >> (again $! iteration + 1)
-            ) 0 -- This is the initial iteration value.
+      alloca $ \addrPtr-> alloca $ \addrPtrLen-> alloca $ \errPtr-> do
+        poke addrPtrLen (fromIntegral $ sizeOf (undefined :: SocketAddress f))
+        ( fix $ \again iteration-> do
+            msa <- withMVar mfd $ \fd-> do
+              when (fd < 0) (throwIO eBadFileDescriptor)
+              bracketOnError
+                ( c_accept fd addrPtr addrPtrLen errPtr )
+                ( \ft-> when (ft >= 0) $ alloca $ void . c_close ft )
+                ( \ft-> if ft < 0
+                  then do
+                    err <- SocketException <$> peek errPtr
+                    -- EWOULDBLOCK and EAGAIN are valid in case there a no
+                    -- queued connections at the moment and we are supposed to
+                    -- wait. All other errors are unexpected and we throw them.
+                    unless (err == eWouldBlock || err == eAgain) (throwIO err)
+                    return Nothing
+                  else do
+                    addr <- peek addrPtr :: IO (SocketAddress f)
+                    s'@(Socket mft) <- Socket <$> newMVar ft
+                    -- Register a finalizer on the new socket.
+                    _ <- mkWeakMVar mft (close s')
+                    return $ Just (s', addr)
+                )
+            -- If ews is Left we got EAGAIN or EWOULDBLOCK and retry after the next event.
+            case msa of
+              Just sa -> return sa
+              Nothing -> waitRead s iteration >> (again $! iteration + 1)
+          ) 0 -- This is the initial iteration value.
 
 -- | Send a message on a connected socket.
 --

@@ -1,7 +1,7 @@
 {-# LANGUAGE DeriveDataTypeable, GeneralizedNewtypeDeriving #-}
 --------------------------------------------------------------------------------
 -- |
--- Module      :  System.Socket
+-- Module      :  System.Socket.Internal.Exception
 -- Copyright   :  (c) Lars Petersen 2015
 -- License     :  MIT
 --

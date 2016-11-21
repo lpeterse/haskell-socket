@@ -1,7 +1,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 --------------------------------------------------------------------------------
 -- |
--- Module      :  System.Socket
+-- Module      :  System.Socket.Internal.Message
 -- Copyright   :  (c) Lars Petersen 2015
 -- License     :  MIT
 --

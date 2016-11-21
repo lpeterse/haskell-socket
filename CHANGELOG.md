@@ -1,3 +1,22 @@
+0.8.0.0 Lars Petersen <info@lars-petersen.net> 2016-11-21
+
+ * Issue 27: Fixed a memory leak that manifested when interrupting threads waiting
+   on socket events.
+
+ * Renamed `unsafeSocketWaitRead/Write/Connected` to `waitRead/Write/Connected`
+   as these operations are not really unsafe, just internal. The operation
+   signatures changed due to issue 27. Also, documented Windows specific
+   implementation details.
+
+ * The `connect` operation does no longer hold the lock on the socket while
+   waiting for connection establishment.
+
+ * Refactored and adapted the `accept` operation for changes caused by issue 27.
+   Operation semantics shouldn't have changed.
+
+ * 
+
+
 0.7.0.0 Lars Petersen <info@lars-petersen.net> 2016-11-13
 
  * Added function `sendAllLazy` and `sendAllBuilder`. Changed the signature and

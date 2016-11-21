@@ -2,7 +2,7 @@
              FlexibleContexts, TypeFamilies, GeneralizedNewtypeDeriving #-}
 --------------------------------------------------------------------------------
 -- |
--- Module      :  System.Socket
+-- Module      :  System.Socket.Internal.AddressInfo
 -- Copyright   :  (c) Lars Petersen 2015
 -- License     :  MIT
 --

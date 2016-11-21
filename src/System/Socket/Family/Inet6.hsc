@@ -46,6 +46,7 @@ import Foreign.C.Types
 import Foreign.Storable
 
 import System.Socket.Internal.Socket
+import System.Socket.Internal.SocketOption
 import System.Socket.Internal.Platform
 
 #include "hs_socket.h"
