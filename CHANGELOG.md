@@ -1,7 +1,11 @@
 0.8.0.0 Lars Petersen <info@lars-petersen.net> 2016-11-21
 
- * Issue 27: Fixed a memory leak that manifested when interrupting threads waiting
-   on socket events.
+ * Issue 27: Fixed a memory leak that manifested when interrupting threads
+   waiting on socket events.
+
+ * Issue 25: The `awaitEvent: invalid argument` was caused by the forked-off
+   thread in `threadWaitRead`. The new code introduced by the changes caused
+   by issue 27 catches and swallows this exception in a sane way.
 
  * Renamed `unsafeSocketWaitRead/Write/Connected` to `waitRead/Write/Connected`
    as these operations are not really unsafe, just internal. The operation
