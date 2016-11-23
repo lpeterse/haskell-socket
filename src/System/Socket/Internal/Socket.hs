@@ -1,4 +1,5 @@
-{-# LANGUAGE TypeFamilies, FlexibleContexts #-}
+{-# LANGUAGE FlexibleContexts           #-}
+{-# LANGUAGE TypeFamilies               #-}
 --------------------------------------------------------------------------------
 -- |
 -- Module      :  System.Socket.Internal.Socket
@@ -16,6 +17,8 @@ module System.Socket.Internal.Socket (
   ) where
 
 import           Control.Concurrent.MVar
+import           Control.DeepSeq
+import           Data.Typeable
 import           Foreign.C.Types
 import           Foreign.Storable
 import           System.Posix.Types
@@ -44,14 +47,19 @@ import           System.Posix.Types
 --     Also see [this](https://mail.haskell.org/pipermail/haskell-cafe/2014-September/115823.html)
 --     thread and read the library code to see how the problem is currently circumvented.
 newtype Socket f t p
-      = Socket (MVar Fd)
+      = Socket (MVar Fd) deriving (Typeable)
 
+instance Eq (Socket f t p) where
+  (Socket x) == (Socket y) = x == y
+
+instance NFData (Socket f t p) where
+  rnf s = s `seq` ()
 
 -- | The address `Family` determines the network layer to use.
 --
 --   The most common address families are `System.Socket.Family.Inet` (IPv4)
 --   and `System.Socket.Family.Inet6` (IPv6).
-class Storable (SocketAddress f) => Family f where
+class (Storable (SocketAddress f), NFData (SocketAddress f), Typeable (SocketAddress f), Typeable f) => Family f where
   -- | The number designating this `Family` on the specific platform. This
   --   method is only exported for implementing extension libraries.
   --
@@ -76,7 +84,7 @@ class Storable (SocketAddress f) => Family f where
 --   of limited length, e.g. `System.Socket.Protocol.UDP`) and
 --   `System.Socket.Type.SequentialPacket` (for framed messages of arbitrary
 --   length, e.g. `System.Socket.Protocol.SCTP`).
-class Type t where
+class (Typeable t) => Type t where
   -- | This number designates this `Type` on the specific platform. This
   --   method is only exported for implementing extension libraries.
   --
@@ -88,7 +96,7 @@ class Type t where
 --
 --   Use `System.Socket.Protocol.Default` to let the operating system choose
 --   a transport protocol compatible with the socket's `Type`.
-class Protocol  p where
+class (Typeable p) => Protocol  p where
   -- | This number designates this `Protocol` on the specific platform. This
   --   method is only exported for implementing extension libraries.
   --

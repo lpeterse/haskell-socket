@@ -27,6 +27,7 @@ import Control.Monad (when)
 import Data.Int
 import Data.Word
 import Data.Monoid
+import Data.Typeable
 import Foreign.Ptr
 import Foreign.Marshal.Alloc
 import qualified Data.ByteString as BS
@@ -41,6 +42,7 @@ import System.Socket.Unsafe
 #include "hs_socket.h"
 
 data Stream
+  deriving (Typeable)
 
 instance Type Stream where
   typeNumber _ = (#const SOCK_STREAM)

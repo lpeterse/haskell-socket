@@ -1,4 +1,5 @@
-{-# LANGUAGE TypeFamilies, FlexibleInstances, GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE TypeFamilies, FlexibleInstances, GeneralizedNewtypeDeriving,
+  BangPatterns #-}
 --------------------------------------------------------------------------------
 -- |
 -- Module      :  System.Socket.Family.Inet6
@@ -11,17 +12,15 @@
 module System.Socket.Family.Inet6
   ( -- * Inet6
     Inet6
+  , SocketAddress (SocketAddressInet6, inet6Address, inet6Port, inet6FlowInfo, inet6ScopeId)
     -- ** Inet6Address
   , Inet6Address
     -- ** Inet6Port
-  , Inet6Port
+  , Inet6Port (..)
     -- ** Inet6FlowInfo
   , Inet6FlowInfo
     -- ** Inet6ScopeId
   , Inet6ScopeId
-    -- ** SocketAddress Inet6
-  , SocketAddress (SocketAddressInet6, inet6Address, inet6Port,
-                                       inet6FlowInfo, inet6ScopeId)
     -- * Custom addresses
     -- ** inet6AddressFromTuple
   , inet6AddressFromTuple
@@ -39,12 +38,12 @@ module System.Socket.Family.Inet6
 
 import Data.Bits ((.|.))
 import Data.Word
+import Data.Typeable
 import Control.Applicative as A
-
+import Control.DeepSeq
 import Foreign.Ptr
 import Foreign.C.Types
 import Foreign.Storable
-
 import System.Socket.Internal.Socket
 import System.Socket.Internal.SocketOption
 import System.Socket.Internal.Platform
@@ -55,8 +54,9 @@ import System.Socket.Internal.Platform
 #let alignment t = "%lu", (unsigned long)offsetof(struct {char x__; t (y__); }, y__)
 #endif
 
--- | The [Internet Protocol version 4](https://en.wikipedia.org/wiki/IPv4).
+-- | The [Internet Protocol version 6](https://en.wikipedia.org/wiki/IPv6).
 data Inet6
+  deriving (Typeable)
 
 instance Family Inet6 where
   familyNumber _ = (#const AF_INET6)
@@ -72,7 +72,10 @@ instance Family Inet6 where
        , inet6Port      :: Inet6Port
        , inet6FlowInfo  :: Inet6FlowInfo
        , inet6ScopeId   :: Inet6ScopeId
-       } deriving (Eq, Show)
+       } deriving (Eq, Ord, Show)
+
+instance NFData (SocketAddress Inet6) where
+  rnf (SocketAddressInet6 !_ !_ !_ !_) = ()
 
 -- | To avoid errors with endianess it was decided to keep this type abstract.
 --
@@ -91,17 +94,29 @@ instance Family Inet6 where
 --   >    addressInfoFlags = AddressInfoFlags 4,
 --   >    socketAddress    = SocketAddressInet6 {inet6Address = Inet6Address 0000:0000:0000:0000:0000:0000:0000:0001, inet6Port = Inet6Port 0, inet6FlowInfo = Inet6FlowInfo 0, inet6ScopeId = Inet6ScopeId 0},
 --   >    canonicalName    = Nothing }]
-data  Inet6Address    = Inet6Address {-# UNPACK #-} !Word64 {-# UNPACK #-} !Word64
-      deriving (Eq)
+data Inet6Address = Inet6Address {-# UNPACK #-} !Word64 {-# UNPACK #-} !Word64
+  deriving (Eq, Ord)
 
-newtype Inet6Port     = Inet6Port Word16
-      deriving (Eq, Ord, Show, Num)
+instance NFData Inet6Address where
+  rnf x = x `seq` ()
+
+newtype Inet6Port = Inet6Port Word16
+  deriving (Eq, Ord, Show, Num)
+
+instance NFData Inet6Port where
+  rnf x = x `seq` ()
 
 newtype Inet6FlowInfo = Inet6FlowInfo Word32
-      deriving (Eq, Ord, Show, Num)
+  deriving (Eq, Ord, Show, Num)
 
-newtype Inet6ScopeId  = Inet6ScopeId Word32
-      deriving (Eq, Ord, Show, Num)
+instance NFData Inet6FlowInfo where
+  rnf x = x `seq` ()
+
+newtype Inet6ScopeId = Inet6ScopeId Word32
+  deriving (Eq, Ord, Show, Num)
+
+instance NFData Inet6ScopeId where
+  rnf x = x `seq` ()
 
 -- | Deconstructs an `Inet6Address`.
 inet6AddressToTuple :: Inet6Address -> (Word16,Word16,Word16,Word16,Word16,Word16,Word16,Word16)

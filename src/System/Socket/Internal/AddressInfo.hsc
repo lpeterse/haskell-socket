@@ -152,7 +152,7 @@ instance Data.Monoid.Monoid AddressInfoFlags where
 aiAddressConfig  :: AddressInfoFlags
 aiAddressConfig   = AddressInfoFlags (#const AI_ADDRCONFIG)
 
--- | @AI_ALL@: Return both IPv4 (as mapped `SocketAddressInet6`) and IPv6 addresses when
+-- | @AI_ALL@: Return both IPv4 (as mapped IPv6 addresses) and IPv6 addresses when
 -- `aiV4Mapped` is set independent of whether IPv6 addresses exist for this
 --  name.
 aiAll             :: AddressInfoFlags

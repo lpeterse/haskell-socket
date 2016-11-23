@@ -1,4 +1,5 @@
-{-# LANGUAGE TypeFamilies, FlexibleInstances, GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE TypeFamilies, FlexibleInstances, GeneralizedNewtypeDeriving,
+  BangPatterns #-}
 --------------------------------------------------------------------------------
 -- |
 -- Module      :  System.Socket.Family.Inet
@@ -11,12 +12,11 @@
 module System.Socket.Family.Inet
   ( -- * Inet
     Inet
+  , SocketAddress (SocketAddressInet, inetAddress, inetPort)
     -- ** InetAddress
   , InetAddress
     -- ** InetPort
-  , InetPort
-    -- ** SocketAddress Inet
-  , SocketAddress (SocketAddressInet, inetAddress, inetPort)
+  , InetPort (..)
   -- * Custom addresses
   -- ** inetAddressFromTuple
   , inetAddressFromTuple
@@ -41,10 +41,10 @@ module System.Socket.Family.Inet
 
 import Data.Word
 import Data.List
-
+import Data.Typeable
+import Control.DeepSeq
 import Foreign.Ptr
 import Foreign.Storable
-
 import System.Socket.Internal.Socket
 import System.Socket.Internal.Platform
 
@@ -56,6 +56,7 @@ import System.Socket.Internal.Platform
 
 -- | The [Internet Protocol version 4](https://en.wikipedia.org/wiki/IPv4).
 data Inet
+  deriving (Typeable)
 
 instance Family Inet where
   familyNumber _ = (#const AF_INET)
@@ -69,7 +70,10 @@ instance Family Inet where
      = SocketAddressInet
        { inetAddress   :: InetAddress
        , inetPort      :: InetPort
-       } deriving (Eq, Show)
+       } deriving (Eq, Ord, Show)
+
+instance NFData (SocketAddress Inet) where
+  rnf (SocketAddressInet !_ !_) = ()
 
 -- | To avoid errors with endianess it was decided to keep this type abstract.
 --
@@ -87,10 +91,16 @@ instance Family Inet where
 --   > [AddressInfo {addressInfoFlags = AddressInfoFlags 4, socketAddress = SocketAddressInet {inetAddress = InetAddress 127.0.0.1, inetPort = InetPort 0}, canonicalName = Nothing}]
 newtype InetAddress
       = InetAddress Word32
-      deriving (Eq)
+      deriving (Eq, Ord)
+
+instance NFData InetAddress where
+  rnf x = x `seq` ()
 
 newtype InetPort = InetPort Word16
       deriving (Eq, Ord, Show, Num)
+
+instance NFData InetPort where
+  rnf x = x `seq` ()
 
 -- | Constructs a custom `InetAddress`.
 --

@@ -46,6 +46,7 @@ library
                      , System.Socket.Internal.Platform
   build-depends:       base >= 4.7 && < 5
                      , bytestring < 0.11
+                     , deepseq
   hs-source-dirs:      src
   build-tools:         hsc2hs
   default-language:    Haskell2010

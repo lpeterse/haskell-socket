@@ -1,21 +1,19 @@
 --------------------------------------------------------------------------------
 -- |
--- Module      :  System.Socket
--- Copyright   :  (c) Lars Petersen 2015
+-- Module      :  System.Socket.Protocol.Default
+-- Copyright   :  (c) Lars Petersen 2016
 -- License     :  MIT
 --
 -- Maintainer  :  info@lars-petersen.net
 -- Stability   :  experimental
 --------------------------------------------------------------------------------
-module System.Socket.Type.Datagram where
+module System.Socket.Protocol.Default where
 
 import Data.Typeable
 import System.Socket.Internal.Socket
 
-#include "hs_socket.h"
-
-data Datagram
+data Default
   deriving (Typeable)
 
-instance Type Datagram where
-  typeNumber _ = (#const SOCK_DGRAM)
+instance Protocol Default where
+  protocolNumber _ = 0

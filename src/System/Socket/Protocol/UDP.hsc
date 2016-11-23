@@ -9,11 +9,13 @@
 --------------------------------------------------------------------------------
 module System.Socket.Protocol.UDP where
 
+import Data.Typeable
 import System.Socket.Internal.Socket
 
 #include "hs_socket.h"
 
 data UDP
+  deriving (Typeable)
 
 instance Protocol  UDP where
   protocolNumber _ = (#const IPPROTO_UDP)
