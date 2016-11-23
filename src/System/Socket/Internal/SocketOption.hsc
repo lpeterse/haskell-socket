@@ -31,21 +31,44 @@ import System.Socket.Internal.Exception
 
 #include "hs_socket.h"
 
+-- | `SocketOption`s allow to read and write certain properties of a socket.
+--
+--   - Each option shall have a corresponding data type that models the data
+--     associated with the socket option.
+--   - Use `System.Socket.Unsafe.unsafeGetSocketOption` and
+--    `System.Socket.Unsafe.unsafeSetSocketOption` in order to implement custom socket
+--     options.
 class SocketOption o where
+  -- | Get a specific `SocketOption`.
+  --
+  --   - This operation throws `SocketException`s. Consult @man getsockopt@ for
+  --     details and specific errors.
   getSocketOption :: Socket f t p -> IO o
+  -- | Set a specific `SocketOption`.
+  --
+  --   - This operation throws `SocketException`s. Consult @man setsockopt@ for
+  --     details and specific errors.
   setSocketOption :: Socket f t p -> o -> IO ()
 
--- | @SO_ERROR@
+-- | Reports the last error that occured on the socket.
+--
+--   - Also known as @SO_ERROR@.
+--   - The operation `setSocketOption` always throws `eInvalid` for  this option.
+--   - Use with care in the presence of concurrency!
 data Error
    = Error SocketException
    deriving (Eq, Ord, Show)
+
 
 instance SocketOption Error where
   getSocketOption s =
     Error . SocketException Control.Applicative.<$> unsafeGetSocketOption s (#const SOL_SOCKET) (#const SO_ERROR)
   setSocketOption _ _ = throwIO eInvalid
 
--- | @SO_REUSEADDR@
+-- | Allows or disallows the reuse of a local address in a `System.Socket.bind` call.
+--
+--  - Also known as @SO_REUSEADDR@.
+--  - This is particularly useful when experiencing `eAddressInUse` exceptions.
 data ReuseAddress
    = ReuseAddress Bool
    deriving (Eq, Ord, Show)

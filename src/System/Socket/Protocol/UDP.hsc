@@ -1,6 +1,6 @@
 --------------------------------------------------------------------------------
 -- |
--- Module      :  System.Socket
+-- Module      :  System.Socket.Protocol.UDP
 -- Copyright   :  (c) Lars Petersen 2015
 -- License     :  MIT
 --

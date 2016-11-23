@@ -308,13 +308,14 @@ data NameInfo
      , serviceName :: BS.ByteString
      } deriving (Eq, Show)
 
--- | Maps addresses to readable host- and service names.
---
---   The operation throws `AddressInfoException`s.
---
---   > > getNameInfo (SocketAddressInet inetLoopback 80) mempty
---   > NameInfo {hostName = "localhost.localdomain", serviceName = "http"}
+-- | This class is for address families that support name services.
 class (Family f) => HasNameInfo f where
+  -- | (Reverse-)map an address back to a human-readable host- and service name.
+  --
+  --   The operation throws `AddressInfoException`s.
+  --
+  --   > > getNameInfo (SocketAddressInet inetLoopback 80) mempty
+  --   > NameInfo {hostName = "localhost.localdomain", serviceName = "http"}
   getNameInfo :: SocketAddress f -> NameInfoFlags -> IO NameInfo
 
 instance HasNameInfo Inet where

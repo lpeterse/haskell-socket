@@ -36,6 +36,7 @@ library
                      , System.Socket.Type.SequentialPacket
                      , System.Socket.Protocol.UDP
                      , System.Socket.Protocol.TCP
+                     , System.Socket.Protocol.Default
                      , System.Socket.Unsafe
   other-modules:       System.Socket.Internal.Socket
                      , System.Socket.Internal.SocketOption

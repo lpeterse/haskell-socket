@@ -23,6 +23,14 @@
    omitting the `Storable` in socket operations (`Family` suffices now). It
    should be compatible with all existing code and not require any changes.
 
+ * Issue 31: Added a `Default` protocol type.
+
+ * Issue 32: Added `Typeable` and `NFData` instances for `Socket` etc. Also,
+   added `Typeable` and `NFData` constraints to `Family`, `Type` and `Protocol`
+   in order to make deriving of certain classes easier.
+
+ * Added missing documentation at various places.
+
 0.7.0.0 Lars Petersen <info@lars-petersen.net> 2016-11-13
 
  * Added function `sendAllLazy` and `sendAllBuilder`. Changed the signature and
