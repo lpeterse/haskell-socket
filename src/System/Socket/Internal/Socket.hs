@@ -1,5 +1,6 @@
 {-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE TypeFamilies               #-}
+{-# LANGUAGE DeriveDataTypeable         #-}
 --------------------------------------------------------------------------------
 -- |
 -- Module      :  System.Socket.Internal.Socket
