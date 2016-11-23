@@ -73,7 +73,7 @@ instance Family Inet where
      = SocketAddressInet
        { inetAddress   :: InetAddress
        , inetPort      :: InetPort
-       } deriving (Eq, Ord, Show, Typeable)
+       } deriving (Eq, Ord, Show)
 
 instance NFData (SocketAddress Inet) where
   rnf (SocketAddressInet !_ !_) = ()

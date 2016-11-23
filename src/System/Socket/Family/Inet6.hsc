@@ -75,7 +75,7 @@ instance Family Inet6 where
        , inet6Port      :: Inet6Port
        , inet6FlowInfo  :: Inet6FlowInfo
        , inet6ScopeId   :: Inet6ScopeId
-       } deriving (Eq, Ord, Show, Typeable)
+       } deriving (Eq, Ord, Show)
 
 instance NFData (SocketAddress Inet6) where
   rnf (SocketAddressInet6 !_ !_ !_ !_) = ()

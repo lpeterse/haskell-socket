@@ -60,7 +60,7 @@ instance NFData (Socket f t p) where
 --
 --   The most common address families are `System.Socket.Family.Inet` (IPv4)
 --   and `System.Socket.Family.Inet6` (IPv6).
-class (Storable (SocketAddress f), NFData (SocketAddress f), Typeable (SocketAddress f), Typeable f) => Family f where
+class (Storable (SocketAddress f), NFData (SocketAddress f), Typeable f) => Family f where
   -- | The number designating this `Family` on the specific platform. This
   --   method is only exported for implementing extension libraries.
   --
