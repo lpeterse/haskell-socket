@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveDataTypeable         #-}
 --------------------------------------------------------------------------------
 -- |
 -- Module      :  System.Socket.Type.Datagram

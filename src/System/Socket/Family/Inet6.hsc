@@ -1,5 +1,8 @@
-{-# LANGUAGE TypeFamilies, FlexibleInstances, GeneralizedNewtypeDeriving,
-  BangPatterns #-}
+{-# LANGUAGE TypeFamilies               #-}
+{-# LANGUAGE FlexibleInstances          #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE BangPatterns               #-}
+{-# LANGUAGE DeriveDataTypeable         #-}
 --------------------------------------------------------------------------------
 -- |
 -- Module      :  System.Socket.Family.Inet6
