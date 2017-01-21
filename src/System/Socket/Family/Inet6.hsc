@@ -54,7 +54,7 @@ import System.Socket.Internal.Platform
 #let alignment t = "%lu", (unsigned long)offsetof(struct {char x__; t (y__); }, y__)
 #endif
 
--- | The [Internet Protocol version 4](https://en.wikipedia.org/wiki/IPv4).
+-- | The [Internet Protocol version 6](https://en.wikipedia.org/wiki/IPv6).
 data Inet6
 
 instance Family Inet6 where
