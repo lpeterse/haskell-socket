@@ -10,6 +10,7 @@
 #include "sys/socket.h"
 #include "sys/un.h"
 #include "netinet/in.h"
+#include <netinet/tcp.h>
 #include "netdb.h"
 
 int hs_socket  (int domain, int type, int protocol, int *err);
