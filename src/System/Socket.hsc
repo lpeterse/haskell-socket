@@ -132,12 +132,15 @@ import Control.Concurrent
 import Data.Function
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Unsafe as BS
+import qualified Data.ByteString.Internal as BS (fromForeignPtr)
 
 import GHC.Conc ( closeFdWith )
 
 import Foreign.Ptr
+import Foreign.ForeignPtr (withForeignPtr)
 import Foreign.Storable
 import Foreign.Marshal.Alloc
+import GHC.ForeignPtr (mallocPlainForeignPtrBytes)
 
 import System.Socket.Unsafe
 
@@ -368,14 +371,11 @@ sendTo s bs flags addr = do
 --     on the socket and then waits when it got `eAgain` or `eWouldBlock` until
 --     the socket is signaled to be readable.
 receive :: Socket f t p -> Int -> MessageFlags -> IO BS.ByteString
-receive s bufSize flags =
-  bracketOnError
-    ( mallocBytes bufSize )
-    (\bufPtr-> free bufPtr )
-    (\bufPtr-> do
-        bytesReceived <- unsafeReceive s bufPtr (fromIntegral bufSize) flags
-        BS.unsafePackMallocCStringLen (bufPtr, fromIntegral bytesReceived)
-    )
+receive s bufSize flags = do
+  ptr <- mallocPlainForeignPtrBytes bufSize
+  withForeignPtr ptr $ \bufPtr -> do
+    bytesReceived <- unsafeReceive s bufPtr (fromIntegral bufSize) flags
+    return $ BS.fromForeignPtr ptr 0 (fromIntegral bytesReceived)
 
 -- | Like `receive`, but additionally yields the peer address.
 receiveFrom :: (Family f) => Socket f t p -> Int -> MessageFlags -> IO (BS.ByteString, SocketAddress f)
@@ -386,15 +386,11 @@ receiveFrom = receiveFrom'
       alloca $ \addrPtr-> do
         alloca $ \addrSizePtr-> do
           poke addrSizePtr (fromIntegral $ sizeOf (undefined :: SocketAddress f))
-          bracketOnError
-            ( mallocBytes bufSize )
-            (\bufPtr-> free bufPtr )
-            (\bufPtr-> do
-                bytesReceived <- unsafeReceiveFrom s bufPtr (fromIntegral bufSize) flags addrPtr addrSizePtr
-                addr <- peek addrPtr
-                bs   <- BS.unsafePackMallocCStringLen (bufPtr, fromIntegral bytesReceived)
-                return (bs, addr)
-            )
+          ptr <- mallocPlainForeignPtrBytes bufSize
+          withForeignPtr ptr $ \bufPtr -> do
+            bytesReceived <- unsafeReceiveFrom s bufPtr (fromIntegral bufSize) flags addrPtr addrSizePtr
+            addr <- peek addrPtr
+            return (BS.fromForeignPtr ptr 0 (fromIntegral bytesReceived), addr)
 
 -- | Closes a socket.
 --
