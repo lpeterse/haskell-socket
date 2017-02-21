@@ -355,9 +355,13 @@ sendTo s bs flags addr = do
 
 -- | Receive a message on a connected socket.
 --
---   - Calling `receive` on a `close`d socket throws `eBadFileDescriptor` even if the former file descriptor has been reassigned.
 --   - The operation takes a buffer size in bytes a first parameter which
 --     limits the maximum length of the returned `Data.ByteString.ByteString`.
+--   - When an empty `Data.ByteString.ByteString` is returned this usally
+--     (protocol specific) means that the peer gracefully closed the connection.
+--     The user is advised to check for and handle this case.
+--   - Calling `receive` on a `close`d socket throws `eBadFileDescriptor` even
+--     if the former file descriptor has been reassigned.
 --   - This operation throws `SocketException`s. Consult @man 3p receive@ for
 --     details and specific @errno@s.
 --   - `eAgain`, `eWouldBlock` and `eInterrupted` and handled internally and won't be thrown.
