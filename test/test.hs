@@ -8,6 +8,7 @@ import           Control.Exception           (bracket, catch, throwIO, try)
 import           Control.Monad               (unless, void, when)
 import qualified Data.ByteString.Builder     as BB
 import qualified Data.ByteString.Lazy        as LBS
+import qualified Data.ByteString             as BS
 import           Data.Int                    (Int64)
 import           Data.Maybe                  (isJust)
 import           Data.Monoid                 (mempty, mappend)
@@ -202,6 +203,32 @@ group03 = testGroup "send/receive"
           send client helloWorld mempty
           msg <- wait serverRecv
           when (msg /= helloWorld) (assertFailure "Received message was bogus.")
+        )
+    , testCase "recv empty bytestring when peer disconnected gracefully" $ bracket
+        ( socket :: IO (Socket Inet Stream TCP) ) close
+        (\server-> do
+          let addr = SocketAddressInet inetLoopback port
+          let msg  = "msg"
+          setSocketOption server (ReuseAddress True)
+          bind server addr
+          listen server 5
+          (peer,msg') <- bracket ( socket :: IO (Socket Inet Stream TCP) ) close
+            (\client-> do
+              connect client addr
+              (peer, _) <- accept server
+              _ <- send client msg mempty
+              msg' <- receive peer 4096 mempty
+              pure (peer,msg')
+            )
+          -- The client is disconnected after here.
+          when (msg' /= msg) $
+            assertFailure "Received message does not match."
+          msg'' <- receive peer 4096 mempty
+          unless (BS.null msg'') $
+            assertFailure "Expected subsequent receives to return empty bytestring."
+          msg''' <- receive peer 4096 mempty
+          unless (BS.null msg''') $
+            assertFailure "Expected subsequent receives to return empty bytestring."
         )
     , testCase "trigger ePipe exception" $ bracket
         ( do
