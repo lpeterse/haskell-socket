@@ -14,7 +14,6 @@ module System.Socket.Internal.SocketOption (
   , Error (..)
   , ReuseAddress (..)
   , KeepAlive(..)
-  , TcpNoDelay(..)
   ) where
 
 import Control.Concurrent.MVar
@@ -71,19 +70,6 @@ instance SocketOption KeepAlive where
     KeepAlive . ((/=0) :: CInt -> Bool) <$> unsafeGetSocketOption s (#const SOL_SOCKET) (#const SO_KEEPALIVE)
   setSocketOption s (KeepAlive o) =
     unsafeSetSocketOption s (#const SOL_SOCKET) (#const SO_KEEPALIVE) (if o then 1 else 0 :: CInt)
-
--- | If set to True,  disable the Nagle algorithm.
---
---  - Also know as @TCP_NODELAY@.
-data TcpNoDelay
-  = TcpNoDelay Bool
-  deriving (Eq, Ord, Show)
-
-instance SocketOption TcpNoDelay where
-  getSocketOption s =
-    TcpNoDelay . ((/=0) :: CInt -> Bool) <$> unsafeGetSocketOption s (#const IPPROTO_TCP) (#const TCP_NODELAY)
-  setSocketOption s (TcpNoDelay o) =
-    unsafeSetSocketOption s (#const IPPROTO_TCP) (#const TCP_NODELAY) (if o then 1 else 0 :: CInt)
 
 -------------------------------------------------------------------------------
 -- Unsafe helpers
