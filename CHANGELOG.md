@@ -1,4 +1,6 @@
-0.8.0.0 Lars Petersen <info@lars-petersen.net> 2016-11-21
+0.8.0.0 Lars Petersen <info@lars-petersen.net> 2017-02-21
+
+ * Issue 31: Added a `Default` protocol type.
 
  * Issue 27: Fixed a memory leak that manifested when interrupting threads
    waiting on socket events.

@@ -1,6 +1,6 @@
 --------------------------------------------------------------------------------
 -- |
--- Module      :  System.Socket
+-- Module      :  System.Socket.Type.Raw
 -- Copyright   :  (c) Lars Petersen 2015
 -- License     :  MIT
 --

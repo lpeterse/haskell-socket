@@ -154,13 +154,15 @@ import System.Socket.Internal.Platform
 --
 --   Whereas the underlying POSIX socket operation takes 3 parameters, this library
 --   encodes this information in the type variables. This rules out several
---   kinds of errors and escpecially simplifies the handling of addresses (by using
---   associated type families). Examples:
+--   kinds of errors and especially simplifies the handling of addresses (by using
+--   associated data families). Examples:
 --
---   > -- create a IPv4-UDP-datagram socket
+--   > -- create an IPv4-UDP-datagram socket
 --   > sock <- socket :: IO (Socket Inet Datagram UDP)
---   > -- create a IPv6-TCP-streaming socket
+--   > -- create an IPv6-TCP-streaming socket
 --   > sock6 <- socket :: IO (Socket Inet6 Stream TCP)
+--   > -- create an IPv6-streaming socket with default protocol (usually TCP)
+--   > sock6 <- socket :: IO (Socket Inet6 Strem Default)
 --
 --     - This operation sets up a finalizer that automatically closes the socket
 --       when the garbage collection decides to collect it. This is just a
@@ -175,13 +177,12 @@ import System.Socket.Internal.Platform
 --       >   somethingWith sock -- your computation here
 --       >   return somethingelse
 --
---
 --     - This operation configures the socket non-blocking to work seamlessly
 --       with the runtime system's event notification mechanism.
 --     - This operation can safely deal with asynchronous exceptions without
 --       leaking file descriptors.
---     - This operation throws `SocketException`s. Consult your @man@ page for
---       details and specific @errno@s.
+--     - This operation throws `SocketException`s. Consult your @man socket@ for
+--       details and specific errors.
 socket :: (Family f, Type t, Protocol  p) => IO (Socket f t p)
 socket = socket'
  where
@@ -262,15 +263,15 @@ bind (Socket mfd) addr =
       when (i /= 0) (SocketException <$> peek errPtr >>= throwIO)
 
 -- | Starts listening and queueing connection requests on a connection-mode
---   socket. The second parameter sets the queue size.
+--   socket. The second parameter determines the backlog size.
 --
 --   - Calling `listen` on a `close`d socket throws `eBadFileDescriptor` even
 --     if the former file descriptor has been reassigned.
 --   - The second parameter is called /backlog/ and sets a limit on how many
---     unaccepted connections the socket implementation shall queue. A value
+--     unaccepted connections the transport implementation shall queue. A value
 --     of @0@ leaves the decision to the implementation.
---   - This operation throws `SocketException`s. Consult your @man@ page for
---     details and specific @errno@s.
+--   - This operation throws `SocketException`s. Consult your @man listen@ for
+--     details and specific errors.
 listen :: Socket f t p -> Int -> IO ()
 listen (Socket ms) backlog =
   withMVar ms $ \s-> alloca $ \errPtr-> do
@@ -281,7 +282,9 @@ listen (Socket ms) backlog =
 --
 --   - Calling `accept` on a `close`d socket throws `eBadFileDescriptor` even
 --     if the former file descriptor has been reassigned.
---   - This operation configures the new socket non-blocking.
+--   - This operation configures the new socket non-blocking. It uses `accept4`
+--     (when available) in order to accept and set the socket non-blocking with
+--     a single system call.
 --   - This operation sets up a finalizer for the new socket that automatically
 --     closes the new socket when the garbage collection decides to collect it.
 --     This is just a fail-safe. You might still run out of file descriptors as
@@ -325,16 +328,16 @@ accept s@(Socket mfd) = accept'
               Nothing -> waitRead s iteration >> (again $! iteration + 1)
           ) 0 -- This is the initial iteration value.
 
--- | Send a message on a connected socket.
+-- | Send data.
 --
 --   - Calling `send` on a `close`d socket throws `eBadFileDescriptor` even if the former
 --     file descriptor has been reassigned.
---   - The operation returns the number of bytes sent. On `Datagram` and
---     `SequentialPacket` sockets certain assurances on atomicity exist and `eAgain` or
---     `eWouldBlock` are returned until the whole message would fit
---     into the send buffer.
---   - This operation throws `SocketException`s. Consult @man 3p send@ for
---     details and specific @errno@s.
+--   - The operation returns the number of bytes sent. On `System.Socket.Type.Datagram`
+--     and `System.Socket.Type.SequentialPacket` sockets certain assurances on
+--     atomicity exist and `eAgain` or `eWouldBlock` are thrown until the
+--     whole message would fit into the send buffer.
+--   - This operation throws `SocketException`s. Consult @man send@ for
+--     details and specific errors.
 --   - `eAgain`, `eWouldBlock` and `eInterrupted` and handled internally and won't
 --     be thrown. For performance reasons the operation first tries a write
 --     on the socket and then waits when it got `eAgain` or `eWouldBlock`.
@@ -353,7 +356,7 @@ sendTo s bs flags addr = do
       unsafeSendTo s bufPtr (fromIntegral bufSize) flags addrPtr (fromIntegral $ sizeOf addr)
   return (fromIntegral bytesSent)
 
--- | Receive a message on a connected socket.
+-- | Receive data.
 --
 --   - The operation takes a buffer size in bytes a first parameter which
 --     limits the maximum length of the returned `Data.ByteString.ByteString`.
@@ -362,11 +365,12 @@ sendTo s bs flags addr = do
 --     The user is advised to check for and handle this case.
 --   - Calling `receive` on a `close`d socket throws `eBadFileDescriptor` even
 --     if the former file descriptor has been reassigned.
---   - This operation throws `SocketException`s. Consult @man 3p receive@ for
---     details and specific @errno@s.
+--   - This operation throws `SocketException`s. Consult @man recv@ for
+--     details and specific errors.
 --   - `eAgain`, `eWouldBlock` and `eInterrupted` and handled internally and won't be thrown.
 --     For performance reasons the operation first tries a read
---     on the socket and then waits when it got `eAgain` or `eWouldBlock`.
+--     on the socket and then waits when it got `eAgain` or `eWouldBlock` until
+--     the socket is signaled to be readable.
 receive :: Socket f t p -> Int -> MessageFlags -> IO BS.ByteString
 receive s bufSize flags =
   bracketOnError
@@ -402,7 +406,7 @@ receiveFrom = receiveFrom'
 --     If it throws an exception it is presumably a not recoverable situation and the process should exit.
 --   - This operation does not block.
 --   - This operation wakes up all threads that are currently blocking on this
---     socket. All other threads are guaranteed not to block on operations on this socket in the future.
+--     socket. All other threads are guaranteed to not block on operations on this socket in the future.
 --     Threads that perform operations other than `close` on this socket will fail with `eBadFileDescriptor`
 --     after the socket has been closed (`close` replaces the
 --     `System.Posix.Types.Fd` in the `Control.Concurrent.MVar.MVar` with @-1@

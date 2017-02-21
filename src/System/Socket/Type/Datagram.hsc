@@ -1,6 +1,6 @@
 --------------------------------------------------------------------------------
 -- |
--- Module      :  System.Socket
+-- Module      :  System.Socket.Type.Datagram
 -- Copyright   :  (c) Lars Petersen 2015
 -- License     :  MIT
 --

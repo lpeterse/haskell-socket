@@ -33,8 +33,8 @@ import           System.Posix.Types
 --     to send and receive simultaneously or to close the socket.
 --   - The lock __must__ be held when calling operations that use the file descriptor.
 --     Otherwise the socket might get closed or even reused by another
---     thread/capability which might result in reading from or writing
---     totally different connection. This is a security nightmare!
+--     thread/capability which might result in reading from or writing on a
+--     totally different socket. This is a security nightmare!
 --   - The socket is non-blocking and all the code relies on that assumption.
 --     You need to use GHC's eventing mechanism primitives to block until
 --     something happens. The former rules forbid to use `GHC.Conc.threadWaitRead` as it
@@ -46,7 +46,15 @@ import           System.Posix.Types
 newtype Socket f t p
       = Socket (MVar Fd)
 
+-- | The address `Family` determines the network protocol to use.
+--
+--   The most common address families are `System.Socket.Family.Inet` (IPv4)
+--   and `System.Socket.Family.Inet6` (IPv6).
 class Storable (SocketAddress f) => Family f where
+  -- | The number designating this `Family` on the specific platform. This
+  --   method is only exported for implementing extension libraries.
+  --
+  --   This function shall yield the values of constants like `AF_INET`, `AF_INET6` etc.
   familyNumber :: f -> CInt
   -- | The `SocketAddress` type is a [data family](https://wiki.haskell.org/GHC/Type_families#Detailed_definition_of_data_families).
   --   This allows to provide different data constructors depending on the socket
@@ -57,8 +65,32 @@ class Storable (SocketAddress f) => Family f where
   -- > SocketAddressInet6 inet6Loopback 8080 0 0 :: SocketAddress Inet6
   data SocketAddress f
 
+-- | The `Type` determines properties of the transport layer and the semantics
+--   of basic socket operations.
+--
+--   The instances supplied by this library are `System.Socket.Type.Raw`
+--   (no transport layer), `System.Socket.Type.Stream`
+--   (for unframed binary streams, e.g. `System.Socket.Protocol.TCP`),
+--   `System.Socket.Type.Datagram` (for datagrams
+--   of limited length, e.g. `System.Socket.Protocol.UDP`) and
+--   `System.Socket.Type.SequentialPacket` (for framed messages of arbitrary
+--   length, e.g. `System.Socket.Protocol.SCTP`).
 class Type t where
+  -- | This number designates this `Type` on the specific platform. This
+  --   method is only exported for implementing extension libraries.
+  --
+  --   The function shall yield the values of constants like `SOCK_STREAM`,
+  --   `SOCK_DGRAM` etc.
   typeNumber :: t -> CInt
 
+-- | The `Protocol` determines the transport protocol to use.
+--
+--   Use `System.Socket.Protocol.Default` to let the operating system choose
+--   a transport protocol compatible with the socket's `Type`.
 class Protocol  p where
+  -- | This number designates this `Protocol` on the specific platform. This
+  --   method is only exported for implementing extension libraries.
+  --
+  --   The function shall yield the values of constants like `IPPROTO_TCP`,
+  --   `IPPROTO_UDP` etc.
   protocolNumber :: p -> CInt
