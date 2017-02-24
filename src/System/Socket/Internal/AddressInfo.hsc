@@ -54,8 +54,6 @@ import Foreign.C.Types
 import Foreign.C.String
 import Foreign.Marshal.Alloc
 
-import System.IO.Unsafe
-
 import System.Socket.Family.Inet
 import System.Socket.Family.Inet6
 import System.Socket.Internal.Socket
@@ -81,23 +79,32 @@ deriving instance (Show (SocketAddress f)) => Show (AddressInfo f t p)
 -- AddressInfoException
 -------------------------------------------------------------------------------
 
--- | Contains the error code that can be matched against. Use `show`
---   to get a human readable explanation of the error.
+-- | Contains the error code that can be matched against.
+--
+--   Hint: Use guards or @MultiWayIf@ to match against specific exceptions:
+--
+--   > if | e == eaiFail -> ...
+--   >    | e == eaiNoName -> ...
+--   >    | otherwise -> ...
 newtype AddressInfoException
       = AddressInfoException CInt
    deriving (Eq, Typeable)
 
 instance Show AddressInfoException where
-  show e = "AddressInfoException \"" ++ gaiStrerror e ++ "\""
+  show e
+    | e == eaiAgain      = "eaiAgain"
+    | e == eaiBadFlags   = "eaiBadFlags"
+    | e == eaiFail       = "eaiFail"
+    | e == eaiFamily     = "eaiFamily"
+    | e == eaiMemory     = "eaiMemory"
+    | e == eaiNoName     = "eaiNoName"
+    | e == eaiService    = "eaiService"
+    | e == eaiSocketType = "eaiSocketType"
+    | e == eaiSystem     = "eaiSystem"
+    | otherwise          = let AddressInfoException n = e
+                           in "AddressInfoException " ++ show n
 
 instance Exception AddressInfoException
-
--- | A wrapper around @gai_strerror@.
-gaiStrerror :: AddressInfoException -> String
-gaiStrerror (AddressInfoException e) =
-  unsafePerformIO $ do
-    msgPtr <- c_gai_strerror e
-    peekCString msgPtr
 
 -- | > AddressInfoException "Temporary failure in name resolution"
 eaiAgain    :: AddressInfoException

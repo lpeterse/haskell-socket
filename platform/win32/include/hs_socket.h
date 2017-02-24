@@ -103,8 +103,6 @@ int  hs_getnameinfo(const struct sockaddr *sa, int salen,
 
 void hs_freeaddrinfo(struct addrinfo *res);
 
-const char *hs_gai_strerror(int errcode);
-
 #define SEOK                   0
 #define SEINTR                 WSAEINTR
 #define SEAGAIN                WSATRY_AGAIN

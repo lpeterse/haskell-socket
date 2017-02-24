@@ -132,6 +132,3 @@ foreign import ccall unsafe "hs_freeaddrinfo"
 
 foreign import ccall safe "hs_getnameinfo"
   c_getnameinfo  :: Ptr a -> CInt -> CString -> CInt -> CString -> CInt -> CInt -> IO CInt
-
-foreign import ccall unsafe "hs_gai_strerror"
-  c_gai_strerror  :: CInt -> IO CString

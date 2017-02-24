@@ -167,10 +167,6 @@ int hs_setsockopt(int sockfd, int level, int option_name, const void *option_val
   return i;
 };
 
-const char *hs_gai_strerror(int errcode) {
-  return gai_strerror(errcode);
-};
-
 int  hs_getaddrinfo(const char *node, const char *service,
                     const struct addrinfo *hints,
                     struct addrinfo **res) {
