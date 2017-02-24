@@ -7,4 +7,4 @@ packages:
 extra-deps:
   - QuickCheck-2.9.2
 resolver:
-  lts-7.8
+  lts-7.19
