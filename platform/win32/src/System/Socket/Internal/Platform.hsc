@@ -10,6 +10,7 @@
 module System.Socket.Internal.Platform where
 
 import Control.Concurrent ( threadDelay )
+import Control.Concurrent.MVar ( withMVar )
 import Control.Exception ( throwIO )
 import Control.Monad ( when )
 import Data.Bits
@@ -45,16 +46,16 @@ import System.Socket.Internal.Exception
 --  operations offered by the library are interruptable and no special
 --  considerations (apart the from one above) apply when running socket code on
 --  Windows.
-waitRead :: Socket f t p -> Int -> IO (IO ())
-waitRead  _ iteration = do
-  return (threadDelay $ 1 `shiftL` min iteration 20)
+waitRead :: Socket f t p -> Int -> IO ()
+waitRead  _ iteration =
+  threadDelay $ 1 `shiftL` min iteration 20
 
 -- | Wait until the socket becomes writable (Windows specific version).
 --
 --   See `waitRead` for technical details.
-waitWrite :: Socket f t p -> Int -> IO (IO ())
-waitWrite _ iteration = do
-  return (threadDelay $ 1 `shiftL` min iteration 20)
+waitWrite :: Socket f t p -> Int -> IO ()
+waitWrite _ iteration =
+  threadDelay $ 1 `shiftL` min iteration 20
 
 -- | Wait until the socket is confirmed to be connected (Windows specific version).
 --
