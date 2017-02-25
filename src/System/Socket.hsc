@@ -132,15 +132,12 @@ import Control.Concurrent
 import Data.Function
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Unsafe as BS
-import qualified Data.ByteString.Internal as BS (fromForeignPtr)
+import qualified Data.ByteString.Internal as BS
 
 import GHC.Conc ( closeFdWith )
 
-import Foreign.Ptr
-import Foreign.ForeignPtr (withForeignPtr)
 import Foreign.Storable
 import Foreign.Marshal.Alloc
-import GHC.ForeignPtr (mallocPlainForeignPtrBytes)
 
 import System.Socket.Unsafe
 
@@ -347,7 +344,7 @@ accept s@(Socket mfd) = accept'
 send :: Socket f t p -> BS.ByteString -> MessageFlags -> IO Int
 send s bs flags = do
   bytesSent <- BS.unsafeUseAsCStringLen bs $ \(bufPtr,bufSize)->
-    unsafeSend s (castPtr bufPtr) (fromIntegral bufSize) flags
+    unsafeSend s bufPtr (fromIntegral bufSize) flags
   return (fromIntegral bytesSent)
 
 -- | Like `send`, but allows to specify a destination address.
@@ -375,11 +372,9 @@ sendTo s bs flags addr = do
 --     on the socket and then waits when it got `eAgain` or `eWouldBlock` until
 --     the socket is signaled to be readable.
 receive :: Socket f t p -> Int -> MessageFlags -> IO BS.ByteString
-receive s bufSize flags = do
-  ptr <- mallocPlainForeignPtrBytes bufSize
-  withForeignPtr ptr $ \bufPtr -> do
-    bytesReceived <- unsafeReceive s bufPtr (fromIntegral bufSize) flags
-    return $ BS.fromForeignPtr ptr 0 (fromIntegral bytesReceived)
+receive s bufSize flags =
+  BS.createUptoN bufSize $ \bufPtr->
+    fromIntegral `fmap` unsafeReceive s bufPtr (fromIntegral bufSize) flags
 
 -- | Like `receive`, but additionally yields the peer address.
 receiveFrom :: (Family f) => Socket f t p -> Int -> MessageFlags -> IO (BS.ByteString, SocketAddress f)
@@ -390,11 +385,10 @@ receiveFrom = receiveFrom'
       alloca $ \addrPtr-> do
         alloca $ \addrSizePtr-> do
           poke addrSizePtr (fromIntegral $ sizeOf (undefined :: SocketAddress f))
-          ptr <- mallocPlainForeignPtrBytes bufSize
-          withForeignPtr ptr $ \bufPtr -> do
-            bytesReceived <- unsafeReceiveFrom s bufPtr (fromIntegral bufSize) flags addrPtr addrSizePtr
-            addr <- peek addrPtr
-            return (BS.fromForeignPtr ptr 0 (fromIntegral bytesReceived), addr)
+          bs <- BS.createUptoN bufSize $ \bufPtr->
+            fromIntegral `fmap` unsafeReceiveFrom s bufPtr (fromIntegral bufSize) flags addrPtr addrSizePtr
+          addr <- peek addrPtr
+          return (bs, addr)
 
 -- | Closes a socket.
 --
