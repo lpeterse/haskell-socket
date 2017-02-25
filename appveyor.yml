@@ -1,4 +1,4 @@
-ache:
+cache:
 - c:\sr -> stack.yaml
 - C:\Users\appveyor\AppData\Local\Programs\stack\x86_64-windows -> stack.yaml
 
