@@ -1,3 +1,7 @@
+Vyacheslav Hashov (issues #37, #38, #40, #41, #42)
+Alexander Vershilov (fixed bug in GHC upstream)
+Antom @SX91 (reported and helped with #27)
+Lukas Epple (small fix in documentation)
 Erik Rantapaa (issue #19)
 Mathieu Boespflug (issue #15)
 Ben Gamari (issue #10)
@@ -5,3 +9,4 @@ Niklas Hambüchen (issue #9)
 Michael Fox (reported issue #7)
 Bryan O'Sullivan (legitimately criticised the bizarre naming)
 Alex Högy (reported the MSG_NOSIGNAL issue on OSX)
+Lars Petersen

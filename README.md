@@ -7,8 +7,8 @@ socket
 
 ### Motivation
 
-This library aims to expose a minimal and cross platform interface for
-POSIX compliant networking code.
+This library aims to expose a minimal and cross-platform interface for
+BSD style networking code.
 
 ### Implementation Philosophy
 
@@ -51,8 +51,7 @@ won't wait at all if there are several connection requests queued.
 This workaround may be removed if someone is willing to sacrifice to improve
 the IO manager on Windows.
 
-Each release is manually tested on a Windows 10 virtual machine with the
-latest Haskell Platform (64bit).
+Each release is manually tested on Windows 10.
 
 #### MacOS
 
@@ -69,16 +68,10 @@ Please report when it is no longer working on MacOS.
 
 The project uses [tasty](http://documentup.com/feuerbach/tasty) for testing.
 
-There are two test suites: `default` and `threaded` which are using the same
-code. Only difference is that one is compiled against GHC's single threaded RTS
-and the other against the multi-threaded one. Run `cabal test` to run both
-in sequence.
-
-In order to see details and colored output you may also want to try
-
-```bash
-ghc --make test/test.hs && ./test/test
-```
+There are two test suites: `default` and `threaded` which share the same
+code. The only difference is that one is compiled against GHC's single threaded
+RTS and the other against the multi-threaded one. Run `cabal test` or `stack test`
+to execute both in sequence.
 
 [badge-travis]: https://img.shields.io/travis/lpeterse/haskell-socket.svg
 [travis]: https://travis-ci.org/lpeterse/haskell-socket

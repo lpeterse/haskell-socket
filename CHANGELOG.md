@@ -1,4 +1,18 @@
-0.8.0.0 Lars Petersen <info@lars-petersen.net> 2017-02-21
+0.8.0.0 Lars Petersen <info@lars-petersen.net> 2017-02-25
+
+ * Issue 26: Show instances for `SocketException` and `AddressInfoException`
+   no longer use `strerror()` and `gai_strerror()`, but simply show the name
+   of the error code. Linking to `gai_strerror()` was problematic on Windows
+   and `strerror()` was not thread-safe on Linux.
+
+ * Issue 38: Added SO_KEEPALIVE as `System.Socket.KeepAlive`.
+
+ * Issue 37: Added TCP_NODELAY as `System.Socket.Protocol.TCP.NoDelay`.
+
+ * Issue 40: Changed allocation function to malloPlainForeignPtr.
+   This mechanism used in the ByteString library is heavily optimised and
+   2 - 2.5 times faster than the previous implementation.
+   See https://github.com/lpeterse/haskell-socket/pull/40 for details.
 
  * Issue 31: Added a `Default` protocol type.
 
