@@ -221,35 +221,35 @@ niNumericService              = NameInfoFlags (#const NI_NUMERICSERV)
 
 -- | This class is for address families that support name resolution.
 class (Family f) => HasAddressInfo f where
--- | Maps names to addresses (i.e. by DNS lookup).
---
---   The operation throws `AddressInfoException`s.
---
---   Contrary to the underlying @getaddrinfo@ operation this wrapper is
---   typesafe and thus only returns records that match the address, type
---   and protocol encoded in the type. This is the price we have to pay
---   for typesafe sockets and extensibility.
---
---   If you need different types of records, you need to start several
---   queries. If you want to connect to both IPv4 and IPV6 addresses use
---   `aiV4Mapped` and use IPv6-sockets.
---
---   > getAddressInfo (Just "www.haskell.org") (Just "https") mempty :: IO [AddressInfo Inet Stream TCP]
---   > > [AddressInfo {addressInfoFlags = AddressInfoFlags 0, socketAddress = SocketAddressInet {inetAddress = InetAddress 162.242.239.16, inetPort = InetPort 443}, canonicalName = Nothing}]
---
---   > > getAddressInfo (Just "www.haskell.org") (Just "80") aiV4Mapped :: IO [AddressInfo Inet6 Stream TCP]
---   > [AddressInfo {
---   >    addressInfoFlags = AddressInfoFlags 8,
---   >    socketAddress    = SocketAddressInet6 {inet6Address = Inet6Address 2400:cb00:2048:0001:0000:0000:6ca2:cc3c, inet6Port = Inet6Port 80, inet6FlowInfo = Inet6FlowInfo 0, inet6ScopeId = Inet6ScopeId 0},
---   >    canonicalName    = Nothing }]
---
---   > > getAddressInfo (Just "darcs.haskell.org") Nothing aiV4Mapped :: IO [AddressInfo Inet6 Stream TCP]
---   > [AddressInfo {
---   >    addressInfoFlags = AddressInfoFlags 8,
---   >    socketAddress    = SocketAddressInet6 {inet6Address = Inet6Address 0000:0000:0000:0000:0000:ffff:17fd:e1ad, inet6Port = Inet6Port 0, inet6FlowInfo = Inet6FlowInfo 0, inet6ScopeId = Inet6ScopeId 0},
---   >    canonicalName    = Nothing }]
---   > > getAddressInfo (Just "darcs.haskell.org") Nothing mempty :: IO [AddressInfo Inet6 Stream TCP]
---   > *** Exception: AddressInfoException "Name or service not known"
+  -- | Maps names to addresses (i.e. by DNS lookup).
+  --
+  --   The operation throws `AddressInfoException`s.
+  --
+  --   Contrary to the underlying @getaddrinfo@ operation this wrapper is
+  --   typesafe and thus only returns records that match the address, type
+  --   and protocol encoded in the type. This is the price we have to pay
+  --   for typesafe sockets and extensibility.
+  --
+  --   If you need different types of records, you need to start several
+  --   queries. If you want to connect to both IPv4 and IPV6 addresses use
+  --   `aiV4Mapped` and use IPv6-sockets.
+  --
+  --   > getAddressInfo (Just "www.haskell.org") (Just "https") mempty :: IO [AddressInfo Inet Stream TCP]
+  --   > > [AddressInfo {addressInfoFlags = AddressInfoFlags 0, socketAddress = SocketAddressInet {inetAddress = InetAddress 162.242.239.16, inetPort = InetPort 443}, canonicalName = Nothing}]
+  --
+  --   > > getAddressInfo (Just "www.haskell.org") (Just "80") aiV4Mapped :: IO [AddressInfo Inet6 Stream TCP]
+  --   > [AddressInfo {
+  --   >    addressInfoFlags = AddressInfoFlags 8,
+  --   >    socketAddress    = SocketAddressInet6 {inet6Address = Inet6Address 2400:cb00:2048:0001:0000:0000:6ca2:cc3c, inet6Port = Inet6Port 80, inet6FlowInfo = Inet6FlowInfo 0, inet6ScopeId = Inet6ScopeId 0},
+  --   >    canonicalName    = Nothing }]
+  --
+  --   > > getAddressInfo (Just "darcs.haskell.org") Nothing aiV4Mapped :: IO [AddressInfo Inet6 Stream TCP]
+  --   > [AddressInfo {
+  --   >    addressInfoFlags = AddressInfoFlags 8,
+  --   >    socketAddress    = SocketAddressInet6 {inet6Address = Inet6Address 0000:0000:0000:0000:0000:ffff:17fd:e1ad, inet6Port = Inet6Port 0, inet6FlowInfo = Inet6FlowInfo 0, inet6ScopeId = Inet6ScopeId 0},
+  --   >    canonicalName    = Nothing }]
+  --   > > getAddressInfo (Just "darcs.haskell.org") Nothing mempty :: IO [AddressInfo Inet6 Stream TCP]
+  --   > *** Exception: AddressInfoException "Name or service not known"
   getAddressInfo :: (Type t, Protocol p) => Maybe BS.ByteString -> Maybe BS.ByteString -> AddressInfoFlags -> IO [AddressInfo f t p]
 
 instance HasAddressInfo Inet where
