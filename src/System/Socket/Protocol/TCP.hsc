@@ -30,6 +30,6 @@ data NoDelay
 
 instance SocketOption NoDelay where
   getSocketOption s =
-    NoDelay . ((/=0) :: CInt -> Bool) <$> unsafeGetSocketOption s (#const IPPROTO_TCP) (#const TCP_NODELAY)
+    (NoDelay . (/=0) :: CInt -> NoDelay) `fmap` unsafeGetSocketOption s (#const IPPROTO_TCP) (#const TCP_NODELAY)
   setSocketOption s (NoDelay o) =
     unsafeSetSocketOption s (#const IPPROTO_TCP) (#const TCP_NODELAY) (if o then 1 else 0 :: CInt)
