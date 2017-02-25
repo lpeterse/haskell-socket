@@ -4,6 +4,7 @@ socket
 [![Available on Hackage][badge-hackage]][hackage]
 [![License MIT][badge-license]][license]
 [![Build Status][badge-travis]][travis]
+[![AppVeyor][badge-appveyor]][appveyor]
 
 ### Motivation
 
@@ -51,7 +52,9 @@ won't wait at all if there are several connection requests queued.
 This workaround may be removed if someone is willing to sacrifice to improve
 the IO manager on Windows.
 
-Each release is manually tested on Windows 10.
+Each commit and release is automatically tested with
+[AppVeyor](https://ci.appveyor.com/project/lpeterse/haskell-socket) continuous
+integration.
 
 #### MacOS
 
@@ -76,6 +79,7 @@ to execute both in sequence.
 [badge-travis]: https://img.shields.io/travis/lpeterse/haskell-socket.svg
 [travis]: https://travis-ci.org/lpeterse/haskell-socket
 [badge-hackage]: https://img.shields.io/hackage/v/socket.svg?dummy
+[badge-appveyor]: https://ci.appveyor.com/api/projects/status/i2il3a616s9yy48k/branch/master?svg=true
 [hackage]: https://hackage.haskell.org/package/socket
 [badge-license]: https://img.shields.io/badge/license-MIT-green.svg?dummy
 [license]: https://github.com/lpeterse/haskell-socket/blob/master/LICENSE
