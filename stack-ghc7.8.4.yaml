@@ -1,0 +1,10 @@
+flags: {}
+nix:
+  packages:
+    - ncurses
+packages:
+  - "."
+extra-deps:
+  - QuickCheck-2.9.2
+resolver:
+  lts-2.22
