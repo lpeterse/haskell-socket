@@ -218,7 +218,7 @@ group03 = testGroup "send/receive"
               (peer, _) <- accept server
               _ <- send client msg mempty
               msg' <- receive peer 4096 mempty
-              pure (peer,msg')
+              return (peer,msg')
             )
           -- The client is disconnected after here.
           when (msg' /= msg) $
