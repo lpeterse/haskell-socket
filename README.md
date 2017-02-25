@@ -76,10 +76,11 @@ code. The only difference is that one is compiled against GHC's single threaded
 RTS and the other against the multi-threaded one. Run `cabal test` or `stack test`
 to execute both in sequence.
 
-[badge-travis]: https://img.shields.io/travis/lpeterse/haskell-socket.svg
+[badge-travis]: https://img.shields.io/travis/lpeterse/haskell-socket.svg?label=Linux%20build
 [travis]: https://travis-ci.org/lpeterse/haskell-socket
+[badge-appveyor]: https://img.shields.io/appveyor/ci/lpeterse/haskell-socket.svg?label=Windows%20build
+[appveyor]: https://ci.appveyor.com/project/lpeterse/haskell-socket
 [badge-hackage]: https://img.shields.io/hackage/v/socket.svg?dummy
-[badge-appveyor]: https://ci.appveyor.com/api/projects/status/i2il3a616s9yy48k/branch/master?svg=true
 [hackage]: https://hackage.haskell.org/package/socket
 [badge-license]: https://img.shields.io/badge/license-MIT-green.svg?dummy
 [license]: https://github.com/lpeterse/haskell-socket/blob/master/LICENSE
