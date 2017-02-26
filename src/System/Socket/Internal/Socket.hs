@@ -48,8 +48,8 @@ newtype Socket f t p
 
 -- | The address `Family` determines the network protocol to use.
 --
---   The most common address families are `System.Socket.Family.Inet` (IPv4)
---   and `System.Socket.Family.Inet6` (IPv6).
+--   The most common address families are `System.Socket.Family.Inet.Inet` (IPv4)
+--   and `System.Socket.Family.Inet6.Inet6` (IPv6).
 class Storable (SocketAddress f) => Family f where
   -- | The number designating this `Family` on the specific platform. This
   --   method is only exported for implementing extension libraries.

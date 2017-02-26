@@ -15,7 +15,6 @@ module System.Socket.Family.Inet
   , InetAddress
     -- ** InetPort
   , InetPort
-    -- ** SocketAddress Inet
   , SocketAddress (SocketAddressInet, inetAddress, inetPort)
   -- * Custom addresses
   -- ** inetAddressFromTuple

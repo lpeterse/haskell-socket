@@ -76,8 +76,11 @@ module System.Socket (
   , close
   -- * Options
   , SocketOption (..)
+  -- ** Error
   , Error (..)
+  -- ** ReuseAddress
   , ReuseAddress (..)
+  -- ** KeepAlive
   , KeepAlive (..)
   -- * Name Resolution
   -- ** getAddressInfo

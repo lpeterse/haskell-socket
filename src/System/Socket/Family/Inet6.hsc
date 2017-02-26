@@ -19,7 +19,6 @@ module System.Socket.Family.Inet6
   , Inet6FlowInfo
     -- ** Inet6ScopeId
   , Inet6ScopeId
-    -- ** SocketAddress Inet6
   , SocketAddress (SocketAddressInet6, inet6Address, inet6Port,
                                        inet6FlowInfo, inet6ScopeId)
     -- * Custom addresses
