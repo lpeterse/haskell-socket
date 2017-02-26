@@ -1,5 +1,6 @@
 0.8.0.1 Lars Petersen <info@lars-petersen.net> 2017-02-25
 
+ * Issue 47: Fixed haddock documentation. 
  * Issue 46: Export `KeepAlive` socket option in the main module.
 
 0.8.0.0 Lars Petersen <info@lars-petersen.net> 2017-02-25
