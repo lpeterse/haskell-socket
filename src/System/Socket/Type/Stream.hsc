@@ -132,8 +132,8 @@ sendAllBuilder s bufsize builder flags = do
 --   - The `Data.Int.Int64` parameter is a soft limit on how many bytes to receive.
 --     Collection is stopped if the limit has been exceeded. The result might
 --     be up to one internal buffer size longer than the given limit.
---     If the returned `Data.ByteString.Lazy.ByteString`s length is lower or
---     eqal than the limit, the data has not been truncated and the
+--     If the returned `Data.ByteString.Lazy.ByteString`s length is lower than or
+--     equal to the limit, the data has not been truncated and the
 --     transmission is complete.
 receiveAll :: Socket f Stream p -> Int64 -> MessageFlags -> IO LBS.ByteString
 receiveAll sock maxLen flags = collect 0 Data.Monoid.mempty
