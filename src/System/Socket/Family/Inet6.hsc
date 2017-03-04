@@ -94,13 +94,13 @@ data  Inet6Address    = Inet6Address {-# UNPACK #-} !Word64 {-# UNPACK #-} !Word
       deriving (Eq)
 
 newtype Inet6Port     = Inet6Port Word16
-      deriving (Eq, Ord, Show, Num)
+      deriving (Eq, Ord, Show, Num, Real, Enum, Integral)
 
 newtype Inet6FlowInfo = Inet6FlowInfo Word32
-      deriving (Eq, Ord, Show, Num)
+      deriving (Eq, Ord, Show, Num, Real, Enum, Integral)
 
 newtype Inet6ScopeId  = Inet6ScopeId Word32
-      deriving (Eq, Ord, Show, Num)
+      deriving (Eq, Ord, Show, Num, Real, Enum, Integral)
 
 -- | Deconstructs an `Inet6Address`.
 inet6AddressToTuple :: Inet6Address -> (Word16,Word16,Word16,Word16,Word16,Word16,Word16,Word16)

@@ -89,7 +89,7 @@ newtype InetAddress
       deriving (Eq)
 
 newtype InetPort = InetPort Word16
-      deriving (Eq, Ord, Show, Num)
+      deriving (Eq, Ord, Show, Num, Real, Enum, Integral)
 
 -- | Constructs a custom `InetAddress`.
 --
