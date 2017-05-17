@@ -105,3 +105,9 @@ int hs_setsockopt(int fd, int level, int optname, const void *optval, int  optle
   *err = errno;
   return i;
 }
+
+int hs_getsockname(int fd, struct sockaddr *addr, socklen_t *addrlen, int *err) {
+  int i = getsockname(fd, addr, addrlen);
+  *err = errno;
+  return i;
+}

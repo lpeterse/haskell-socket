@@ -89,6 +89,8 @@ module System.Socket (
   -- ** getNameInfo
   , NameInfo (..)
   , HasNameInfo (..)
+  -- ** getAddress
+  , getAddress
   -- * Flags
   -- ** MessageFlags
   , MessageFlags (..)
@@ -431,3 +433,13 @@ close (Socket mfd) = do
       -- When we arrive here, no exception has been thrown and the descriptor has been closed.
       -- We put an invalid file descriptor into the MVar.
       return (-1)
+
+getAddress :: forall f t p. (Family f) => Socket f t p -> IO (SocketAddress f)
+getAddress (Socket mfd) =
+  alloca $ \addrPtr -> alloca $ \addrSizePtr -> alloca $ \errPtr -> do
+      poke addrSizePtr (fromIntegral $ sizeOf (undefined :: SocketAddress f))
+      withMVar mfd $ \fd -> do
+        i <- c_getsockname fd addrPtr addrSizePtr errPtr
+        when (i /= 0) (SocketException <$> peek errPtr >>= throwIO)
+        addr <- peek addrPtr
+        return addr

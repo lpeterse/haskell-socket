@@ -189,3 +189,11 @@ void hs_freeaddrinfo(struct addrinfo *res) {
   freeaddrinfo(res);
   return;
 };
+
+int hs_getsockname(int fd, struct sockaddr *addr, socklen_t *addrlen, int *err) {
+  int i = getsockname(fd, addr, addrlen);
+  if (i < 0) {
+    *err = WSAGetLastError();
+  }
+  return i;
+}
