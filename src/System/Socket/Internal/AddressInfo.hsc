@@ -149,11 +149,14 @@ newtype AddressInfoFlags
       = AddressInfoFlags CInt
       deriving (Eq, Show, Bits)
 
+instance Semigroup AddressInfoFlags where
+  (AddressInfoFlags a) <> (AddressInfoFlags b)
+    = AddressInfoFlags (a .|. b)
+
 instance Data.Monoid.Monoid AddressInfoFlags where
   mempty
     = AddressInfoFlags 0
-  mappend (AddressInfoFlags a) (AddressInfoFlags b)
-    = AddressInfoFlags (a .|. b)
+  mappend = (<>)
 
 -- | @AI_ADDRCONFIG@:
 aiAddressConfig  :: AddressInfoFlags
@@ -193,11 +196,14 @@ newtype NameInfoFlags
       = NameInfoFlags CInt
       deriving (Eq, Show, Bits)
 
+instance Semigroup NameInfoFlags where
+  (NameInfoFlags a) <> (NameInfoFlags b)
+    = NameInfoFlags (a .|. b)
+
 instance Monoid NameInfoFlags where
   mempty
     = NameInfoFlags 0
-  mappend (NameInfoFlags a) (NameInfoFlags b)
-    = NameInfoFlags (a .|. b)
+  mappend = (<>)
 
 -- | @NI_NAMEREQD@: Throw an exception if the hostname cannot be determined.
 niNameRequired               :: NameInfoFlags

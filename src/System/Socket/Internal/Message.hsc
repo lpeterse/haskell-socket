@@ -40,9 +40,12 @@ newtype MessageFlags
 
 data Message a t p
 
+instance Semigroup MessageFlags where
+  (<>) = (.|.)
+
 instance Monoid MessageFlags where
   mempty  = MessageFlags 0
-  mappend = (.|.)
+  mappend = (<>)
 
 instance Show MessageFlags where
   show msg = "mconcat [" ++ y ++ "]"
