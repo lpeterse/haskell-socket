@@ -21,6 +21,7 @@ import Data.Bits
 import Data.Monoid
 import Data.Maybe
 import Data.List (intersperse)
+import Data.Semigroup as Sem
 
 import Foreign.C.Types
 import Foreign.Storable
@@ -40,12 +41,12 @@ newtype MessageFlags
 
 data Message a t p
 
-instance Semigroup MessageFlags where
+instance Sem.Semigroup MessageFlags where
   (<>) = (.|.)
 
 instance Monoid MessageFlags where
   mempty  = MessageFlags 0
-  mappend = (<>)
+  mappend = (Sem.<>)
 
 instance Show MessageFlags where
   show msg = "mconcat [" ++ y ++ "]"
