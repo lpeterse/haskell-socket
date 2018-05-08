@@ -6,15 +6,16 @@ notifications:
 sudo: required
 
 env:
- - CABALVER=1.18 GHCVER=7.8.1  # see note about Alex/Happy for GHC >= 7.8
+ - CABALVER=1.18 GHCVER=7.8.1
  - CABALVER=1.18 GHCVER=7.8.2
  - CABALVER=1.18 GHCVER=7.8.3
  - CABALVER=1.18 GHCVER=7.8.4
  - CABALVER=1.22 GHCVER=7.10.1
  - CABALVER=1.22 GHCVER=7.10.2
  - CABALVER=1.22 GHCVER=7.10.3
- - CABALVER=1.24 GHCVER=8.0.1
-# - CABALVER=head GHCVER=head   # see section about GHC HEAD snapshots
+ - CABALVER=1.24 GHCVER=8.0.2
+ - CABALVER=1.24 GHCVER=8.2.2
+ - CABALVER=2.2 GHCVER=8.4.2
 
 before_install:
  - travis_retry sudo add-apt-repository -y ppa:hvr/ghc
@@ -34,7 +35,6 @@ before_script:
  - sudo sh -c 'cat /etc/hosts'
 
 script:
- - if [ -f configure.ac ]; then autoreconf -i; fi
  - cabal configure --enable-tests --enable-benchmarks -v2  # -v2 provides useful information for debugging
  - cabal build   # this builds all libraries and executables (including tests/benchmarks)
  - cabal test
