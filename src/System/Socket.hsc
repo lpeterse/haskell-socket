@@ -74,6 +74,15 @@ module System.Socket (
   , receive, receiveFrom
   -- ** close
   , close
+  -- * Name Resolution
+  -- ** getAddress
+  , getAddress
+  -- ** getAddressInfo
+  , AddressInfo (..)
+  , HasAddressInfo (..)
+  -- ** getNameInfo
+  , NameInfo (..)
+  , HasNameInfo (..)
   -- * Options
   , SocketOption (..)
   -- ** Error
@@ -82,15 +91,6 @@ module System.Socket (
   , ReuseAddress (..)
   -- ** KeepAlive
   , KeepAlive (..)
-  -- * Name Resolution
-  -- ** getAddressInfo
-  , AddressInfo (..)
-  , HasAddressInfo (..)
-  -- ** getNameInfo
-  , NameInfo (..)
-  , HasNameInfo (..)
-  -- ** getAddress
-  , getAddress
   -- * Flags
   -- ** MessageFlags
   , MessageFlags (..)
@@ -434,9 +434,18 @@ close (Socket mfd) = do
       -- We put an invalid file descriptor into the MVar.
       return (-1)
 
+-- | Get a socket's (local) address.
+--
+-- > > (socket :: IO (Socket Inet Stream TCP)) >>= getAddress
+-- > SocketAddressInet {inetAddress = InetAddress 0.0.0.0, inetPort = InetPort 0}
+--
+--   - The operation throws `SocketException`s. Calling `getAddress` on a `close`d
+--     socket throws `eBadFileDescriptor` even if the former file descriptor has
+--     been reassigned.
 getAddress :: forall f t p. (Family f) => Socket f t p -> IO (SocketAddress f)
-getAddress (Socket mfd) =
-  alloca $ \addrPtr -> alloca $ \addrSizePtr -> alloca $ \errPtr -> do
+getAddress = getAddress'
+  where
+    getAddress' (Socket mfd) = alloca $ \addrPtr -> alloca $ \addrSizePtr -> alloca $ \errPtr -> do
       poke addrSizePtr (fromIntegral $ sizeOf (undefined :: SocketAddress f))
       withMVar mfd $ \fd -> do
         i <- c_getsockname fd addrPtr addrSizePtr errPtr

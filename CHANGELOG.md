@@ -1,3 +1,7 @@
+0.9.0.0 Lars Petersen <info@lars-petersen.net> 2018-07-25
+
+ * Issue 51: Add a `getAddress` operation for getting the local socket address.
+
 0.8.0.1 Lars Petersen <info@lars-petersen.net> 2017-02-25
 
  * Issue 47: Fixed haddock documentation. 

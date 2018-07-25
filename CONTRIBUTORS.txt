@@ -1,3 +1,4 @@
+Olivier Nicole (issue #15)
 Vyacheslav Hashov (issues #37, #38, #40, #41, #42)
 Alexander Vershilov (fixed bug in GHC upstream)
 Antom @SX91 (reported and helped with #27)

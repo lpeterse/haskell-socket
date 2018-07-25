@@ -1,28 +1,29 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Main where
 
-import           Control.Concurrent          (threadDelay)
-import           Control.Concurrent.Async    (async, cancel, concurrently, poll,
-                                              race, wait)
-import           Control.Exception           (bracket, catch, throwIO, try)
-import           Control.Monad               (unless, void, when)
-import qualified Data.ByteString.Builder     as BB
-import qualified Data.ByteString.Lazy        as LBS
-import qualified Data.ByteString             as BS
-import           Data.Int                    (Int64)
-import           Data.Maybe                  (isJust)
-import           Data.Monoid                 (mempty, mappend)
-import           Prelude                     hiding (head)
+import           Control.Concurrent             (threadDelay)
+import           Control.Concurrent.Async       (async, cancel, concurrently,
+                                                 poll, race, wait)
+import           Control.Exception              (bracket, catch, throwIO, try)
+import           Control.Monad                  (unless, void, when)
+import qualified Data.ByteString                as BS
+import qualified Data.ByteString.Builder        as BB
+import qualified Data.ByteString.Lazy           as LBS
+import           Data.Int                       (Int64)
+import           Data.Maybe                     (isJust)
+import           Data.Monoid                    (mappend, mempty)
+import           Prelude                        hiding (head)
 import           System.Socket
 import           System.Socket.Family.Inet
 import           System.Socket.Family.Inet6
+import           System.Socket.Protocol.Default
 import           System.Socket.Protocol.TCP
 import           System.Socket.Protocol.UDP
 import           System.Socket.Type.Datagram
 import           System.Socket.Type.Stream
 import           Test.Tasty
 import           Test.Tasty.HUnit
-import           Test.Tasty.QuickCheck       as QC
+import           Test.Tasty.QuickCheck          as QC
 
 main :: IO ()
 main  = defaultMain $ testGroup "socket"
@@ -33,6 +34,7 @@ main  = defaultMain $ testGroup "socket"
     , group03
     , group07
     , group80
+    , group98
     , group99
     ]
   , testGroup "System.Socket.Inet" [
@@ -49,7 +51,7 @@ port6 = 39000
 
 group00 :: TestTree
 group00 = testGroup "accept"
-  [ testGroup "Inet/Strem/TCP"
+  [ testGroup "Inet/Stream/TCP"
       [ testCase "cancel operation" $
           -- | This is to test interruptability of (blocking) calls like
           --   accept. The implementation may either run the call "safe"
@@ -430,6 +432,26 @@ group80 = testGroup "setSocketOption" [ testGroup "V6Only"
     ]
   ]
 
+group98 :: TestTree
+group98  = testGroup "getAddress" [
+
+    testCase "getAddress on a new socket" $ bracket
+      ( socket :: IO (Socket Inet Stream Default) ) close
+      ( \s -> do
+          addr <- getAddress s
+          assertEqual "" ( SocketAddressInet (inetAddressFromTuple (0,0,0,0)) 0 ) addr
+      )
+
+  , testCase "getAddress after bind" $ bracket
+      ( socket :: IO (Socket Inet Stream Default) ) close
+      ( \s -> do
+          let addr = SocketAddressInet (inetAddressFromTuple (127,0,0,1)) 8080
+          bind s addr
+          addr' <- getAddress s
+          assertEqual "" addr' addr
+      )
+  ]
+
 group99 :: TestTree
 group99  = testGroup "getAddrInfo" [
 
@@ -448,7 +470,7 @@ group99  = testGroup "getAddrInfo" [
   , testCase "getAddrInfo \"\" \"\"" $
       void (getAddressInfo Nothing Nothing mempty :: IO [AddressInfo Inet Stream TCP]) `catch` \e-> case e of
             _ | e == eaiNoName -> return ()
-            _ -> assertFailure "expected eaiNoName"
+            _                  -> assertFailure "expected eaiNoName"
 
   ]
 
