@@ -16,7 +16,7 @@ homepage:            https://github.com/lpeterse/haskell-socket
 bug-reports:         https://github.com/lpeterse/haskell-socket/issues
 tested-with:         GHC==7.8.1,GHC==7.8.2,GHC==7.8.3,GHC==7.8.4,
                      GHC==7.10.1, GHC==7.10.2, GHC==7.10.3,
-                     GHC==8.0.2, GHC==8.2.2, GHC==8.4.1
+                     GHC==8.0.2, GHC==8.2.2, GHC==8.4.3
 extra-source-files:  README.md
                      CHANGELOG.md
                      CONTRIBUTORS.txt
