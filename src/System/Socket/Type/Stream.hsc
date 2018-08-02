@@ -150,3 +150,5 @@ receiveAll sock maxLen flags = collect 0 Data.Monoid.mempty
                  $! (accum `Data.Monoid.mappend` BB.byteString bs)
     build accum = do
       return (BB.toLazyByteString accum)
+
+{-# DEPRECATED receiveAll "Semantics will change in the next major release. Don't use it anymore!" #-}

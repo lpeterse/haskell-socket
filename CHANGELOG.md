@@ -1,6 +1,9 @@
-0.9.0.0 Lars Petersen <info@lars-petersen.net> 2018-07-25
+0.8.1.0 Lars Petersen <info@lars-petersen.net> 2018-07-25
 
  * Issue 51: Add a `getAddress` operation for getting the local socket address.
+ * Marked `System.Socket.Type.Stream.receiveAll` as deprecated.
+   This is a preparation for a name reuse in upcoming 0.9.0.0.
+ * Removed dead code (`Message` type).
 
 0.8.0.1 Lars Petersen <info@lars-petersen.net> 2017-02-25
 

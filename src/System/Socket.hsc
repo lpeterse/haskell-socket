@@ -94,8 +94,8 @@ module System.Socket (
   -- * Flags
   -- ** MessageFlags
   , MessageFlags (..)
-  , msgEndOfRecord
   , msgNoSignal
+  , msgEndOfRecord
   , msgOutOfBand
   , msgWaitAll
   -- ** AddressInfoFlags
@@ -442,9 +442,10 @@ close (Socket mfd) = do
 --   - The operation throws `SocketException`s. Calling `getAddress` on a `close`d
 --     socket throws `eBadFileDescriptor` even if the former file descriptor has
 --     been reassigned.
-getAddress :: forall f t p. (Family f) => Socket f t p -> IO (SocketAddress f)
+getAddress :: (Family f) => Socket f t p -> IO (SocketAddress f)
 getAddress = getAddress'
   where
+    getAddress' :: forall f t p. (Family f) => Socket f t p -> IO (SocketAddress f)
     getAddress' (Socket mfd) = alloca $ \addrPtr -> alloca $ \addrSizePtr -> alloca $ \errPtr -> do
       poke addrSizePtr (fromIntegral $ sizeOf (undefined :: SocketAddress f))
       withMVar mfd $ \fd -> do

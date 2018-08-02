@@ -10,7 +10,6 @@
 --------------------------------------------------------------------------------
 module System.Socket.Internal.Message (
     MessageFlags (..)
-  , Message
   , msgEndOfRecord
   , msgNoSignal
   , msgOutOfBand
@@ -39,8 +38,6 @@ newtype MessageFlags
       = MessageFlags CInt
       deriving (Eq, Bits, Storable)
 
-data Message a t p
-
 instance Sem.Semigroup MessageFlags where
   (<>) = (.|.)
 
@@ -59,10 +56,6 @@ instance Show MessageFlags where
             in if                   i /= 0      then Just ("MessageFlags " ++ show i) else Nothing
           ]
       y = concat $ intersperse "," $ catMaybes x
-
--- | @MSG_EOR@
-msgEndOfRecord      :: MessageFlags
-msgEndOfRecord       = MessageFlags (#const MSG_EOR)
 
 -- | @MSG_NOSIGNAL@
 --
@@ -87,13 +80,34 @@ msgEndOfRecord       = MessageFlags (#const MSG_EOR)
 --     ignores them if you don't hook them explicitly. The
 --     non-portable socket option `SO_NOSIGPIPE` may be used disable signals
 --     on a per-socket basis.
+--
+--   __/It is safe and advised to always use this flag unless one wants to/__
+--   __/explictly hook and handle the @PIPE@ signal which is not very useful in todays/__
+--   __/multi-threaded environments anyway. Although GHC's RTS ignores the/__
+--   __/signal by default it causes an unnecessary interruption./__
 msgNoSignal         :: MessageFlags
 msgNoSignal          = MessageFlags (#const MSG_NOSIGNAL)
 
+-- | @MSG_EOR@
+--
+--   Used by `System.Socket.Type.SequentialPacket.SequentialPacket` to mark record boundaries.
+--   Consult the POSIX standard for details.
+msgEndOfRecord      :: MessageFlags
+msgEndOfRecord       = MessageFlags (#const MSG_EOR)
+{-# WARNING msgEndOfRecord "Untested: Use at your own risk!" #-}
+
 -- | @MSG_OOB@
+--
+--   Used to send and receive out-of-band data. Consult the relevant standards
+--   for details.
 msgOutOfBand        :: MessageFlags
 msgOutOfBand         = MessageFlags (#const MSG_OOB)
+{-# WARNING msgOutOfBand "Untested: Use at your own risk!" #-}
 
 -- | @MSG_WAITALL@
+--
+--   A `System.Socket.receive` call shall not return unless the requested number of
+--   bytes becomes available.
 msgWaitAll          :: MessageFlags
 msgWaitAll           = MessageFlags (#const MSG_WAITALL)
+{-# WARNING msgWaitAll "Untested: Use at your own risk!" #-}
