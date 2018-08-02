@@ -40,7 +40,7 @@ GHC's runtime system on Windows does not offer an event notification mechanism f
 The original [network](https://hackage.haskell.org/package/network) library
 suffers from this, too. For example, connection attempts are non-interruptible etc.
 The approach taken to circumvent this in this library is to poll the
-non-blocking sockets with increasing delay. This guarantees non-interruptability
+non-blocking sockets with increasing delay. This guarantees interruptibility
 and fairness between different threads. It allows for decent throughput
 while also keeping CPU consumption on a moderate level if a socket has not seen
 events for a longer period of time (maximum of 1 second delay after 20
