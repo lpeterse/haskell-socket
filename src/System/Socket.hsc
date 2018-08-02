@@ -442,6 +442,8 @@ close (Socket mfd) = do
 --   - The operation throws `SocketException`s. Calling `getAddress` on a `close`d
 --     socket throws `eBadFileDescriptor` even if the former file descriptor has
 --     been reassigned.
+--   - Behaviour of calling `getAddress` on a socket that is neither bound nor connected
+--     is undefined.
 getAddress :: (Family f) => Socket f t p -> IO (SocketAddress f)
 getAddress = getAddress'
   where

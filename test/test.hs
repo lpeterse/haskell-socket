@@ -435,14 +435,7 @@ group80 = testGroup "setSocketOption" [ testGroup "V6Only"
 group98 :: TestTree
 group98  = testGroup "getAddress" [
 
-    testCase "getAddress on a new socket" $ bracket
-      ( socket :: IO (Socket Inet Stream Default) ) close
-      ( \s -> do
-          addr <- getAddress s
-          assertEqual "" ( SocketAddressInet (inetAddressFromTuple (0,0,0,0)) 0 ) addr
-      )
-
-  , testCase "getAddress after bind" $ bracket
+    testCase "getAddress after bind" $ bracket
       ( socket :: IO (Socket Inet Stream Default) ) close
       ( \s -> do
           let addr = SocketAddressInet (inetAddressFromTuple (127,0,0,1)) 8080
