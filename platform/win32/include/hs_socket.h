@@ -108,6 +108,7 @@ void hs_freeaddrinfo(struct addrinfo *res);
 #define SEAGAIN                WSATRY_AGAIN
 #define SEWOULDBLOCK           WSAEWOULDBLOCK
 #define SEBADF                 WSAEBADF
+#define SEACCES                WSAEACCES
 #define SEINVAL                WSAEINVAL
 #define SEINPROGRESS           WSAEINPROGRESS
 #define SEPROTONOSUPPORT       WSAEPROTONOSUPPORT

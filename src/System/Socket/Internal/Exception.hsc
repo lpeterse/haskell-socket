@@ -13,6 +13,7 @@ module System.Socket.Internal.Exception
   , eOk
   , eInterrupted
   , eBadFileDescriptor
+  , ePermissionDenied
   , eInvalid
   , ePipe
   , eWouldBlock
@@ -71,6 +72,7 @@ instance Show SocketException where
     | e == eOk                           = "eOk"
     | e == eInterrupted                  = "eInterrupted"
     | e == eBadFileDescriptor            = "eBadFileDescriptor"
+    | e == ePermissionDenied             = "ePermissionDenied"
     | e == eInvalid                      = "eInvalid"
     | e == ePipe                         = "ePipe"
     | e == eWouldBlock                   = "eWouldBlock"
@@ -120,6 +122,10 @@ eInterrupted                 = SocketException (#const SEINTR)
 -- | Bad file descriptor.
 eBadFileDescriptor          :: SocketException
 eBadFileDescriptor           = SocketException (#const SEBADF)
+
+-- | PermissionDenied.
+ePermissionDenied           :: SocketException
+ePermissionDenied            = SocketException (#const SEACCES)
 
 -- | Invalid argument.
 eInvalid                    :: SocketException

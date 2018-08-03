@@ -33,6 +33,7 @@ int hs_setsockopt(int fd, int level, int option_name, const void *option_value, 
 #define SEAGAIN                EAGAIN
 #define SEWOULDBLOCK           EWOULDBLOCK
 #define SEBADF                 EBADF
+#define SEACCES                EACCES
 #define SEINVAL                EINVAL
 #define SEINPROGRESS           EINPROGRESS
 #define SEPROTONOSUPPORT       EPROTONOSUPPORT

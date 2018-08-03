@@ -4,6 +4,7 @@
  * Marked `System.Socket.Type.Stream.receiveAll` as deprecated.
    This is a preparation for a name reuse in upcoming 0.9.0.0.
  * Removed dead code (`Message` type).
+ * Added error code `ePermissionDenied`.
 
 0.8.0.1 Lars Petersen <info@lars-petersen.net> 2017-02-25
 
