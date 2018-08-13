@@ -123,7 +123,7 @@ eInterrupted                 = SocketException (#const SEINTR)
 eBadFileDescriptor          :: SocketException
 eBadFileDescriptor           = SocketException (#const SEBADF)
 
--- | PermissionDenied.
+-- | Permission denied.
 ePermissionDenied           :: SocketException
 ePermissionDenied            = SocketException (#const SEACCES)
 
