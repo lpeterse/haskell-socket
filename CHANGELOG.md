@@ -1,3 +1,7 @@
+0.8.2.0 Lars Petersen <info@lars-petersen.net> 2018-09-11
+
+  * Issue 61: Fixed unexpected `IOError` bubbling up from `threadWaitSTM`.
+
 0.8.1.0 Lars Petersen <info@lars-petersen.net> 2018-08-13
 
  * Issue 51: Add a `getAddress` operation for getting the local socket address.

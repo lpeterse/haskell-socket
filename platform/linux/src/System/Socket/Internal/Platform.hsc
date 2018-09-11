@@ -42,14 +42,12 @@ waitConnected  = flip waitWrite 0
 
 wait :: Socket f t p -> (Fd -> IO ()) -> (Fd -> IO (STM (), IO ())) -> IO ()
 wait (Socket mfd) threadWait threadWaitSTM
-  | rtsSupportsBoundThreads = mapException
-    ( const eBadFileDescriptor :: IOError -> SocketException )
-    ( bracketOnError
+  | rtsSupportsBoundThreads = bracketOnError
         ( withMVar mfd $ \fd -> do
             when (fd < 0) (throwIO eBadFileDescriptor)
             threadWaitSTM fd
-        ) snd ( atomically . fst )
-    )
+        )
+        snd ( atomically . fst ) `catch` (const (throwIO eBadFileDescriptor) :: IOError -> IO ())
   | otherwise = do
       m <- newEmptyMVar
       bracketOnError
