@@ -14,6 +14,7 @@ module System.Socket.Internal.Message (
   , msgNoSignal
   , msgOutOfBand
   , msgWaitAll
+  , msgPeek
   ) where
 
 import Data.Bits
@@ -52,7 +53,8 @@ instance Show MessageFlags where
           , if msg .&. msgNoSignal    /= mempty then Just "msgNoSignal"    else Nothing
           , if msg .&. msgOutOfBand   /= mempty then Just "msgOutOfBand"   else Nothing
           , if msg .&. msgWaitAll     /= mempty then Just "msgWaitAll"     else Nothing
-          , let (MessageFlags i) = msg `xor` (Data.Monoid.mconcat [msgEndOfRecord,msgNoSignal,msgOutOfBand,msgWaitAll] .&. msg)
+          , if msg .&. msgWaitAll     /= mempty then Just "msgPeek"        else Nothing
+          , let (MessageFlags i) = msg `xor` (Data.Monoid.mconcat [msgEndOfRecord,msgNoSignal,msgOutOfBand,msgWaitAll,msgPeek] .&. msg)
             in if                   i /= 0      then Just ("MessageFlags " ++ show i) else Nothing
           ]
       y = concat $ intersperse "," $ catMaybes x
@@ -111,3 +113,10 @@ msgOutOfBand         = MessageFlags (#const MSG_OOB)
 msgWaitAll          :: MessageFlags
 msgWaitAll           = MessageFlags (#const MSG_WAITALL)
 {-# WARNING msgWaitAll "Untested: Use at your own risk!" #-}
+
+-- | @MSG_PEEK@
+--
+--   A `System.Socket.receive` shall not actually remove the received
+--   data from the input buffer.
+msgPeek             :: MessageFlags
+msgPeek              = MessageFlags (#const MSG_PEEK)

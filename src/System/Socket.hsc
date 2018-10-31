@@ -98,6 +98,7 @@ module System.Socket (
   , msgEndOfRecord
   , msgOutOfBand
   , msgWaitAll
+  , msgPeek
   -- ** AddressInfoFlags
   , AddressInfoFlags ()
   , aiAddressConfig

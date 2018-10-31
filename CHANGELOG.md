@@ -1,6 +1,7 @@
-0.8.2.0 Lars Petersen <info@lars-petersen.net> 2018-09-11
+0.8.2.0 Lars Petersen <info@lars-petersen.net> 2018-10-31
 
   * Issue 61: Fixed unexpected `IOError` bubbling up from `threadWaitSTM`.
+  * Added message flag `msgPeek` (MSG_PEEK).
 
 0.8.1.0 Lars Petersen <info@lars-petersen.net> 2018-08-13
 
