@@ -1,5 +1,5 @@
 name:                socket
-version:             0.8.2.0
+version:             0.8.3.0
 synopsis:            An extensible socket library.
 description:
   This library is a minimal cross-platform interface for
@@ -14,9 +14,7 @@ build-type:          Simple
 cabal-version:       >=1.10
 homepage:            https://github.com/lpeterse/haskell-socket
 bug-reports:         https://github.com/lpeterse/haskell-socket/issues
-tested-with:         GHC==7.8.1,GHC==7.8.2,GHC==7.8.3,GHC==7.8.4,
-                     GHC==7.10.1, GHC==7.10.2, GHC==7.10.3,
-                     GHC==8.0.2, GHC==8.2.2, GHC==8.4.3
+tested-with:         GHC==8.0.2, GHC==8.2.2, GHC==8.4.3, GHC==8.8.3
 extra-source-files:  README.md
                      CHANGELOG.md
                      CONTRIBUTORS.txt
@@ -47,10 +45,6 @@ library
                      , System.Socket.Internal.Platform
   build-depends:       base >= 4.7 && < 5
                      , bytestring < 0.11
-  if impl(ghc >= 8.0)
-    ghc-options: -Wcompat -Wnoncanonical-monad-instances -Wnoncanonical-monadfail-instances
-  else
-    build-depends: fail == 4.9.*, semigroups == 0.18.*
   hs-source-dirs:      src
   build-tools:         hsc2hs
   default-language:    Haskell2010

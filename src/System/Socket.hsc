@@ -131,7 +131,6 @@ module System.Socket (
   , eaiSystem
   ) where
 
-import Control.Applicative ( (<$>) )
 import Control.Exception
 import Control.Monad
 import Control.Concurrent

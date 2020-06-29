@@ -18,8 +18,7 @@ import Control.Concurrent.MVar
 import Control.Concurrent ( threadWaitRead, threadWaitWrite,
                             threadWaitReadSTM, threadWaitWriteSTM,
                             forkIO, rtsSupportsBoundThreads, killThread )
-import Control.Exception ( bracketOnError, mapException, throwIO,
-                           catch, SomeException(..) )
+import Control.Exception ( bracketOnError, throwIO, catch, SomeException(..) )
 import Foreign.Ptr
 import Foreign.C.Types
 import Foreign.C.String

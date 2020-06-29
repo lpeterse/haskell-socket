@@ -1,3 +1,7 @@
+0.8.3.0 Lars Petersen <info@lars-petersen.net> 2020-06-29
+
+  * Updates Stack LTS to 16.3
+
 0.8.2.0 Lars Petersen <info@lars-petersen.net> 2018-10-31
 
   * Issue 61: Fixed unexpected `IOError` bubbling up from `threadWaitSTM`.

@@ -33,7 +33,6 @@ module System.Socket.Unsafe (
   , tryWaitRetryLoop
   ) where
 
-import Control.Applicative ( (<$>) )
 import Control.Concurrent.MVar
 import Control.Exception ( throwIO )
 import Control.Monad
