@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, ScopedTypeVariables #-}
 module Main where
 
 import           Control.Concurrent             (threadDelay)
@@ -33,6 +33,7 @@ main  = defaultMain $ testGroup "socket"
     , group02
     , group03
     , group07
+    , group08
     , group80
     , group98
     , group99
@@ -48,6 +49,17 @@ port  = 39000
 
 port6 :: Inet6Port
 port6 = 39000
+
+-- exception types are not really portable, e. g. a write on a socket
+-- that has been shutdown throws ePipe on POSIX and eShutdown on Windows,
+-- so checking for exception equality is not really reasonable until we
+-- have an exception compatibility layer
+assertThrows :: IO a -> Assertion
+assertThrows action = catch action' $ \(e :: SocketException) -> pure ()
+  where action' = do
+          action
+          assertFailure $ mconcat
+            [ "No exception was thrown, a SocketException was expected." ]
 
 group00 :: TestTree
 group00 = testGroup "accept"
@@ -380,6 +392,50 @@ group07 = testGroup "sendAll/receiveAll"
         )
     ]
   ]
+
+group08 :: TestTree
+group08 = testGroup "shutdown"
+  [ shutdownCase "ShutdownRead TCP" ShutdownRead
+  , shutdownCase "ShutdownWrite TCP" ShutdownWrite
+  , shutdownCase "ShutdownReadWrite TCP" ShutdownReadWrite
+  ]
+  where shutdownIncl :: SocketShutdown -> SocketShutdown -> Bool
+        shutdownIncl _ ShutdownReadWrite = True
+        shutdownIncl ShutdownReadWrite _ = True
+        shutdownIncl a b = a == b
+
+        shutdownCase :: String -> SocketShutdown -> TestTree
+        shutdownCase name how = testCase name $ bracket
+          ( do
+            server <- socket :: IO (Socket Inet Stream TCP)
+            client <- socket :: IO (Socket Inet Stream TCP)
+            return (server, client)
+          )
+          ( \(server, client) -> do
+            close server
+            close client
+          )
+          ( \(server, client) -> do
+            let addr = SocketAddressInet inetLoopback port
+            setSocketOption server (ReuseAddress True)
+            bind server addr
+            listen server 5
+            serverThread <- async $ do
+              (peerSock, _) <- accept server
+              threadDelay 100000 -- give time for shutdown
+              send peerSock "Hello, Client!" msgNoSignal
+              void $ receive peerSock 1024 msgNoSignal
+            threadDelay 100000
+            connect client addr
+            shutdown client how
+            when (shutdownIncl how ShutdownWrite)
+              $ assertThrows $ send client "Hello, Server!" msgNoSignal
+            when (shutdownIncl how ShutdownRead) $ do
+              -- ShutdownRead results in empty reads, not in an exception
+              s <- receive client 1024 msgNoSignal
+              assertEqual "receive empty after shutdown" mempty s
+            cancel serverThread
+          )
 
 group80 :: TestTree
 group80 = testGroup "setSocketOption" [ testGroup "V6Only"

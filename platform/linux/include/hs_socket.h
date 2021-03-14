@@ -28,6 +28,8 @@ int hs_recvfrom(int fd,       void *buf, size_t len, int flags, struct sockaddr 
 int hs_getsockopt(int fd, int level, int option_name,       void *option_value, int *option_len, int *err);
 int hs_setsockopt(int fd, int level, int option_name, const void *option_value, int  option_len, int *err);
 
+int hs_shutdown(int fd, int how, int *err);
+
 #define SEOK                   0
 #define SEINTR                 EINTR
 #define SEAGAIN                EAGAIN

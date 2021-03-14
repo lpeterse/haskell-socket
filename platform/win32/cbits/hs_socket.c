@@ -197,3 +197,11 @@ int hs_getsockname(int fd, struct sockaddr *addr, socklen_t *addrlen, int *err) 
   }
   return i;
 }
+
+int hs_shutdown(int fd, int how, int *err) {
+  int i = shutdown(fd, how);
+  if (i != 0) {
+    *err = WSAGetLastError();
+  }
+  return i;
+}
