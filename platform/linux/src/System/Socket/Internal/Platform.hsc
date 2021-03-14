@@ -11,7 +11,7 @@ module System.Socket.Internal.Platform
   ( waitRead, waitWrite, waitConnected, c_socket, c_close, c_connect,
     c_accept, c_bind, c_listen, c_recv, c_recvfrom, c_send, c_sendto,
     c_freeaddrinfo, c_getaddrinfo, c_getnameinfo, c_memset, c_gai_strerror,
-    c_setsockopt, c_getsockopt, c_getsockname) where
+    c_setsockopt, c_getsockopt, c_getsockname, c_shutdown) where
 
 import Control.Monad ( when, unless )
 import Control.Concurrent.MVar
@@ -114,3 +114,6 @@ foreign import ccall unsafe "gai_strerror"
 
 foreign import ccall unsafe "hs_getsockname"
   c_getsockname  :: Fd -> Ptr a -> Ptr CInt -> Ptr CInt -> IO CInt
+
+foreign import ccall unsafe "hs_shutdown"
+  c_shutdown     :: Fd -> CInt -> Ptr CInt -> IO CInt

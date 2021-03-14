@@ -20,14 +20,19 @@ module System.Socket.Type.Stream (
   -- ** Specialized receive operations
   -- *** receiveAll
   , receiveAll
+  -- ** Stream socket shutdown
+  , SocketShutdown (..)
+  , shutdown
   ) where
 
+import Control.Concurrent.MVar (withMVar)
 import Control.Exception (throwIO)
 import Control.Monad (when)
 import Data.Int
 import Data.Word
 import Data.Monoid
 import Foreign.Ptr
+import Foreign.Storable (peek)
 import Foreign.Marshal.Alloc
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Unsafe as BS
@@ -37,6 +42,7 @@ import qualified Data.ByteString.Lazy as LBS
 
 import System.Socket
 import System.Socket.Unsafe
+import System.Socket.Internal.Platform
 
 #include "hs_socket.h"
 
@@ -152,3 +158,22 @@ receiveAll sock maxLen flags = collect 0 Data.Monoid.mempty
       return (BB.toLazyByteString accum)
 
 {-# DEPRECATED receiveAll "Semantics will change in the next major release. Don't use it anymore!" #-}
+
+-- | Type of socket shutdown to perform.
+data SocketShutdown
+  -- | Disallows further reads. All future 'receive' calls will be empty
+  = ShutdownRead
+  -- | Disallows further writes. All future 'send' calls will fail
+  --   with an exception (platform specific: either 'ePipe' or 'eShutdown').
+  | ShutdownWrite
+  -- | Disallow both reading and writing.
+  | ShutdownReadWrite
+  deriving (Show, Eq, Ord, Enum)
+
+-- | Shuts down (part of) a stream connection.
+--   See 'SocketShutdown' on the effects of a socket shutdown.
+shutdown :: Socket f Stream p -> SocketShutdown -> IO ()
+shutdown (Socket mfd) how = withMVar mfd $ \fd ->
+  alloca $ \errPtr -> do
+    i <- c_shutdown fd (fromIntegral $ fromEnum how) errPtr
+    when (i /= 0) $ SocketException <$> peek errPtr >>= throwIO

@@ -135,3 +135,6 @@ foreign import ccall safe "hs_getnameinfo"
 
 foreign import ccall unsafe "hs_getsockname"
   c_getsockname  :: Fd -> Ptr a -> Ptr CInt -> Ptr CInt -> IO CInt
+
+foreign import ccall unsafe "hs_shutdown"
+  c_shutdown     :: Fd -> CInt -> Ptr CInt -> IO CInt

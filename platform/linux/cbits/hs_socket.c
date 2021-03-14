@@ -111,3 +111,9 @@ int hs_getsockname(int fd, struct sockaddr *addr, socklen_t *addrlen, int *err) 
   *err = errno;
   return i;
 }
+
+int hs_shutdown(int fd, int how, int *err) {
+  int i = shutdown(fd, how);
+  *err = errno;
+  return i;
+}
