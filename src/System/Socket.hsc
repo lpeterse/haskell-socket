@@ -60,6 +60,8 @@ module System.Socket (
   -- * Operations
   -- ** socket
   , socket
+  -- ** socketToFd
+  , socketToFd
   -- ** connect
   , connect
   -- ** bind
@@ -144,6 +146,7 @@ import GHC.Conc ( closeFdWith )
 
 import Foreign.Storable
 import Foreign.Marshal.Alloc
+import System.Posix.Types (Fd (..))
 
 import System.Socket.Unsafe
 
@@ -455,3 +458,9 @@ getAddress = getAddress'
         when (i /= 0) (SocketException <$> peek errPtr >>= throwIO)
         addr <- peek addrPtr
         return addr
+
+-- | Invalidate the given 'Socket' and return the file descriptor
+--   it held. All calls on the socket will fail after this call.
+--   Additionally, the file descriptor needs to be closed manually.
+socketToFd :: Socket f t p -> IO Fd
+socketToFd (Socket mfd) = Fd . fromIntegral <$> swapMVar mfd (-1)
